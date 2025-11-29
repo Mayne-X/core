@@ -171,15 +171,8 @@ bool RecoverableSignature::check() // check for lower S
     return res == 0;
 }
 
-Writer& operator<<(Writer& w, const RecoverableSignature& rs)
-{
-    const auto ser { rs.serialize() };
-    const auto s { RecoverableSignature::from_view(ser) };
-    assert(s.has_value());
-    return w << ser;
-}
 
-void RecoverableSignature::serialize(uint8_t* out65) const
+void RecoverableSignature::write_to(uint8_t* out65) const
 {
     int recid;
     int ret = secp256k1_ecdsa_recoverable_signature_serialize_compact(
@@ -191,7 +184,7 @@ void RecoverableSignature::serialize(uint8_t* out65) const
 
 std::string RecoverableSignature::to_string() const
 {
-    return serialize_hex(serialize());
+    return serialize_hex(to_array());
 }
 PubKey RecoverableSignature::recover_pubkey(HashView hv) const
 {

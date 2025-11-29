@@ -25,6 +25,11 @@ public:
         : TransactionCreateBase(std::move(pinHeight), std::move(nonceId), std::move(reserved), std::move(compactFee), std::move(ts)..., pk.sign(tx_hash(pinHash)))
     {
     }
+    TransactionCreateBase(const JSONConverter& c)
+        : TransactionCreateBase(c, c, c, Ts(c)..., c)
+    {
+    }
+
     [[nodiscard]] auto create_message(AccountId aid) const
     {
         TransactionId txid(aid, this->pin_height(), this->nonce_id());
@@ -50,13 +55,13 @@ public:
     }
 };
 
-#define DEFINE_CREATE_MESSAGE(name, str_tag, ...)                  \
-    class name : public TransactionCreateBase<name, __VA_ARGS__> { \
-    public:                                                        \
-        static constexpr const char* tag() { return str_tag; };    \
-        using TransactionCreateBase::TransactionCreateBase;        \
-        operator std::string();                                    \
-        static name parse_from(const JSONConverter& json);         \
+#define DEFINE_CREATE_MESSAGE(name, str_tag, ...)                              \
+    class name : public TransactionCreateBase<name, __VA_ARGS__> {             \
+    public:                                                                    \
+        static constexpr const char* tag() { return str_tag; };                \
+        using TransactionCreateBase::TransactionCreateBase;                    \
+        operator std::string();                                                \
+        static name parse_from(const JSONConverter& json) { return { json }; } \
     };
 
 DEFINE_CREATE_MESSAGE(WartTransferCreate, ::block::labels::wartTransfer, ToAddrEl, NonzeroWartEl)

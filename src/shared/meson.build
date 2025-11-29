@@ -13,6 +13,7 @@ src_wh=[
   [
     './platformassert.cpp',
     './src/block/block.cpp',
+    './src/block/body/merkle_write_hooker.cpp',
     './src/block/body/body.cpp',
     './src/block/body/container.cpp',
     './src/block/body/nonce.cpp',

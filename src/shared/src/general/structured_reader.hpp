@@ -4,17 +4,9 @@
 #include "crypto/hasher_sha256.hpp"
 #include "general/reader.hpp"
 #include "structured_reader_fwd.hpp"
+#include "general/merkle_leaves.hpp"
 #include <vector>
 
-struct MerkleLeaves {
-    void add_hash(Hash hash)
-    {
-        hashes.push_back(std::move(hash));
-    }
-    std::vector<uint8_t> merkle_prefix() const; // only since shifus merkle tree
-    Hash merkle_root(const BodyData& data, NonzeroHeight h) const;
-    std::vector<Hash> hashes;
-};
 
 // The ParseNode class is used for representation and construction of
 // structured description of parsing from binary. It is used applied
@@ -156,6 +148,7 @@ template <StaticString annotation, typename T>
 class Tag : public T {
 public:
     using T::T;
+    // Tag(T t):T(std::move(t)){}
     Tag(StructuredReader& s)
         : T(s.annotate(annotation.to_string()).reader)
     {

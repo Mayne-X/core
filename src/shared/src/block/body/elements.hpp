@@ -1,4 +1,5 @@
 #pragma once
+#include "block/body/merkle_write_hooker.hpp"
 #include "block/body/transaction_id.hpp"
 #include "elements_fwd.hpp"
 #include "general/base_elements.hpp"
@@ -21,19 +22,20 @@ struct Combined : public Ts... {
     {
         (s << ... << static_cast<const Ts*>(this)->get());
     }
-    void write(Writer& w) const
-    {
-        serialize(w);
-    }
-    static constexpr size_t byte_size()
-    {
-        return (Ts::byte_size() + ...);
-    }
     void append_merkle_leaves(std::vector<Hash>& out) const
     {
         out.push_back(hashSHA256(*this));
     }
 };
+template<typename T>
+struct HookMerkle: public T {
+    using T::T;
+    void write(MerkleWriteHook h) const
+    {
+        h.writer << *this;
+    }
+};
+
 template <typename... Ts>
 struct SignedCombined : public Combined<OriginAccIdEl, PinNonceEl, CompactFeeEl, Ts..., SignatureEl> {
     using Combined<OriginAccIdEl, PinNonceEl, CompactFeeEl, Ts..., SignatureEl>::Combined;

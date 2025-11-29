@@ -1,12 +1,13 @@
 #pragma once
 
 #include "address.hpp"
+#include "general/serializer.hxx"
 #include "secp256k1.h"
 #include "secp256k1_recovery.h"
+#include "wrt/optional.hpp"
 #include <array>
 #include <cassert>
 #include <cstring>
-#include "wrt/optional.hpp"
 
 void ECC_Start();
 void ECC_Stop();
@@ -63,11 +64,22 @@ public:
     RecoverableSignature(std::string_view);
     static wrt::optional<RecoverableSignature> from_view(View<65>);
     std::string to_string() const;
-    void serialize(uint8_t* out65) const;
-    std::array<uint8_t, 65> serialize() const
+    void write_to(uint8_t* out65) const;
+    void serialize(Serializer auto&& s) const
+    {
+        const auto ser { to_array() };
+        const auto r { RecoverableSignature::from_view(ser) };
+        assert(r.has_value());
+        s << ser;
+    }
+    constexpr void serialize(ByteCounter& b) const
+    {
+        b.add_size(65);
+    }
+    std::array<uint8_t, 65> to_array() const
     {
         std::array<uint8_t, 65> res;
-        serialize(res.data());
+        write_to(res.data());
         return res;
     };
     PubKey recover_pubkey(HashView) const;
@@ -81,5 +93,3 @@ private: // private methods
 private: // private data
     secp256k1_ecdsa_recoverable_signature recsig;
 };
-class Writer;
-Writer& operator<<(Writer&, const RecoverableSignature&);

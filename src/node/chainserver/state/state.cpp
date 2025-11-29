@@ -643,7 +643,7 @@ Result<ChainMiningTask> State::mining_task(const Address& miner, bool disableTxs
                 [&, assetOffsets = std::map<AssetHash, size_t> {}](AssetHash hash) mutable -> auto& {
                     auto [it, inserted] = assetOffsets.try_emplace(hash, entries.tokens().size());
                     if (inserted)
-                        entries.tokens().push_back({ dbcache.assetsByHash.fetch(hash).id });
+                        entries.tokens().push_back({  dbcache.assetsByHash.fetch(hash).id  });
                     return entries.tokens()[it->second];
                 }
             };
@@ -1397,7 +1397,7 @@ auto State::api_get_history(const api::AccountIdOrAddress& a, int64_t beforeId) 
 auto State::api_get_richlist(api::TokenIdOrSpec spec, size_t limit) const -> Result<api::RichlistInfo>
 {
     if (auto token { normalize(spec) })
-        return api::RichlistInfo{db.lookup_richlist(token->id, limit),std::move(*token)};
+        return api::RichlistInfo { db.lookup_richlist(token->id, limit), std::move(*token) };
     return Error(ETOKIDNOTFOUND);
 }
 

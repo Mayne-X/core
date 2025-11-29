@@ -7,20 +7,22 @@ namespace body {
 
 template <typename... Ts>
 struct Combined;
+template <typename T>
+struct HookMerkle;
 template <typename... Ts>
 struct SignedCombined;
 template <StaticString tag, typename... Ts>
 using TaggedSignedCombined = Tag<tag, SignedCombined<Ts...>>;
 
-using Reward = Combined<ToAccIdEl, WartEl>;
-using WartTransfer = TaggedSignedCombined<::block::labels::wartTransfer, ToAccIdEl, WartEl>;
-using AssetTransfer = TaggedSignedCombined<::block::labels::assetTransfer, ToAccIdEl, NonzeroAmountEl>;
-using LiquidityTransfer = TaggedSignedCombined<::block::labels::liquidityTransfer, ToAccIdEl, NonzeroSharesEl>;
-using AssetCreation = TaggedSignedCombined<::block::labels::assetCreation, AssetSupplyEl, AssetNameEl>;
-using Order = TaggedSignedCombined<::block::labels::limitSwap, BuyEl, NonzeroAmountEl, LimitPriceEl>;
+using Reward = HookMerkle<Combined<ToAccIdEl, WartEl>>;
+using WartTransfer = HookMerkle<TaggedSignedCombined<::block::labels::wartTransfer, ToAccIdEl, WartEl>>;
+using AssetTransfer = HookMerkle<TaggedSignedCombined<::block::labels::assetTransfer, ToAccIdEl, NonzeroAmountEl>>;
+using LiquidityTransfer = HookMerkle<TaggedSignedCombined<::block::labels::liquidityTransfer, ToAccIdEl, NonzeroSharesEl>>;
+using AssetCreation = HookMerkle<TaggedSignedCombined<::block::labels::assetCreation, AssetSupplyEl, AssetNameEl>>;
+using Order = HookMerkle<TaggedSignedCombined<::block::labels::limitSwap, BuyEl, NonzeroAmountEl, LimitPriceEl>>;
 struct CancelationBase;
-using Cancelation = Tag<::block::labels::cancelation, CancelationBase>;
-using LiquidityDeposit = TaggedSignedCombined<::block::labels::liquidityDeposit, BaseEl, QuoteEl>;
-using LiquidityWithdrawal = TaggedSignedCombined<"liquidityWithdrawal", NonzeroAmountEl>;
+using Cancelation = HookMerkle<Tag<::block::labels::cancelation, CancelationBase>>;
+using LiquidityDeposit = HookMerkle<TaggedSignedCombined<::block::labels::liquidityDeposit, BaseEl, QuoteEl>>;
+using LiquidityWithdrawal = HookMerkle<TaggedSignedCombined<"liquidityWithdrawal", NonzeroAmountEl>>;
 }
 }

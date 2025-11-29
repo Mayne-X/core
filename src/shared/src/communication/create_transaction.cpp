@@ -14,39 +14,6 @@ WartTransferCreate::operator std::string()
         .dump(1);
 }
 
-WartTransferCreate WartTransferCreate::parse_from(const JSONConverter& c)
-{
-    return { c, c, c, c, c, c };
-}
-TokenTransferCreate TokenTransferCreate::parse_from(const JSONConverter& c)
-{
-    return { c, c, c, c, c, c, c, c };
-}
-
-LimitSwapCreate LimitSwapCreate::parse_from(const JSONConverter& c)
-{
-    return { c, c, c, c, c, c, c, c };
-};
-
-LiquidityDepositCreate LiquidityDepositCreate::parse_from(const JSONConverter& c)
-{
-    return { c, c, c, c, c, c, c };
-}
-
-LiquidityWithdrawalCreate LiquidityWithdrawalCreate::parse_from(const JSONConverter& c)
-{
-    return { c, c, c, c, c, c };
-}
-
-CancelationCreate CancelationCreate::parse_from(const JSONConverter& c)
-{
-    return { c, c, c, c, c, c };
-}
-AssetCreationCreate AssetCreationCreate::parse_from(const JSONConverter& c)
-{
-    return { c, c, c, c, c, c };
-}
-
 TransactionCreate parse_transaction_create(const std::vector<uint8_t>& s)
 {
     try {

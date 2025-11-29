@@ -1,5 +1,6 @@
 #pragma once
 #include "general/serializer_fwd.hxx"
+#include "view_fwd.hpp"
 #include <array>
 #include <cassert>
 #include <compare>
@@ -14,7 +15,7 @@ struct View {
     static constexpr size_t byte_size() { return N; }
     void serialize(Serializer auto&& s) const
     {
-        s << span();
+        std::forward<decltype(s)>(s) << span();
     }
     bool is_null() const { return pos == nullptr; }
     const uint8_t* data() const { return pos; }

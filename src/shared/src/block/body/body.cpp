@@ -6,34 +6,16 @@
 namespace block {
 namespace body {
 namespace elements {
-void TokenSection::write(MerkleWriteHooker& w)
+void TokenSection::write(MerkleWriteHooker& w) const
 {
     w.writer << assetId;
     token_entries().write(w);
 }
-TokenSection::TokenSection(StructuredReader& r, Dummy)
+TokenSection::TokenSection(StructuredReader& r)
     : AssetIdElement(r.merkle_frame().reader)
     , TokenEntries(r)
 {
 }
-}
-
-MerkleWriteHook::MerkleWriteHook(Writer& w, MerkleWriteHooker& c)
-    : writer(w)
-    , creator(c)
-    , begin(w.cursor())
-{
-}
-
-MerkleWriteHook::~MerkleWriteHook()
-{
-    if (begin)
-        creator.add_hash_of({ begin, writer.cursor() });
-}
-
-MerkleWriteHook MerkleWriteHooker::hook()
-{
-    return { writer, *this };
 }
 
 auto ParsedBody::tx_ids(NonzeroHeight height, PinHeight minPinHeight) const -> BlockTxids
@@ -109,8 +91,8 @@ size_t ParsedBody::byte_size() const
 {
     size_t res { 0 };
     res += 10; // for mining
-    res += 2 + newAddresses.byte_size();
-    res += reward.byte_size();
+    res += 2 + count_bytes(newAddresses);
+    res += count_bytes(reward);
     res += entries().byte_size();
     return res;
 }
@@ -121,7 +103,8 @@ SerializedBody ParsedBody::serialize() const
     Writer w(res);
     MerkleWriteHooker merkle(w);
     w.skip(10); // for mining
-    newAddresses.write<uint16_t>(merkle);
+    newAddresses.encode_length<uint16_t>(merkle);
+    newAddresses.write(merkle);
     {
         auto h { merkle.hook() }; // hook merkle for reward
         w << reward;
