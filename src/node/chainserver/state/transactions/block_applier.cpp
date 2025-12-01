@@ -369,6 +369,7 @@ private:
 struct BalanceFlow {
     FundFlow total;
     FundFlow locked;
+    bool newToken { false };
 };
 
 class BalanceChecker {
@@ -383,6 +384,16 @@ class BalanceChecker {
         void add_balance(TokenId id, Funds_uint64 v)
         {
             flow[id].total.add(v);
+        }
+
+        // adds funds to unlocked balance for newly created tokens
+        void create_balance(TokenId id, Funds_uint64 v)
+        {
+            auto [iter, inserted] { flow.try_emplace(id) };
+            assert(inserted);
+            auto& flow { iter->second };
+            flow.total.add(v);
+            flow.newToken = true;
         }
 
         // subtracts funds from unlocked balance
@@ -459,10 +470,10 @@ class BalanceChecker {
         [[nodiscard]] AccountData& operator[](AccountId id)
         {
             auto vid { id.validate_throw(beginInvalid) };
-            if (id < beginNew) {
+            if (vid < beginNew) {
                 return oldAccounts.try_emplace(vid, vid).first->second;
             } else {
-                assert(id < beginInvalid);
+                assert(vid < beginInvalid);
                 return newAccounts[vid.value() - beginNew.value()];
             }
         }
@@ -570,6 +581,11 @@ public:
     {
         accounts[aid].add_balance(tid, amount);
     }
+    void create_asset_balance(AccountId accountId, AssetId assetId, Funds_uint64 amount)
+    {
+        auto tokenId { assetId.token_id(false) };
+        accounts[accountId].create_balance(tokenId, amount);
+    }
 
     void subtract_balance(AccountId aid, TokenId tid, Funds_uint64 amount)
     {
@@ -646,7 +662,7 @@ public:
     void register_asset_creation(const AssetCreation& tc, NonzeroHeight)
     {
         auto s { process_signer(tc) };
-        auto name{tc.asset_name().to_string()};
+        auto name { tc.asset_name().to_string() };
         spdlog::info("Asset name: {}", name);
         assetCreations.push_back(block_apply::AssetCreation::Internal {
             s,
@@ -1010,10 +1026,14 @@ private:
             accountData.initialize_address_if_necessary([this](AccountId aid) { return db_addr(aid); });
             for (auto& [tokenId, tokenFlow] : accountData.token_flow()) {
                 AccountToken at { accountId, tokenId };
-                if (auto [balanceId, balance] { db.get_token_balance_recursive(accountId, tokenId) }; balanceId)
-                    process_existing_balance(at, tokenFlow, { *balanceId, balance });
-                else
+                if (tokenFlow.newToken) {
                     process_new_balance(at, tokenFlow);
+                } else {
+                    if (auto [balanceId, balance] { db.get_token_balance_recursive(accountId, tokenId) }; balanceId)
+                        process_existing_balance(at, tokenFlow, { *balanceId, balance });
+                    else
+                        process_new_balance(at, tokenFlow);
+                }
             }
         }
 
@@ -1145,7 +1165,7 @@ private:
                     .hash { AssetHash(TxHash(verified.hash)) },
                     .data {} }));
 
-            balanceChecker.add_balance(ac.origin.id, assetId.token_id(false), ac.supply().funds);
+            balanceChecker.create_asset_balance(ac.origin.id, assetId, ac.supply().funds);
 
             auto& ref { history.push_asset_creation(verified, assetId) };
             api.assetCreations.push_back({ make_signed_info(verified, ref.historyId), { .name { ac.asset_name() }, .supply { ac.supply() }, .assetId { assetId } } });

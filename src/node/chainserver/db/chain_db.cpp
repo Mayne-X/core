@@ -1088,12 +1088,11 @@ std::pair<wrt::optional<BalanceId>, Balance_uint64> ChainDB::get_token_balance_r
         auto nw { tid.non_wart() };
         if (!nw || nw->is_liquidity())
             goto notfound; // WART and pool share token types cannot have any parent
-        // auto assetId { tid.asset_id() };
 
         // get token fork height
         auto a { lookup_asset(nw->asset_id()) };
         if (!a)
-            throw std::runtime_error("Database error: Cannot find token info for id " + std::to_string(tid.value()) + ".");
+            throw std::runtime_error("Database error: Cannot find asset info for id " + std::to_string(tid.value()) + ".");
         auto h { a->height };
         auto& pid { a->parent_id };
         if (!pid) // has no parent, i.e. was not forked, no entry found
