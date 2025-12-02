@@ -55,7 +55,7 @@ public:
     }
     static constexpr size_t byte_size() { return 16 + 3 + 2 + (Ts::byte_size() + ...) + 65; }
 
-    void serialize(Serializer auto& s) const
+    void serialize(RawSerializer auto& s) const
     {
         ((s << txid()
             << nonce_reserved()

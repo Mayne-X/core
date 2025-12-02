@@ -13,7 +13,7 @@ struct View {
     static const size_t length;
     static constexpr size_t size() { return N; }
     static constexpr size_t byte_size() { return N; }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         std::forward<decltype(s)>(s) << span();
     }

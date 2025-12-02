@@ -16,7 +16,7 @@ struct IdBalance {
     {
     }
     static size_t byte_size() { return BalanceId::byte_size() + Funds_uint64::byte_size(); }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         s << id << balance;
     }
@@ -30,7 +30,7 @@ struct TypeSerializer {
     {
         return T(r);
     }
-    static void write(const T& v, Serializer auto&& s)
+    static void write(const T& v, RawSerializer auto&& s)
     {
         s << v;
     }
@@ -47,7 +47,7 @@ struct TypeSerializer<std::vector<T>> {
             v.push_back(T(r));
         return v;
     }
-    static void write(const std::vector<T>& v, Serializer auto&& s)
+    static void write(const std::vector<T>& v, RawSerializer auto&& s)
     {
         s << uint32_t(v.size());
         for (auto& e : v)
@@ -56,7 +56,7 @@ struct TypeSerializer<std::vector<T>> {
 };
 
 template <typename T>
-void write_type(const T& t, Serializer auto&& s)
+void write_type(const T& t, RawSerializer auto&& s)
 {
     TypeSerializer<T>::write(t, s);
 }
@@ -74,7 +74,7 @@ class Serializable<> {
 public:
     static constexpr size_t elements = 0;
     size_t byte_size() const { return 0; }
-    void serialize(Serializer auto&&) const { } // do nothing
+    void serialize(RawSerializer auto&&) const { } // do nothing
     Serializable() { }
     Serializable(Reader&) { }
 };
@@ -86,7 +86,7 @@ class Serializable<T1, T...> {
     rest_t _rest;
 
 public:
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         write_type(_value, s);
         s << _rest;
@@ -185,7 +185,7 @@ struct Poolstate {
     {
     }
     static constexpr size_t byte_size() { return AssetId::byte_size() + 3 * Funds_uint64::byte_size(); }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         s << id << base << quote << shares;
     }

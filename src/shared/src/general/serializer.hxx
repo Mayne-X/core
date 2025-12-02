@@ -14,14 +14,26 @@ struct ByteCounter {
     {
         N += size;
     }
+    constexpr void skip(size_t size) { add_size(size); }
+};
+
+struct MerkleByteCounter {
+    struct Dummy { };
+    ByteCounter writer;
+    Dummy hook() { return {}; }
 };
 
 template <typename S, typename T>
-concept Serializing = Serializer<S> && requires(S& s, const T& t) {
+concept RawSerializing = RawSerializer<S> && requires(S& s, const T& t) {
     { t.serialize(s) };
 };
 
-constexpr auto&& operator<<(Serializer auto&& s, std::span<const uint8_t> sp)
+template <typename S, typename T>
+concept MerkleSerializing = MerkleSerializer<S> && requires(S& s, const T& t) {
+    { t.serialize(s) };
+};
+
+constexpr auto&& operator<<(RawSerializer auto&& s, std::span<const uint8_t> sp)
 {
     s.write(sp);
     return std::forward<decltype(s)>(s);
@@ -32,7 +44,7 @@ constexpr auto& operator<<(ByteCounter& s, std::span<const uint8_t> sp)
     return s;
 }
 
-constexpr auto&& operator<<(Serializer auto&& s, ByteSwappable auto v)
+constexpr auto&& operator<<(RawSerializer auto&& s, ByteSwappable auto v)
 {
     auto valBe { network_byte_swap(v) };
     std::span<const uint8_t> sp((uint8_t*)&valBe, sizeof(v));
@@ -45,7 +57,7 @@ constexpr auto& operator<<(ByteCounter& s, ByteSwappable auto v)
 }
 
 template <typename T>
-auto&& operator<<(Serializer auto&& s, const wrt::optional<T>& o)
+auto&& operator<<(RawSerializer auto&& s, const wrt::optional<T>& o)
 {
     if (o)
         return std::forward<decltype(s)>(s << uint8_t(1) << *o);
@@ -67,27 +79,43 @@ constexpr auto& operator<<(ByteCounter& s, const View<N>&)
     return s;
 }
 
-constexpr auto&& operator<<(Serializer auto&& s, bool b)
+constexpr auto&& operator<<(RawSerializer auto&& s, bool b)
 {
     return std::forward<decltype(s)>(s << (b ? uint8_t(1) : uint8_t(0)));
 }
 
-constexpr auto&& operator<<(Serializer auto&& s, std::string_view r)
+constexpr auto&& operator<<(RawSerializer auto&& s, std::string_view r)
 {
     std::span sp(reinterpret_cast<const uint8_t*>(r.data()), r.size());
     return std::forward<decltype(s)>(s << sp);
 }
 
-template <Serializer S, typename T>
-requires Serializing<S, T>
+template <RawSerializer S, typename T>
+requires RawSerializing<S, T>
 constexpr auto&& operator<<(S&& s, const T& t)
 {
     t.serialize(s);
     return std::forward<S>(s);
 }
 
+template <MerkleSerializer M, typename T>
+requires MerkleSerializing<M, T>
+constexpr auto&& operator<<(M&& s, const T& t)
+{
+    t.serialize(s);
+    return std::forward<M>(s);
+}
+
 template <typename T>
+requires RawSerializing<ByteCounter, T>
 constexpr size_t count_bytes(const T& t)
 {
     return (ByteCounter() << t).N;
+}
+
+template <typename T>
+requires MerkleSerializing<MerkleByteCounter, T>
+constexpr size_t count_bytes(const T& t)
+{
+    return (MerkleByteCounter() << t).writer.N;
 }

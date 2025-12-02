@@ -44,7 +44,7 @@ public:
     {
         return name;
     }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         for (size_t i = 0; i < maxlen; ++i)
             s << uint8_t(i < name.size() ? name[i] : 0);

@@ -60,7 +60,7 @@ public:
         assert(res.val != 0);
     }
     uint16_t value() const { return val; }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         s << value();
     }

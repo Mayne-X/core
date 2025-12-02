@@ -26,7 +26,7 @@ struct TransactionId {
 
     TransactionId(Reader& r);
     std::string hex_string() const;
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         s << accountId << pinHeight << nonceId;
     }
@@ -48,7 +48,7 @@ struct TxidWithFee {
     {
     }
     static constexpr size_t byte_size() { return decltype(txid)::byte_size() + decltype(fee)::byte_size(); }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         s << txid << fee;
     }

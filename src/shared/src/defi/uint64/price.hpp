@@ -35,7 +35,7 @@ public:
         throw Error(EBADPRICE);
     }
     Price_uint64(Reader& r);
-    void serialize(Serializer auto& s) const
+    void serialize(RawSerializer auto& s) const
     {
         s << _m << _e;
     }

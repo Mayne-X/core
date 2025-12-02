@@ -64,7 +64,7 @@ public:
             this->push_back(T { r });
         }
     }
-    void serialize(Serializer auto& s) const
+    void serialize(RawSerializer auto& s) const
     {
         s << uint32_t(this->size());
         for (auto& e : *this)

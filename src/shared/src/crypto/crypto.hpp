@@ -65,7 +65,7 @@ public:
     static wrt::optional<RecoverableSignature> from_view(View<65>);
     std::string to_string() const;
     void write_to(uint8_t* out65) const;
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         const auto ser { to_array() };
         const auto r { RecoverableSignature::from_view(ser) };

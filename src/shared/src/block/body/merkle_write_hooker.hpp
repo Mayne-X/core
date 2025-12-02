@@ -31,6 +31,16 @@ private:
     MerkleWriteHooker& creator;
     const uint8_t* begin;
 };
+
+namespace merkle_write{
+
+struct ByteCounter {
+
+    ::ByteCounter writer;
+};
+
+}
+
 struct MerkleWriteHooker {
     friend MerkleWriteHook;
     MerkleWriteHooker(Writer& w)

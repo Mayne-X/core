@@ -30,7 +30,7 @@ public:
     }
     AssetPrecision(Reader& r);
 
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         s << val;
     }
@@ -183,7 +183,7 @@ struct FundsDecimal {
     AssetPrecision precision;
     constexpr static size_t byte_size() { return Funds_uint64::byte_size() + AssetPrecision::byte_size(); }
 
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         s << funds << precision;
     }

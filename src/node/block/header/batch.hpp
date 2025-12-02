@@ -118,7 +118,7 @@ public:
         return bytes.size();
     }
 
-    friend auto&& operator<<(Serializer auto&& s, const Headervec& hv){
+    friend auto&& operator<<(RawSerializer auto&& s, const Headervec& hv){
         return std::forward<decltype(s)>( s<< hv.bytes);
     };
 

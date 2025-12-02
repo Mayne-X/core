@@ -62,7 +62,7 @@ struct CombineElementsEnumerated<i, Element, Elements...> : public Element, publ
     {
         return static_cast<const E*>(this)->get();
     }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         ((s << static_cast<const Element*>(this)->get())
             << ... << static_cast<const Elements*>(this)->get());

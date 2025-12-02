@@ -68,7 +68,7 @@ public:
         return { total, locked };
     }
     constexpr static size_t byte_size() { return 2 * Funds_uint64::byte_size(); }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         s << total << locked;
     }

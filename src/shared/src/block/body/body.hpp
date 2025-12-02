@@ -24,23 +24,19 @@ struct VectorEntries : public std::vector<T> {
     }
     auto& entries() const { return *this; }
     auto& entries() { return *this; }
-    void serialize(ByteCounter& b) const
+
+    template <RawSerializer S>
+    void serialize(S&& s) const
     {
         for (auto& e : *this)
-            b << e;
+            s << e;
     }
 
-    template <typename uint_t>
-    void encode_length(MerkleWriteHooker& m) const
-    {
-        assert(std::numeric_limits<uint_t>::max() >= this->size());
-        m.writer << uint_t(this->size());
-    }
-
-    void write(MerkleWriteHooker& m) const
+    template <MerkleSerializer S>
+    void serialize(S&& s) const
     {
         for (auto& e : *this)
-            e.write(m);
+            s << e;
     }
 
     void append_txids(std::vector<TransactionId>& v, PinFloor pf, PinHeight minPinHeight) const
@@ -165,7 +161,7 @@ public:
         : data { std::move(arr) }
     {
     }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         uint32_t bits { 0 };
         size_t nbits { 0 };
@@ -233,19 +229,15 @@ public:
     {
     }
     auto& token_entries() const { return *this; }
-    void serialize(Serializer auto&& s) const
-    {
-        typename TenBitLengths<sizeof...(Ts)>::arr_t arr { static_cast<const Ts*>(this)->entries().size()... };
-        s << bits_t(arr);
-        (s << ... << *static_cast<const Ts*>(this));
-    }
     void append_txids(std::vector<TransactionId>& v, PinFloor pf, PinHeight minPinHeight) const
     {
         (static_cast<const Ts*>(this)->append_txids(v, pf, minPinHeight), ...);
     }
-    void write(MerkleWriteHooker& m) const
+    void serialize(MerkleSerializer auto&& s) const
     {
-        (parent<Ts>().write(m), ...);
+        typename bits_t::arr_t arr { static_cast<const Ts*>(this)->entries().size()... };
+        s.writer << bits_t(arr);
+        (s << ... << parent<Ts>());
     }
 
     TokenEntries() { }
@@ -274,7 +266,11 @@ public:
     static constexpr const size_t n_vectors = 5;
     void append_tx_ids(PinFloor, std::vector<TransactionId>& appendTo) const;
 
-    void write(MerkleWriteHooker& w) const;
+    void write(MerkleSerializer auto&& s) const
+    {
+        s.writer << assetId;
+        s << token_entries();
+    }
     TokenSection(StructuredReader& m);
     TokenSection(AssetId tid)
         : AssetIdElement(tid) { };
@@ -282,11 +278,6 @@ public:
     {
         TokenEntries::append_txids(out, pf, minPinHeight);
     }
-    size_t byte_size() const
-    {
-        return count_bytes(assetId)
-            + count_bytes(*static_cast<const TokenEntries*>(this));
-    };
 };
 }
 
@@ -294,11 +285,7 @@ template <typename UInt, typename Elem>
 struct UntaggedSizeVector : public VectorEntries<Elem> {
 
     using VectorEntries<Elem>::entries;
-    [[nodiscard]] size_t byte_size() const
-    {
-        return sizeof(UInt) + count_bytes(entries());
-    }
-    void write(MerkleWriteHooker& w) const
+    void write(MerkleSerializer auto& w) const
     {
         w.writer << UInt(this->size());
         VectorEntries<Elem>::write(w);
@@ -391,13 +378,9 @@ public:
         visit_components([&](auto& entry) { apply_to_entries(entry, lambda); });
     }
 
-    [[nodiscard]] size_t byte_size() const
+    void serialize(MerkleSerializer auto& s) const
     {
-        return (static_cast<const Ts*>(this)->byte_size() + ...);
-    }
-    void write(MerkleWriteHooker& m) const
-    {
-        (static_cast<const Ts*>(this)->write(m), ...);
+        (s << ... << *static_cast<const Ts*>(this));
     }
     void append_txids(std::vector<TransactionId>& v, PinFloor pf, PinHeight minPinHeight) const
     {
@@ -456,7 +439,7 @@ public:
     };
     BlockTxids tx_ids(NonzeroHeight height, PinHeight minPinHeight) const;
     [[nodiscard]] static std::pair<ParsedBody, MerkleLeaves> parse_throw(std::span<const uint8_t> rd, NonzeroHeight h, BlockVersion version, ParseAnnotations* = nullptr);
-    size_t byte_size() const;
+    void serialize(MerkleSerializer auto&& s) const;
     [[nodiscard]] SerializedBody serialize() const;
 };
 

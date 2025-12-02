@@ -76,7 +76,7 @@ public:
         : data(data)
     {
     }
-    void serialize(Serializer auto& s) const
+    void serialize(RawSerializer auto& s) const
     {
         s << data;
     }

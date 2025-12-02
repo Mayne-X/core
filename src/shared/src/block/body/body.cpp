@@ -6,11 +6,6 @@
 namespace block {
 namespace body {
 namespace elements {
-void TokenSection::write(MerkleWriteHooker& w) const
-{
-    w.writer << assetId;
-    token_entries().write(w);
-}
 TokenSection::TokenSection(StructuredReader& r)
     : AssetIdElement(r.merkle_frame().reader)
     , TokenEntries(r)
@@ -87,29 +82,25 @@ std::pair<ParsedBody, MerkleLeaves> ParsedBody::parse_throw(std::span<const uint
     }
 }
 
-size_t ParsedBody::byte_size() const
+void ParsedBody::serialize(MerkleSerializer auto&& s) const
 {
-    size_t res { 0 };
-    res += 10; // for mining
-    res += 2 + count_bytes(newAddresses);
-    res += count_bytes(reward);
-    res += entries().byte_size();
-    return res;
+    s.writer.skip(10); // for mining
+
+    // serialize new addresses with 16 bit length
+    assert(std::numeric_limits<uint16_t>::max() >= newAddresses.size());
+    s.writer << uint16_t(newAddresses.size());
+    s << newAddresses
+      << reward
+      << entries();
 }
 
 SerializedBody ParsedBody::serialize() const
 {
-    std::vector<uint8_t> res(byte_size(), 0);
+    std::vector<uint8_t> res(count_bytes(*this), 0);
     Writer w(res);
     MerkleWriteHooker merkle(w);
-    w.skip(10); // for mining
-    newAddresses.encode_length<uint16_t>(merkle);
-    newAddresses.write(merkle);
-    {
-        auto h { merkle.hook() }; // hook merkle for reward
-        w << reward;
-    }
-    entries().write(merkle);
+    merkle << *this;
+
     assert(w.remaining() == 0);
     return { VersionedBodyData {
                  std::move(res),

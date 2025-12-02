@@ -75,7 +75,7 @@ public:
     {
         return 1 + this->visit([](auto& t) { return t.byte_size(); });
     }
-    void serialize(Serializer auto& s) const
+    void serialize(RawSerializer auto& s) const
     {
         this->visit([&](auto& v) {
             s << v.INDICATOR << v;

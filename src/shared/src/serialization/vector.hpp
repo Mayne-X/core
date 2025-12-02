@@ -24,7 +24,7 @@ struct VectorLentype : public std::vector<T> {
         for (size_t i = 0; i < n; ++i)
             this->push_back({ r });
     }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         auto n { this->size() };
         assert(n <= max_len);

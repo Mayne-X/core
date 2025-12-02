@@ -18,7 +18,7 @@ struct Combined : public Ts... {
         : Ts(std::move(ts))...
     {
     }
-    void serialize(Serializer auto&& s) const
+    void serialize(RawSerializer auto&& s) const
     {
         (s << ... << static_cast<const Ts*>(this)->get());
     }
@@ -27,12 +27,13 @@ struct Combined : public Ts... {
         out.push_back(hashSHA256(*this));
     }
 };
-template<typename T>
-struct HookMerkle: public T {
+template <typename T>
+struct HookMerkle : public T {
     using T::T;
-    void write(MerkleWriteHook h) const
+    void serialize(MerkleSerializer auto&& h) const
     {
-        h.writer << *this;
+        [[maybe_unused]] auto hook { h.hook() };
+        h.writer << *static_cast<const T*>(this);
     }
 };
 
