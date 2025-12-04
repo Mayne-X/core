@@ -1286,7 +1286,7 @@ api::TokenBalance State::api_get_token_balance_recursive(AccountId aid, TokenId 
 {
     if (auto addr { db.lookup_address(aid) }) {
         api::AssetLookupTrace trace;
-        auto [balanceId, funds] { db.get_token_balance_recursive(aid, tid, &trace) };
+        auto b { db.get_token_balance_recursive(aid, tid, &trace) };
 
         wrt::optional<AssetPrecision> prec;
         if (tid.is_liquidity() || !trace.fails.empty()) {
@@ -1300,7 +1300,7 @@ api::TokenBalance State::api_get_token_balance_recursive(AccountId aid, TokenId 
         }
         if (!prec)
             return api::TokenBalance::notfound();
-        return api::TokenBalance::found(*addr, aid, std::move(trace), FundsDecimal(funds.total, *prec), FundsDecimal(funds.locked, *prec));
+        return api::TokenBalance::found(*addr, aid, std::move(trace), FundsDecimal(b.balance.total, *prec), FundsDecimal(b.balance.locked, *prec));
     }
     return api::TokenBalance::notfound();
 }
@@ -1353,7 +1353,7 @@ auto State::api_get_history(const api::AccountIdOrAddress& a, int64_t beforeId) 
     if (!p)
         return {};
     auto& accountId(*p);
-    auto wartBalance(db.get_token_balance_recursive(accountId, TokenId::WART).second);
+    auto wartBalance(db.get_token_balance_recursive(accountId, TokenId::WART).balance);
 
     std::vector entries_desc = db.lookup_history_100_desc(accountId, beforeId);
     std::vector<api::Block> blocks_reversed;

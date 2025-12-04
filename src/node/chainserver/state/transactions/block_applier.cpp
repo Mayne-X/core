@@ -991,6 +991,22 @@ private:
             }));
         }
     }
+    auto process_forked_balance(const AccountToken& at, const BalanceFlow& flow, Balance_uint64 parentBalance)
+    {
+        // we ignore parent locked because what is locked there is not locked in the current token.
+        auto lockedFinal { diff_throw(flow.locked.positive(), flow.locked.negative()) }; // throws if < 0
+        auto totalPositive { sum_throw(flow.total.positive(), parentBalance.total) };
+        auto totalFinal { diff_throw(totalPositive, flow.total.negative()) }; // throws if < 0
+        if (totalFinal < lockedFinal)
+            throw Error(EBALANCE);
+        blockEffects.insert(block_apply::BalanceInsert({
+            .id { BalanceId(idIncrementer.next_inc()) },
+            .accountId { at.account_id() },
+            .tokenId { at.token_id() },
+            .total { totalFinal },
+            .locked { lockedFinal },
+        }));
+    }
     auto process_existing_balance(const AccountToken& at, const BalanceFlow& flow, const IdBalance ib)
     {
         // check that balances are correct
@@ -1028,9 +1044,14 @@ private:
                 if (tokenFlow.newToken) {
                     process_new_balance(at, tokenFlow);
                 } else {
-                    if (auto [balanceId, balance] { db.get_token_balance_recursive(accountId, tokenId) }; balanceId)
-                        process_existing_balance(at, tokenFlow, { *balanceId, balance });
-                    else
+                    auto b { db.get_token_balance_recursive(accountId, tokenId) };
+                    if (b.match) {
+                        if (b.match->forked) {
+                            process_forked_balance(at, tokenFlow, b.balance);
+                        } else {
+                            process_existing_balance(at, tokenFlow, { b.match->balanceId, b.balance });
+                        }
+                    } else
                         process_new_balance(at, tokenFlow);
                 }
             }

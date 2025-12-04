@@ -47,7 +47,7 @@ Funds_uint64 BalanceCache::operator[](AccountToken at)
 {
     auto iter { map.find(at) };
     if (iter == map.end())
-        iter = map.emplace(at, db.get_free_balance(at).second).first;
+        iter = map.emplace(at, db.get_free_balance(at)).first;
     return iter->second;
 }
 

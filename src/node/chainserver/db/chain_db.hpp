@@ -288,8 +288,26 @@ public:
     StateId64 next_id64() const { return next_id(); }
     // StateId32 next_id32() const { return next_id(); }
 
-    [[nodiscard]] std::pair<wrt::optional<BalanceId>, Balance_uint64> get_token_balance_recursive(AccountId aid, TokenId tid, api::AssetLookupTrace* trace = nullptr) const;
-    [[nodiscard]] std::pair<wrt::optional<BalanceId>, Funds_uint64> get_free_balance(AccountToken at) const;
+    struct RecursiveTokenLookup {
+        struct Match {
+            BalanceId balanceId;
+            bool forked;
+        };
+
+        Balance_uint64 balance;
+        tl::optional<Match> match;
+        RecursiveTokenLookup(Balance_uint64 balance)
+            : balance(std::move(balance))
+        {
+        }
+        RecursiveTokenLookup(Balance_uint64 balance, Match match)
+            : balance(std::move(balance))
+            , match(std::move(match))
+        {
+        }
+    };
+    [[nodiscard]] RecursiveTokenLookup get_token_balance_recursive(AccountId aid, TokenId tid, api::AssetLookupTrace* trace = nullptr) const;
+    [[nodiscard]] Funds_uint64 get_free_balance(AccountToken at) const;
 
     //////////////////////////////
     // BELOW METHODS REQUIRED FOR INDEXING NODES

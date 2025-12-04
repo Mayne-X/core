@@ -7,8 +7,8 @@
 #include "chainserver/db/state_ids.hpp"
 #include "db/sqlite.hpp"
 #include "defi/token/account_token.hpp"
-#include "defi/token/info.hpp"
 #include "defi/token/asset.hpp"
+#include "defi/token/info.hpp"
 #include "general/address_funds.hpp"
 #include "general/hex.hpp"
 #include "general/writer.hpp"
@@ -1078,12 +1078,14 @@ void ChainDB::delete_bad_block(HashView blockhash)
     stmtScheduleDelete.run(id);
 }
 
-std::pair<wrt::optional<BalanceId>, Balance_uint64> ChainDB::get_token_balance_recursive(AccountId aid, TokenId tid, api::AssetLookupTrace* trace) const
+auto ChainDB::get_token_balance_recursive(AccountId aid, TokenId tid, api::AssetLookupTrace* trace) const -> RecursiveTokenLookup
 {
+    bool forked = false;
     while (true) {
         // direct lookup
         if (auto b { get_balance(aid, tid) })
-            return *b;
+            return { b->second, { b->first, forked } };
+        forked = true;
 
         auto nw { tid.non_wart() };
         if (!nw || nw->is_liquidity())
@@ -1103,18 +1105,18 @@ std::pair<wrt::optional<BalanceId>, Balance_uint64> ChainDB::get_token_balance_r
             auto& [height, funds] { *o };
             if (trace)
                 trace->snapshotHeight = height;
-            return { wrt::nullopt, Balance_uint64::from_total_locked(funds, 0) };
+            return { Balance_uint64::from_total_locked(funds, 0) };
         };
         tid = *pid;
     }
 notfound:
-    return { wrt::nullopt, Balance_uint64::zero() };
+    return { Balance_uint64::zero() };
 }
 
-std::pair<wrt::optional<BalanceId>, Funds_uint64> ChainDB::get_free_balance(AccountToken at) const
+Funds_uint64 ChainDB::get_free_balance(AccountToken at) const
 {
-    auto [id, bal] { get_token_balance_recursive(at.account_id(), at.token_id(), nullptr) };
-    return { id, bal.free_assert() };
+    auto b { get_token_balance_recursive(at.account_id(), at.token_id(), nullptr) };
+    return b.balance.free_assert();
 }
 
 chainserver::TransactionIds ChainDB::fetch_tx_ids(Height height) const
