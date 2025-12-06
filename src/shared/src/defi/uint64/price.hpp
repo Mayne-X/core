@@ -70,17 +70,17 @@ public:
         return std::ldexp(m, e2);
     }
 
-    int base10_precision_exponent(AssetPrecision prec) const
+    int base10_precision_exponent(TokenPrecision prec) const
     {
         // - real limit price is quote/base
         // - limit price variable is quoteU64/baseU64
         //   and does not respect precision
         // => We must take precision difference into account for real limit price
-        return int(AssetPrecision::digits8().value()) - int(prec.value());
+        return int(TokenPrecision::digits8().value()) - int(prec.value());
     }
 
     // compute double price respecting the asset precision
-    double to_double_adjusted(AssetPrecision prec) const
+    double to_double_adjusted(TokenPrecision prec) const
     {
         auto b10e { base10_precision_exponent(prec) };
         return to_double_raw() * std::pow(10.0, -b10e);
@@ -118,7 +118,7 @@ public:
 
     auto operator<=>(const Price_uint64&) const = default;
 
-    static wrt::optional<Price_uint64> from_double_adjusted(double d, AssetPrecision prec, bool ceil = false)
+    static wrt::optional<Price_uint64> from_double_adjusted(double d, TokenPrecision prec, bool ceil = false)
     {
         return from_double(d * std::pow(10.0, 8 - int(prec.value())), ceil);
     }

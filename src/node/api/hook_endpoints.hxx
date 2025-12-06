@@ -37,7 +37,7 @@ struct ParameterParser {
             return { Address { *this } };
         return { AccountId { static_cast<uint64_t>(*this) } };
     }
-    operator AssetPrecision()
+    operator TokenPrecision()
     {
         return static_cast<uint64_t>(*this);
     }
@@ -241,7 +241,6 @@ public:
         hook_get_1(t, "/chain/block/:id/binary", api_call<chainserver::GetBlockBinary>);
         hook_get_1(t, "/chain/block/:id", api_call<chainserver::GetBlock>);
         hook_get_1(t, "/chain/mine/:account", get_chain_mine);
-        hook_get_1(t, "/chain/mine/:account/log", get_chain_mine);
         hook_get(t, "/chain/signed_snapshot", get_signed_snapshot, true);
         hook_get(t, "/chain/txcache", api_call<chainserver::GetTxcache>);
         hook_get_1(t, "/chain/hashrate/:window", get_hashrate_n);

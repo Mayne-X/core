@@ -202,7 +202,8 @@ json header_json(const Header& header, NonzeroHeight height)
     j["newOrders"] = gen_arr(actions.newOrders);
     j["matches"] = gen_arr(actions.matches);
     j["liquidityDeposits"] = gen_arr(actions.liquidityDeposit);
-    j["LiquidityWithdrawals"] = gen_arr(actions.liquidityWithdrawal);
+    j["liquidityWithdrawals"] = gen_arr(actions.liquidityWithdrawal);
+    j["assetCreations"] = gen_arr(actions.assetCreations);
     j["cancelations"] = gen_arr(actions.cancelations);
     return j;
 }
@@ -225,7 +226,7 @@ json to_json(const ParseAnnotations& arr)
     return j;
 }
 
-json limit_json(Price_uint64 limit, AssetPrecision prec)
+json limit_json(Price_uint64 limit, TokenPrecision prec)
 {
     return {
         { "precExponent10", limit.base10_precision_exponent(prec) },
@@ -357,7 +358,7 @@ json tx_to_json(const api::block::LiquidityDeposit& tx)
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
     j["baseDeposited"] = to_json(tx.baseDeposited.to_decimal(tx.assetInfo.precision));
     j["quoteDeposited"] = to_json(tx.quoteDeposited);
-    j["sharesReceived"] = (tx.sharesReceived ? to_json(tx.sharesReceived->to_decimal(AssetPrecision::digits8())) : json(nullptr));
+    j["sharesReceived"] = (tx.sharesReceived ? to_json(tx.sharesReceived->to_decimal(TokenPrecision::digits8())) : json(nullptr));
     return {};
 }
 
@@ -365,7 +366,7 @@ json tx_to_json(const api::block::LiquidityWithdrawal& tx)
 {
     json j(to_json_signed_info(tx, "address"));
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
-    j["sharesRedeemed"] = to_json(tx.sharesRedeemed.to_decimal(AssetPrecision::digits8()));
+    j["sharesRedeemed"] = to_json(tx.sharesRedeemed.to_decimal(TokenPrecision::digits8()));
     j["baseReceived"] = (tx.baseReceived ? to_json(tx.baseReceived->to_decimal(tx.assetInfo.precision)) : json(nullptr));
     j["quoteReceived"] = (tx.quoteReceived ? to_json(*tx.quoteReceived) : json(nullptr));
     return {};
@@ -698,13 +699,13 @@ json to_json(const api::AddressCount& ac)
     };
 }
 
-json to_json(const api::Richlist& l)
+json to_json(const api::Richlist& l, TokenPrecision p)
 {
     json a = json::array();
     for (auto& [address, balance] : l.entries) {
         json elem;
         elem["address"] = address.to_string();
-        elem["balance"] = to_json(balance);
+        elem["balance"] = to_json(FundsDecimal(balance,p));
         a.push_back(elem);
     }
     return a;
@@ -713,7 +714,7 @@ json to_json(const api::RichlistInfo& r)
 {
     return {
         { "token", to_json(r.token) },
-        { "richlist", to_json(r.richlist) }
+        { "richlist", to_json(r.richlist, r.token.token_precision()) }
     };
 }
 

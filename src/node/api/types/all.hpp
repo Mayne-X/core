@@ -163,7 +163,7 @@ struct WithSignedInfo : public SignedInfoData, T {
 };
 
 struct RewardData {
-    static constexpr const char *label = ::block::labels::reward;
+    static constexpr const char* label = ::block::labels::reward;
     Address toAddress;
     Wart wart;
 };
@@ -180,7 +180,7 @@ struct TokenTransferData {
     bool isLiquidity;
     Address toAddress;
     Funds_uint64 amount;
-    FundsDecimal amount_decimal() const { return { amount, isLiquidity ? AssetPrecision::digits8() : assetInfo.precision }; }
+    FundsDecimal amount_decimal() const { return { amount, isLiquidity ? TokenPrecision::digits8() : assetInfo.precision }; }
 };
 
 struct NewOrderData {
@@ -194,7 +194,7 @@ struct NewOrderData {
 };
 
 struct MatchData {
-    static constexpr const char *label = ::block::labels::match;
+    static constexpr const char* label = ::block::labels::match;
     using Swap = CombineElements<BaseEl, QuoteEl, ReferredHistoryIdEl>;
     AssetBasic assetInfo;
     defi::BaseQuote poolBefore;
@@ -204,19 +204,19 @@ struct MatchData {
 };
 
 struct AssetCreationData {
-    static constexpr const char *label = ::block::labels::assetCreation;
+    static constexpr const char* label = ::block::labels::assetCreation;
     AssetName name;
     FundsDecimal supply;
     wrt::optional<AssetId> assetId;
 };
 
 struct CancelationData {
-    static constexpr const char *label = ::block::labels::cancelation;
+    static constexpr const char* label = ::block::labels::cancelation;
     TransactionId cancelTxid;
 };
 
 struct OrderCancelationData {
-    static constexpr const char *label = ::block::labels::orderCancelation;
+    static constexpr const char* label = ::block::labels::orderCancelation;
     TransactionId cancelTxid;
     bool buy;
     AssetBasic assetInfo;
@@ -225,7 +225,7 @@ struct OrderCancelationData {
 };
 
 struct LiquidityDepositData {
-    static constexpr const char *label = ::block::labels::liquidityDeposit;
+    static constexpr const char* label = ::block::labels::liquidityDeposit;
     AssetBasic assetInfo;
     Funds_uint64 baseDeposited;
     Wart quoteDeposited;
@@ -233,7 +233,7 @@ struct LiquidityDepositData {
 };
 
 struct LiquidityWithdrawalData {
-    static constexpr const char *label = ::block::labels::liquidityWithdrawal;
+    static constexpr const char* label = ::block::labels::liquidityWithdrawal;
     AssetBasic assetInfo;
     Funds_uint64 sharesRedeemed;
     wrt::optional<Funds_uint64> baseReceived;
@@ -324,10 +324,23 @@ struct NormalizedToken {
     TokenId id;
     api::TokenSpec spec;
     std::string name;
-    static const NormalizedToken WART() { return { .id { TokenId::WART }, .spec { api::TokenSpec::WART }, .name { "WART" } }; }
+    TokenPrecision assetPrecision;
+    TokenPrecision token_precision() const
+    {
+        return spec.isLiquidity ? TokenPrecision::digits8() : assetPrecision;
+    }
+    static constexpr NormalizedToken WART()
+    {
+        return {
+            .id { TokenId::WART },
+            .spec { api::TokenSpec::WART },
+            .name { "WART" },
+            .assetPrecision { TokenPrecision::digits8() }
+        };
+    }
 };
 struct Richlist {
-    std::vector<std::pair<Address, Wart>> entries;
+    std::vector<std::pair<Address, Funds_uint64>> entries;
 };
 
 struct RichlistInfo {
@@ -401,7 +414,7 @@ struct Peerinfo {
     ThrottleState throttle;
 };
 struct ParsedPrice {
-    AssetPrecision prec;
+    TokenPrecision prec;
     Price_uint64 floor;
     Price_uint64 ceil;
 };

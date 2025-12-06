@@ -63,5 +63,5 @@ struct AssetBasic {
     AssetId id;
     AssetHash hash;
     AssetName name;
-    AssetPrecision precision;
+    TokenPrecision precision;
 };

@@ -193,10 +193,10 @@ Funds_uint64 JSONConverter::asset_supply_u64() const
     }
     throw Error(EBADASSETUNITS);
 }
-AssetPrecision JSONConverter::asset_precision() const
+TokenPrecision JSONConverter::asset_precision() const
 {
     try {
-        return AssetPrecision(json.at("precision").get<size_t>());
+        return TokenPrecision(json.at("precision").get<size_t>());
     } catch (...) {
     }
     throw Error(EBADASSETPRECISION);

@@ -41,7 +41,7 @@ json to_json(const api::BlockBinary&);
 json to_json(const api::BlockSummary&);
 json to_json(const api::AccountHistory&);
 json to_json(const api::AddressCount&);
-json to_json(const api::Richlist&);
+json to_json(const api::Richlist&, TokenPrecision p);
 json to_json(const api::RichlistInfo&);
 json to_json(const api::NormalizedToken&);
 json to_json(const api::Wallet&);

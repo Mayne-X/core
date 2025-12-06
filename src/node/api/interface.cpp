@@ -121,7 +121,7 @@ void get_janushash_number(std::string_view sv, ResultCb<api::JanushashNumber> cb
     cb(api::JanushashNumber { h.janus_number() });
 }
 
-void parse_price(std::string_view priceStr, AssetPrecision p, ResultCb<api::ParsedPrice> cb)
+void parse_price(std::string_view priceStr, TokenPrecision p, ResultCb<api::ParsedPrice> cb)
 {
     if (auto d { try_parse<double>(priceStr) }) {
         auto floor { Price_uint64::from_double_adjusted(*d, p, false) };

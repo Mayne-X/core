@@ -88,7 +88,7 @@ public:
     operator Address() const { return get_array<20>(); }
     operator BodyData() const { return get_vector(); }
     operator Header() const { return get_array<80>(); }
-    operator AssetPrecision() const { return AssetPrecision::from_number_throw(getUInt8()); }
+    operator TokenPrecision() const { return TokenPrecision::from_number_throw(getUInt8()); }
     operator int64_t() const { return getInt64(); }
     operator Funds_uint64() const
     {

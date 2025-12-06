@@ -105,10 +105,10 @@ struct AssetTransfers : public TaggedVectorElements<"assetTransfers", body::Asse
     auto& asset_transfers() const { return entries(); }
     auto& asset_transfers() { return entries(); }
 };
-struct ShareTransfers : public TaggedVectorElements<"shareTransfers", body::LiquidityTransfer> {
+struct LiquidityTransfers : public TaggedVectorElements<"shareTransfers", body::LiquidityTransfer> {
     using TaggedVectorElements::TaggedVectorElements;
-    auto& share_transfers() const { return entries(); }
-    auto& share_transfers() { return entries(); }
+    auto& liquidity_transfers() const { return entries(); }
+    auto& liquidity_transfers() { return entries(); }
 };
 struct Orders : public TaggedVectorElements<"orders", body::Order> {
     using TaggedVectorElements::TaggedVectorElements;
@@ -259,14 +259,14 @@ public:
     auto asset_id() const { return assetId; }
 };
 
-class TokenSection : public AssetIdElement, public TokenEntries<AssetTransfers, ShareTransfers, Orders, LiquidityDeposits, LiquidityWithdrawals> {
+class TokenSection : public AssetIdElement, public TokenEntries<AssetTransfers, LiquidityTransfers, Orders, LiquidityDeposits, LiquidityWithdrawals> {
     struct Dummy { };
 
 public:
     static constexpr const size_t n_vectors = 5;
     void append_tx_ids(PinFloor, std::vector<TransactionId>& appendTo) const;
 
-    void write(MerkleSerializer auto&& s) const
+    void serialize(MerkleSerializer auto&& s) const
     {
         s.writer << assetId;
         s << token_entries();

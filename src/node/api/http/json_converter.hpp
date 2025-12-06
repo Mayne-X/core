@@ -40,7 +40,7 @@ struct JSONConverter {
     AssetName asset_name() const;
     operator AssetNameEl() const;
     Funds_uint64 asset_supply_u64() const;
-    AssetPrecision asset_precision() const;
+    TokenPrecision asset_precision() const;
     FundsDecimal asset_supply() const;
     operator AssetSupplyEl() const;
 };

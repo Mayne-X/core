@@ -10,10 +10,6 @@ struct TokenId : public UInt64WithOperators<TokenId> {
     using UInt64WithOperators::UInt64WithOperators;
     static const TokenId WART;
     [[nodiscard]] bool is_wart() const { return value() == 0; }
-    [[nodiscard]] bool is_liquidity() const
-    {
-        return (value() & 1) == 0; // liquidity has even ids
-    }
     [[nodiscard]] wrt::optional<NonWartTokenId> non_wart() const;
 };
 
@@ -21,6 +17,10 @@ class NonWartTokenId : public TokenId {
     friend struct AssetId;
 
 public:
+    [[nodiscard]] bool is_liquidity() const
+    {
+        return (value() & 1) == 0; // liquidity has even ids
+    }
     [[nodiscard]] AssetId asset_id() const;
 
     static wrt::optional<NonWartTokenId> non_wart(TokenId id)

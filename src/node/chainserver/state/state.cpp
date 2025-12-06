@@ -643,7 +643,7 @@ Result<ChainMiningTask> State::mining_task(const Address& miner, bool disableTxs
                 [&, assetOffsets = std::map<AssetHash, size_t> {}](AssetHash hash) mutable -> auto& {
                     auto [it, inserted] = assetOffsets.try_emplace(hash, entries.tokens().size());
                     if (inserted)
-                        entries.tokens().push_back({  dbcache.assetsByHash.fetch(hash).id  });
+                        entries.tokens().push_back({ dbcache.assetsByHash.fetch(hash).id });
                     return entries.tokens()[it->second];
                 }
             };
@@ -659,8 +659,13 @@ Result<ChainMiningTask> State::mining_task(const Address& miner, bool disableTxs
                         if (!pn)
                             throw std::runtime_error("Cannot make pin_nonce");
                         auto& s { asset(m.asset_hash()) };
-                        auto& transfers = s.asset_transfers();
-                        transfers.push_back({ m.from_id(), m.pin_nonce_throw(height), m.compact_fee(), addr_id(m.to_addr()), m.amount(), m.signature() });
+                        if (m.is_liquidity()){
+                            auto& transfers = s.liquidity_transfers();
+                            transfers.push_back({ m.from_id(), m.pin_nonce_throw(height), m.compact_fee(), addr_id(m.to_addr()), m.amount(), m.signature() });
+                        }else{
+                            auto& transfers = s.asset_transfers();
+                            transfers.push_back({ m.from_id(), m.pin_nonce_throw(height), m.compact_fee(), addr_id(m.to_addr()), m.amount(), m.signature() });
+                        }
                     },
                     [&](LimitSwapMessage&& m) {
                         asset(m.asset_hash())
@@ -1240,7 +1245,8 @@ auto State::normalize(api::TokenIdOrSpec token) const -> wrt::optional<api::Norm
                     return api::NormalizedToken {
                         .id { id },
                         .spec { asset->hash, nwId->is_liquidity() },
-                        .name { asset->name.to_string() }
+                        .name { asset->name.to_string() },
+                        .assetPrecision { asset->precision },
                     };
                 return {}; // asset corresponding to token id does not exist
             } else {
@@ -1255,7 +1261,8 @@ auto State::normalize(api::TokenIdOrSpec token) const -> wrt::optional<api::Norm
                 return api::NormalizedToken {
                     .id { tid },
                     .spec { asset->hash, h.isLiquidity },
-                    .name { asset->name.to_string() }
+                    .name { asset->name.to_string() },
+                    .assetPrecision { asset->precision },
                 };
             } else if (h.assetHash.is_wart()) {
                 return api::NormalizedToken::WART();
@@ -1288,15 +1295,15 @@ api::TokenBalance State::api_get_token_balance_recursive(AccountId aid, TokenId 
         api::AssetLookupTrace trace;
         auto b { db.get_token_balance_recursive(aid, tid, &trace) };
 
-        wrt::optional<AssetPrecision> prec;
-        if (tid.is_liquidity() || !trace.fails.empty()) {
-            prec = trace.fails.front().precision; // pool shares have WART precision by definition
-        } else {
-            if (auto nw { tid.non_wart() }) {
+        wrt::optional<TokenPrecision> prec;
+        if (auto nw { tid.non_wart() }; nw && !nw->is_liquidity()) {
+            if (!trace.fails.empty()) {
+                prec = trace.fails.front().precision;
+            } else {
                 prec = db.lookup_asset(nw->asset_id())->precision;
-            } else { // means that token Id is that of WART
-                prec = Wart::precision;
             }
+        } else { // means that token id is that of WART or pool liquidity (has WART precision by definition)
+            prec = Wart::precision;
         }
         if (!prec)
             return api::TokenBalance::notfound();
