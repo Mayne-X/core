@@ -188,7 +188,7 @@ struct FundsDecimal {
         s << funds << precision;
     }
     FundsDecimal(Reader& r)
-        : FundsDecimal(r, r)
+        : FundsDecimal{r, r}
     {
     }
     FundsDecimal(Funds_uint64 funds, AssetPrecision precision)
