@@ -285,10 +285,10 @@ template <typename UInt, typename Elem>
 struct UntaggedSizeVector : public VectorEntries<Elem> {
 
     using VectorEntries<Elem>::entries;
-    void write(MerkleSerializer auto& w) const
+    void serialize(MerkleSerializer auto& w) const
     {
         w.writer << UInt(this->size());
-        VectorEntries<Elem>::write(w);
+        VectorEntries<Elem>::serialize(w);
     }
     UntaggedSizeVector() { }
     UntaggedSizeVector(StructuredReader& r)
