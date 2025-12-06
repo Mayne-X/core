@@ -2,6 +2,13 @@
 #include "global/globals.hpp"
 
 template <typename... Args>
+inline void log_db_update(spdlog::format_string_t<Args...> fmt, Args&&... args)
+{
+    if (config().logDBUpdate)
+        spdlog::info(fmt, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
 inline void log_rtc(spdlog::format_string_t<Args...> fmt, Args&&... args)
 {
     if (config().logRTC)
