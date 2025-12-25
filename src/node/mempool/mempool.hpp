@@ -162,12 +162,13 @@ public:
     }
     Error insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& wartCache);
     void insert_tx_throw(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& wartCache);
+    void pop_transactions_after_hegiht(Height h, std::vector<TransactionMessage>* append = nullptr);
 
     size_t on_constraint_update();
     void erase(TransactionId id);
     void set_free_balance(AccountToken, Funds_uint64 newBalance);
     void set_allowed_blockversions(const std::set<BlockVersion>& s);
-    void erase_from_height(NonzeroHeight);
+    size_t erase_from_height(NonzeroHeight, std::vector<TransactionMessage>* pOut = nullptr);
     void erase_pinned_before_height(Height);
     [[nodiscard]] auto get_transactions(size_t n, NonzeroHeight height, std::vector<TxHash>* hashes = nullptr) const { return transactions.get_transactions(n, height, hashes); }
     [[nodiscard]] CompactUInt min_fee() const { return transactions.min_fee(); }
@@ -207,7 +208,7 @@ private:
     void prune();
 
 private:
-    TransactionMapBool allowedTransactions;
+    TransactionMapBool allowedTransactionTypes;
     Updates updates;
     MempoolTransactions transactions;
     BalanceEntries lockedBalances;

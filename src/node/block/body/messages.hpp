@@ -243,3 +243,4 @@ public:
         return visit([&](const auto& m) { return m.txhash(pinHash); });
     }
 };
+

@@ -44,11 +44,15 @@ void Chainstate::assert_equal_length()
 
 void Chainstate::fork(Chainstate::ForkData&& fd)
 {
-
-    const auto forkHeight { fd.rollbackResult.shrink.length.add1() };
+    const auto shrinkLength { fd.rollbackResult.shrink.length };
+    const auto forkHeight { shrinkLength.add1() };
     assert(fd.rollbackResult.shrink.length < length());
     // increment descriptor
     dsc += 1;
+
+    // take transactions that are affected by rollback out of mempool
+    auto txsReinsert { std::move(fd.rollbackResult.toMempool) };
+    _mempool.erase_from_height(forkHeight, &txsReinsert);
 
     // adapt header chain and offsets
     headerchain = std::move(fd.stage);
@@ -59,45 +63,22 @@ void Chainstate::fork(Chainstate::ForkData&& fd)
     assert_equal_length();
 
     //////////////////////////////
-    // erase mempool after rollback height
-    _mempool.erase_from_height(forkHeight);
-
-    //////////////////////////////
     // inform mempool about balance changes
     auto balanceUpdates { std::move(fd.appendResult.freeBalanceUpdates) };
     balanceUpdates.merge(std::move(fd.rollbackResult.freeBalanceUpdates));
     update_free_balances(balanceUpdates);
 
-    //////////////////////////////
-    // insert transactions into mempool
-    DBCache dbCache(db);
-    for (auto& tx : fd.rollbackResult.toMempool) {
-        AccountId fromId { tx.from_id() };
-        if (fromId >= db.next_id64())
-            continue;
-
-        PinHeight ph { tx.pin_height() };
-        assert(ph <= forkHeight - 1);
-        auto hash { headers().hash_at(ph) };
-        auto txhash { tx.txhash(hash) };
-
-        if (!fd.appendResult.newTxIds.contains(tx.txid())) {
-            TxHeight txh { ph, account_height(fromId) };
-            // TODO_Shifu: We need to make sure that the account id's are always correct (in case of rollbacks)
-            _mempool.insert_tx(tx, txh, txhash, dbCache);
-        }
-    }
-
     // set transaction ids
     chainTxIds = std::move(fd.rollbackResult.chainTxIds);
     chainTxIds.merge(std::move(fd.appendResult.newTxIds));
 
-    // remove from mempool (do FULL scan)
+    // remove transactions used in forked chain from mempool
     for (auto& tid : chainTxIds)
         _mempool.erase(tid);
     update_allowed_mempool_transaction_types();
 
-    // prune transaction ids
+    insert_txs(txsReinsert);
+
     prune_txids();
 }
 
@@ -117,11 +98,16 @@ void Chainstate::set_allowed_mempool_transaction_types()
 
 auto Chainstate::rollback(const RollbackResult& rb) -> HeaderchainRollback
 {
-    const auto forkHeight { rb.shrink.length.add1() };
+    const auto shrinkLength { rb.shrink.length };
+    const auto forkHeight { shrinkLength.add1() };
     assert(rb.shrink.length < length());
 
     // increment descriptor
     dsc += 1;
+
+    // take transactions that are affected by rollback out of mempool
+    auto txsReinsert { std::move(rb.toMempool) };
+    _mempool.erase_from_height(forkHeight, &txsReinsert);
 
     // adapt header chain and offsets
     headerchain.shrink(rb.shrink.length);
@@ -132,36 +118,18 @@ auto Chainstate::rollback(const RollbackResult& rb) -> HeaderchainRollback
     // set transaction ids
     chainTxIds = std::move(rb.chainTxIds);
 
-    // prune transaction ids
     prune_txids();
 
-    // remove from mempool (do FULL scan)
+    // remove from mempool
     for (auto& tid : chainTxIds)
         _mempool.erase(tid);
-
-    // erase mempool after rollback height
-    _mempool.erase_from_height(forkHeight);
 
     //////////////////////////////
     // inform mempool about balance changes
     update_free_balances(rb.freeBalanceUpdates);
 
-    //////////////////////////////
-    // insert transactions into mempool
-    AddressCache addressCache(db);
-    DBCache dbCache(db);
-    for (auto& tx : rb.toMempool) {
-        AccountId fromId { tx.from_id() };
+    insert_txs(txsReinsert);
 
-        PinHeight ph { tx.pin_height() };
-        assert(ph <= forkHeight - 1);
-        auto hash { headers().hash_at(ph) };
-        TxHash txhash { tx.txhash(hash) };
-
-        TxHeight txh { ph, account_height(fromId) };
-        // TODO_Shifu: We need to make sure that the account id's are always correct (in case of rollbacks)
-        _mempool.insert_tx(tx, txh, txhash, dbCache);
-    }
     return HeaderchainRollback {
         .shrink { rb.shrink },
         .descriptor = dsc
@@ -250,7 +218,7 @@ auto Chainstate::insert_txs(const std::vector<TransactionMessage>& txs) -> std::
     res.reserve(txs.size());
     for (auto& tx : txs) {
         try {
-            insert_tx(tx, c);
+            insert_tx_throw(tx, c);
             res.push_back(0);
         } catch (const Error& e) {
             res.push_back(e.code);
@@ -259,7 +227,7 @@ auto Chainstate::insert_txs(const std::vector<TransactionMessage>& txs) -> std::
     return res;
 }
 
-TxHash Chainstate::insert_tx(const TransactionMessage& tm, DBCache& wc)
+TxHash Chainstate::insert_tx_throw(const TransactionMessage& tm, DBCache& wc)
 {
     auto txHash { tm.txhash(pin_hash(tm.pin_height())) };
     auto fromAddr = db.lookup_address(tm.from_id());

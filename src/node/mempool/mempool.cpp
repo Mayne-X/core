@@ -204,11 +204,17 @@ void Mempool::erase_internal(Txset::const_iter_t iter)
     erase_internal(iter, wartIter);
 }
 
-void Mempool::erase_from_height(NonzeroHeight h)
+size_t Mempool::erase_from_height(NonzeroHeight h, std::vector<TransactionMessage>* pOut)
 {
+    size_t i { 0 };
     auto iter { transactions.index().txheight().lower_bound(h) };
-    while (iter != transactions.index().txheight().end())
+    while (iter != transactions.index().txheight().end()) {
+        if (pOut)
+            pOut->push_back(std::move(**iter));
+        i += 1;
         erase_internal(*(iter++));
+    }
+    return i;
 }
 
 void Mempool::erase_pinned_before_height(Height h)
@@ -278,9 +284,9 @@ void Mempool::set_allowed_blockversions(const std::set<BlockVersion>& newSet)
         }
         return false;
     } };
-    auto tmpAllowedTransactions { allowedTransactions };
+    auto tmpAllowedTransactions { allowedTransactionTypes };
     bool needsDeletion = false;
-    allowedTransactions.for_each([&]<typename T>(T* t, auto& ref) {
+    allowedTransactionTypes.for_each([&]<typename T>(T* t, auto& ref) {
         bool& tmpRef = tmpAllowedTransactions.at<T>();
         const bool oldAllowsTransaction = tmpRef;
         const bool newAllowsTransaction = supports_transaction(newSet, t);
@@ -353,7 +359,7 @@ void Mempool::insert_tx_throw(const TransactionMessage& pm,
     const TxHash& txhash, chainserver::DBCache& cache)
 {
     auto canInsertTxType { pm.visit([&](auto tx) {
-        return allowedTransactions.at<
+        return allowedTransactionTypes.at<
             typename std::remove_cvref_t<decltype(tx)>::transaction_t>();
     }) };
     if (!canInsertTxType)
@@ -451,6 +457,22 @@ void Mempool::insert_tx_throw(const TransactionMessage& pm,
     assert(inserted);
     updates.push_back(Put { *iter });
     prune();
+}
+
+void Mempool::pop_transactions_after_hegiht(Height h, std::vector<TransactionMessage>* append)
+{
+    auto iter { transactions.index().txheight().lower_bound(h) };
+    while (iter != transactions.index().txheight().end())
+        erase_internal(*(iter++));
+    erase_if([&](const Entry& e) {
+        if (e.index().txHeight > h) {
+            if (append) {
+                append->push_back(e);
+            }
+            return true;
+        }
+        return false;
+    });
 }
 
 size_t Mempool::on_constraint_update()
