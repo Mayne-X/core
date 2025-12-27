@@ -306,7 +306,7 @@ void ChainServer::fake_mine(const Address& address)
 void ChainServer::handle_event(PutMempoolBatch&& mb)
 {
     auto t { timing->time("PutMempoolBatch") };
-    auto [_, log] { state.insert_txs(mb.txs) };
+    auto [_, log] { state.insert_txs(std::move(mb.txs)) };
     // LATER: introduce some logic to ban
     // peers who sent such bad transactions
     global().core->async_mempool_update(std::move(log));

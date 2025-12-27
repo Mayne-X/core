@@ -1,6 +1,6 @@
 #pragma once
 #include "block/chain/header_chain.hpp"
-#include "chainserver/state/update/update.hpp"
+#include "chainserver/state/update/chainstate_update.hpp"
 #include <memory>
 
 class ConsensusSlave {

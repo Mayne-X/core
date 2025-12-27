@@ -4,19 +4,44 @@
 
 namespace chainserver {
 
-const AssetDetail& AssetCacheById::operator[](AssetId id)
+template <typename Key, typename Value>
+const Value* MapCached<Key, Value>::lookup(const ChainDB& db, const Key& key)
+{
+    auto iter = map.lower_bound(key);
+    if (iter != map.end() && iter->first == key)
+        return &iter->second;
+    if (auto a { db.lookup_asset(key) })
+        return &map.emplace_hint(iter, key, *a)->second;
+    return nullptr;
+}
+
+template <typename Key, typename Value>
+const Value& MapCached<Key, Value>::fetch_throw(const ChainDB& db, const Key& key)
+{
+    return map.try_emplace_lambda(key, [&] { return db.fetch_throw<Value>(key); })
+        .first->second;
+}
+
+template <typename Key, typename Value>
+const Value& MapCached<Key, Value>::fetch_existing(const ChainDB& db, const Key& key)
+{
+    return map.try_emplace_lambda(key, [&] { return db.fetch_existing<Value>(key); })
+        .first->second;
+}
+
+const AssetDetail& AssetCacheById::fetch_existing(AssetId id)
 {
     auto iter = map.find(id);
     if (iter != map.end())
         return iter->second;
-    return map.emplace(id, db.fetch_asset(id)).first->second;
+    return map.emplace(id, db.fetch_existing<AssetDetail>(id)).first->second;
 }
 const AssetDetail& AssetCacheByHash::fetch(AssetHash h)
 {
     auto iter = map.find(h);
     if (iter != map.end())
         return iter->second;
-    return map.emplace(h, db.fetch_asset(h)).first->second;
+    return map.emplace(h, db.fetch_existing<AssetDetail>(h)).first->second;
 }
 const AssetDetail* AssetCacheByHash::lookup(AssetHash h)
 {
@@ -51,12 +76,21 @@ Funds_uint64 BalanceCache::operator[](AccountToken at)
     return iter->second;
 }
 
-const history::Entry& HistoryCache::operator[](HistoryId id)
+const AssetDetail& DBCache::existing_asset(AssetId id)
 {
-    auto iter = map.find(id);
-    if (iter != map.end())
-        return iter->second;
-    return map.emplace(id, db.fetch_history(id)).first->second;
+    return caches.get<AssetsById>().fetch_existing(db, id);
+}
+const Address& DBCache::existing_address(AccountId id)
+{
+    return caches.get<AddressById>().fetch_existing(db, id);
 }
 
+const AssetDetail* DBCache::lookup_asset(const AssetHash& hash)
+{
+    return caches.get<AssetsByHash>().lookup(db, hash);
+}
+const AssetDetail& DBCache::fetch_asset_throw(const AssetHash& hash)
+{
+    return caches.get<AssetsByHash>().fetch_throw(db, hash);
+}
 }

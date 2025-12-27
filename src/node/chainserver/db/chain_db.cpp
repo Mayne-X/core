@@ -16,6 +16,7 @@
 #include "sqlite3.h"
 #include "table_info.hpp"
 #include "types.hpp"
+#include "wrt/format.hpp"
 #include <spdlog/spdlog.h>
 
 using namespace std::string_literals;
@@ -27,6 +28,12 @@ template <typename S>
 Statement StateIdStatementsWrapper<StateIdBase<T, R...>>::delete_from_stmt(SQLite::Database& db)
 {
     return { db, "DELETE FROM " + std::string(table_info::table_name<S>()) + " WHERE id >= ?" };
+}
+
+std::runtime_error ChainDB::database_error_for_type(std::string_view typeName)
+{
+    std::string msg { fmt_lib::format("Database does not contain {} for key", typeName) };
+    return std::runtime_error(msg);
 }
 
 ChainDB::Database::Database(const std::string& path)
@@ -934,13 +941,6 @@ wrt::optional<history::Entry> ChainDB::lookup_history(HistoryId id) const
     return std::move(v.front().second);
 }
 
-history::Entry ChainDB::fetch_history(HistoryId id) const
-{
-    if (auto e { lookup_history(id) })
-        return std::move(*e);
-    throw std::runtime_error("Cannot load database entry with id " + std::to_string(id.value()));
-}
-
 void ChainDB::insertAccountHistory(AccountId accountId, HistoryId historyId)
 {
     stmtAccountHistoryInsert.run(accountId, historyId);
@@ -968,15 +968,6 @@ wrt::optional<Address> ChainDB::lookup_address(AccountId id) const
     return stmtAccountsLookup.one(id).process([](auto& o) {
         return Address { o[0] };
     });
-}
-
-Address ChainDB::fetch_address(AccountId id) const
-{
-    auto p = lookup_address(id);
-    if (!p) {
-        throw std::runtime_error("Database corrupted (fetch_address(" + std::to_string(id.value()) + ")");
-    }
-    return *p;
 }
 
 auto ChainDB::get_token_balance(BalanceId id) const -> wrt::optional<BalanceData>
@@ -1014,15 +1005,6 @@ wrt::optional<AssetDetail> ChainDB::lookup_asset(AssetId id) const
     });
 }
 
-AssetDetail ChainDB::fetch_asset(AssetId id) const
-{
-    auto p { lookup_asset(id) };
-    if (!p) {
-        throw std::runtime_error("Database corrupted (fetch_token(" + std::to_string(id.value()) + ")");
-    }
-    return *p;
-}
-
 wrt::optional<AssetDetail> ChainDB::lookup_asset(const AssetHash& hash) const
 {
     return stmtAssetLookupByHash.one(hash).process([](auto& o) -> AssetDetail {
@@ -1042,15 +1024,6 @@ wrt::optional<AssetDetail> ChainDB::lookup_asset(const AssetHash& hash) const
             }
         };
     });
-}
-
-AssetDetail ChainDB::fetch_asset(const AssetHash& hash) const
-{
-    auto p { lookup_asset(hash) };
-    if (!p) {
-        throw std::runtime_error("Database corrupted (fetch_token(" + hash.hex_string() + ")");
-    }
-    return *p;
 }
 
 wrt::optional<BlockId> ChainDB::lookup_block_id(const HashView hash) const

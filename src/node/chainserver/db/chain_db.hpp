@@ -112,6 +112,39 @@ public:
 template <typename T>
 using StateIdStatements = StateIdStatementsWrapper<typename T::parent_t>;
 
+namespace type_info {
+template <typename T>
+struct TypeInfo {
+    static_assert(false, "Type name not implemented");
+};
+template <>
+struct TypeInfo<AssetDetail> {
+    constexpr static std::string_view name = "Asset";
+    static constexpr Error notfound_error(AssetId)
+    {
+        return Error(EASSETIDNOTFOUND);
+    }
+    static constexpr Error notfound_error(AssetHash)
+    {
+        return Error(EASSETHASHNOTFOUND);
+    }
+};
+template <>
+struct TypeInfo<Address> {
+    constexpr static std::string_view name = "Address";
+    static constexpr Error notfound_error(AccountId)
+    {
+        return Error(EACCIDNOTFOUND);
+    }
+};
+
+template <>
+struct TypeInfo<history::Entry> {
+    constexpr static std::string_view name = "History";
+};
+
+}
+
 class ChainDB {
 private:
     friend class ChainDBTransaction;
@@ -211,7 +244,54 @@ public:
     // Account functions
     // get
     [[nodiscard]] wrt::optional<Address> lookup_address(AccountId id) const;
-    [[nodiscard]] Address fetch_address(AccountId id) const;
+
+    template <typename T>
+    static std::string_view type_string()
+    {
+        if constexpr (std::is_same_v<T, AssetDetail>) {
+            return "Asset";
+        } else if constexpr (std::is_same_v<T, Address>) {
+            return "Address";
+        } else {
+            static_assert(false, "Not implemented");
+        }
+    }
+
+    template <typename T>
+    auto lookup(auto&& key) const
+    {
+        if constexpr (std::is_same_v<T, AssetDetail>) {
+            return lookup_asset(key);
+        } else if constexpr (std::is_same_v<T, Address>) {
+            return lookup_address(key);
+        } else if constexpr (std::is_same_v<T, history::Entry>) {
+            return lookup_history(key);
+        } else {
+            static_assert(false, "Lookup not implemented");
+        }
+    }
+
+    static std::runtime_error database_error_for_type(std::string_view typeName);
+    template <typename T>
+    T fetch_existing(auto&& key) const
+    {
+        auto p { lookup<T>(std::forward<decltype(key)>(key)) };
+        if (!p) {
+            throw database_error_for_type(type_info::TypeInfo<T>::name);
+        }
+        return *p;
+    }
+
+    template <typename T>
+    T fetch_throw(auto&& key) const
+    {
+        auto p { lookup<T>(key) };
+        if (!p) {
+            Error e { type_info::TypeInfo<T>::notfound_error(key) };
+            throw e;
+        }
+        return *p;
+    }
 
     /////////////////////
     // Pool functions
@@ -240,9 +320,7 @@ private:
 
 public:
     [[nodiscard]] wrt::optional<AssetDetail> lookup_asset(AssetId) const;
-    [[nodiscard]] AssetDetail fetch_asset(AssetId id) const;
     [[nodiscard]] wrt::optional<AssetDetail> lookup_asset(const AssetHash&) const;
-    [[nodiscard]] AssetDetail fetch_asset(const AssetHash&) const;
     void set_balance(BalanceId, Balance_uint64 bl);
     std::vector<std::pair<TokenId, Funds_uint64>> get_tokens(AccountId, size_t limit);
     [[nodiscard]] api::Richlist lookup_richlist(TokenId, size_t limit) const;
@@ -277,7 +355,6 @@ public:
 
     [[nodiscard]] std::vector<std::pair<HistoryId, history::Entry>> lookup_history_range(HistoryId lower, HistoryId upper) const;
     [[nodiscard]] wrt::optional<history::Entry> lookup_history(HistoryId id) const;
-    [[nodiscard]] history::Entry fetch_history(HistoryId id) const;
     void insertAccountHistory(AccountId accountId, HistoryId historyId);
     HistoryId next_history_id() const
     {

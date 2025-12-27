@@ -5,9 +5,20 @@
 #include "chainserver/db/types_fwd.hpp"
 #include "defi/token/account_token.hpp"
 #include "defi/token/info.hpp"
-#include <map>
+#include "wrt/map.hpp"
 
 namespace chainserver {
+template <typename Key, typename Value>
+class MapCached {
+public:
+    void clear() { map.clear(); }
+    [[nodiscard]] const Value* lookup(const ChainDB& db, const Key& key);
+    [[nodiscard]] const Value& fetch_throw(const ChainDB& db, const Key& key);
+    [[nodiscard]] const Value& fetch_existing(const ChainDB& db, const Key& key);
+
+protected:
+    mutable wrt::map<Key, Value> map;
+};
 
 template <typename Key, typename Value>
 class DBCacheBase {
@@ -40,7 +51,7 @@ public:
 class AssetCacheById : public DBCacheBase<AssetId, AssetDetail> {
 public:
     using DBCacheBase::DBCacheBase;
-    [[nodiscard]] const AssetDetail& operator[](AssetId id);
+    [[nodiscard]] const AssetDetail& fetch_existing(AssetId id);
 };
 
 class AssetCacheByHash : public DBCacheBase<AssetHash, AssetDetail> {
@@ -50,36 +61,58 @@ public:
     [[nodiscard]] const AssetDetail* lookup(AssetHash);
 };
 
-class HistoryCache : public DBCacheBase<HistoryId, history::Entry> {
-public:
-    using DBCacheBase::DBCacheBase;
-    [[nodiscard]] const history::Entry& operator[](HistoryId id);
-};
-
 class DBCache {
+    template <typename... Ts>
+    struct CacheCollection : public Ts... {
+        template <typename T>
+        requires(std::is_same_v<T, Ts> || ...)
+        auto& get() const
+        {
+            return *static_cast<const T*>(this);
+        }
+        template <typename T>
+        requires(std::is_same_v<T, Ts> || ...)
+        auto& get()
+        {
+            return *static_cast<T*>(this);
+        }
+        void clear()
+        {
+            (get<Ts>().clear(), ...);
+        }
+    };
+    using AssetsById = MapCached<AssetId, AssetDetail>;
+    using AssetsByHash = MapCached<AssetHash, AssetDetail>;
+    using AddressById = MapCached<AccountId, Address>;
+    using Caches = CacheCollection<
+        AssetsById,
+        AddressById,
+        AssetsByHash>;
+
 public:
     DBCache(const ChainDB& db)
-        : addresses(db)
+        : db(db)
         , balance(db)
-        , assetsById(db)
         , assetsByHash(db)
-        , history(db)
     {
     }
     void clear()
     {
-        addresses.clear();
+        caches.clear();
         balance.clear();
-        assetsById.clear();
         assetsByHash.clear();
-        history.clear();
     }
+    [[nodiscard]] const AssetDetail& existing_asset(AssetId id);
+    [[nodiscard]] const Address& existing_address(AccountId id);
+    [[nodiscard]] const AssetDetail* lookup_asset(const AssetHash& hash);
+    [[nodiscard]] const AssetDetail& fetch_asset_throw(const AssetHash& hash);
 
-    AddressCache addresses;
+    const ChainDB& db;
+    Caches caches;
     BalanceCache balance;
-    AssetCacheById assetsById;
+
+private:
     AssetCacheByHash assetsByHash;
-    HistoryCache history;
 };
 
 }

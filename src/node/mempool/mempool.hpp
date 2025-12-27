@@ -160,8 +160,8 @@ public:
         return std::move(updates);
         updates.clear();
     }
-    Error insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& wartCache);
-    void insert_tx_throw(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& wartCache);
+    Error insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& dbCache);
+    void insert_tx_throw(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& dbCache);
 
     size_t on_constraint_update();
     void erase(TransactionId id);

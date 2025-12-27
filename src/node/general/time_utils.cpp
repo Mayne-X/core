@@ -1,6 +1,5 @@
 #include "time_utils.hpp"
-#include "spdlog/common.h"
-namespace fmt_lib = spdlog::fmt_lib;
+#include "wrt/format.hpp"
 namespace timing {
 
 std::string Duration::format()

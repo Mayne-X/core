@@ -62,10 +62,10 @@ struct Chainstate {
     [[nodiscard]] auto append(AppendMulti) -> HeaderchainAppend;
     [[nodiscard]] auto append(AppendSingle) -> HeaderchainAppend;
 
-    auto insert_txs(const std::vector<TransactionMessage>& txs) -> std::vector<Error>;
+    auto insert_txs(std::vector<TransactionMessage>&& txs) -> std::vector<Error>;
 
     size_t on_mempool_constraint_update();
-    TxHash insert_tx_throw(const TransactionMessage& m, DBCache& ac);
+    TxHash insert_tx_throw(TransactionMessage&& m, DBCache& ac);
     [[nodiscard]] TxHash create_tx(const TransactionCreate& m);
 
     // const functions
@@ -88,7 +88,11 @@ struct Chainstate {
     {
         return historyOffsets.height(historyIndex);
     }
-    StateHeight account_height(AccountId id) const
+    [[nodiscard]] StateHeight state_height(AssetId id) const
+    {
+        return stateOffsets.height(state_id(id));
+    }
+    StateHeight state_height(AccountId id) const
     {
         return stateOffsets.height(state_id(id));
     }
@@ -103,7 +107,8 @@ protected:
     CancelationMessage create_specific_tx(const TransactionId&, const CancelationCreate& m);
     AssetCreationMessage create_specific_tx(const TransactionId&, const AssetCreationCreate& m);
 
-    TxHash insert_tx_internal(const TransactionMessage&, TxHeight, TxHash, DBCache&, const Address fromAddr);
+    TxHeight tx_height(TransactionMessage&&, TxHash, const Address& fromAddr, DBCache&);
+    TxHash insert_tx_internal(TransactionMessage&&, TxHash, const Address& fromAddr, DBCache&);
     void prune_txids();
     void update_free_balances(const FreeBalanceUpdates& updates);
     Chainstate(std::tuple<std::vector<Batch>, HistoryHeights, State64Heights> init,

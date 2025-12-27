@@ -77,7 +77,7 @@ void Chainstate::fork(Chainstate::ForkData&& fd)
         _mempool.erase(tid);
     update_allowed_mempool_transaction_types();
 
-    insert_txs(txsReinsert);
+    insert_txs(std::move(txsReinsert));
 
     prune_txids();
 }
@@ -128,7 +128,7 @@ auto Chainstate::rollback(const RollbackResult& rb) -> HeaderchainRollback
     // inform mempool about balance changes
     update_free_balances(rb.freeBalanceUpdates);
 
-    insert_txs(txsReinsert);
+    insert_txs(std::move(txsReinsert));
 
     return HeaderchainRollback {
         .shrink { rb.shrink },
@@ -211,14 +211,14 @@ size_t Chainstate::on_mempool_constraint_update()
     return _mempool.on_constraint_update();
 };
 
-auto Chainstate::insert_txs(const std::vector<TransactionMessage>& txs) -> std::vector<Error>
+auto Chainstate::insert_txs(std::vector<TransactionMessage>&& txs) -> std::vector<Error>
 {
     DBCache c(db);
     std::vector<Error> res;
     res.reserve(txs.size());
     for (auto& tx : txs) {
         try {
-            insert_tx_throw(tx, c);
+            insert_tx_throw(std::move(tx), c);
             res.push_back(0);
         } catch (const Error& e) {
             res.push_back(e.code);
@@ -227,7 +227,7 @@ auto Chainstate::insert_txs(const std::vector<TransactionMessage>& txs) -> std::
     return res;
 }
 
-TxHash Chainstate::insert_tx_throw(const TransactionMessage& tm, DBCache& wc)
+TxHash Chainstate::insert_tx_throw(TransactionMessage&& tm, DBCache& cache)
 {
     auto txHash { tm.txhash(pin_hash(tm.pin_height())) };
     auto fromAddr = db.lookup_address(tm.from_id());
@@ -236,9 +236,7 @@ TxHash Chainstate::insert_tx_throw(const TransactionMessage& tm, DBCache& wc)
     if (tm.from_address(txHash) != fromAddr)
         throw Error(EFAKEACCID);
 
-    TxHeight th(tm.pin_height(), account_height(tm.from_id()));
-
-    return insert_tx_internal(tm, th, txHash, wc, *fromAddr);
+    return insert_tx_internal(std::move(tm), txHash, *fromAddr, cache);
 }
 
 PinHash Chainstate::pin_hash(PinHeight pinHeight) const
@@ -253,17 +251,16 @@ PinHash Chainstate::pin_hash(PinHeight pinHeight) const
 [[nodiscard]] TxHash Chainstate::create_tx(const TransactionCreate& m)
 {
     return m.visit([&]<typename T>(T&& m) {
-        DBCache c(db);
+        DBCache cache(db);
         PinHeight pinHeight = m.pin_height();
         auto txHash { m.tx_hash(pin_hash(pinHeight)) };
         auto fromAddr = m.from_address(txHash);
-        auto accId = db.lookup_account(fromAddr);
-        if (!accId)
+        auto fromId = db.lookup_account(fromAddr);
+        if (!fromId)
             throw Error(EADDRNOTFOUND);
-        TxHeight th(pinHeight, account_height(*accId)); // TODO: rethink transaction height
-        TransactionId txid(*accId, pinHeight, m.nonce_id());
-        auto msg { create_specific_tx(txid, std::forward<T>(m)) };
-        return insert_tx_internal(std::move(msg), th, txHash, c, fromAddr);
+        // TxHeight th(pinHeight, account_height(*fromId)); // TODO: rethink transaction height
+        TransactionId txid(*fromId, pinHeight, m.nonce_id());
+        return insert_tx_internal(create_specific_tx(txid, std::forward<T>(m)), txHash, fromAddr, cache);
     });
 }
 
@@ -312,8 +309,16 @@ void Chainstate::update_free_balances(const FreeBalanceUpdates& updates)
         _mempool.set_free_balance(accountToken, balance);
 }
 
-TxHash Chainstate::insert_tx_internal(const TransactionMessage& m, TxHeight th, TxHash txHash, DBCache& c, const Address fromAddr)
+TxHash Chainstate::insert_tx_internal(TransactionMessage&& m, TxHash txHash, const Address& fromAddr, DBCache& c)
 {
+    auto stateHeight { state_height(m.from_id()) };
+    if (auto ah { m.asset_hash() }) {
+        auto sh { state_height(c.fetch_asset_throw(*ah).id) };
+        if (sh < stateHeight)
+            stateHeight = sh;
+    }
+    TxHeight th(m.pin_height(), stateHeight);
+
     if (txids().contains(m.txid()))
         throw Error(ENONCE);
     if (m.compact_fee() < config().minMempoolFee)
@@ -329,7 +334,7 @@ TxHash Chainstate::insert_tx_internal(const TransactionMessage& m, TxHeight th, 
                 throw Error(ESELFSEND);
         },
         [&](const auto&) {});
-    _mempool.insert_tx_throw(TransactionMessage { std::move(m) }, th, txHash, c);
+    _mempool.insert_tx_throw(std::move(m), th, txHash, c);
     return txHash;
 }
 

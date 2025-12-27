@@ -313,10 +313,10 @@ void Mempool::set_allowed_blockversions(const std::set<BlockVersion>& newSet)
     spdlog::debug("Deleted {} of unsupported type from mempool", format_plural(deleted, "transaction"));
 }
 
-Error Mempool::insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& cache)
+Error Mempool::insert_tx(const TransactionMessage& pm, TxHeight txHeight, const TxHash& txHash, chainserver::DBCache& cache)
 {
     try {
-        insert_tx_throw(pm, txh, hash, cache);
+        insert_tx_throw(pm, txHeight, txHash, cache);
         return 0;
     } catch (Error e) {
         return e;
@@ -326,7 +326,7 @@ Error Mempool::insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHas
 wrt::optional<TokenFunds> Mempool::token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const
 {
     if (auto s { pm.spend_token_throw() }) {
-        if (auto pAsset { cache.assetsByHash.lookup(s->hash) })
+        if (auto pAsset { cache.lookup_asset(s->hash) })
             return TokenFunds { pAsset->id.token_id(s->isLiquidity), s->amount };
         throw Error(EASSETHASHNOTFOUND);
     }
@@ -458,7 +458,6 @@ void Mempool::insert_tx_throw(const TransactionMessage& pm,
     updates.push_back(Put { *iter });
     prune();
 }
-
 
 size_t Mempool::on_constraint_update()
 {

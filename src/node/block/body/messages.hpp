@@ -213,6 +213,17 @@ public:
             }
         });
     }
+    [[nodiscard]] wrt::optional<AssetHash> asset_hash() const
+    {
+        return visit([]<typename T>(const T& m) -> wrt::optional<AssetHash> {
+            if constexpr (T::has_asset_hash) {
+                return m.asset_hash();
+            } else {
+                return {};
+            }
+        });
+    }
+
     [[nodiscard]] auto spend_wart_assert() const
     {
         try {
@@ -243,4 +254,3 @@ public:
         return visit([&](const auto& m) { return m.txhash(pinHash); });
     }
 };
-

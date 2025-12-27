@@ -74,7 +74,7 @@ public:
     auto chainlength() const -> Height { return chainstate.headers().length(); }
 
     // mempool
-    [[nodiscard]] auto insert_txs(const TxVec&) -> std::pair<std::vector<Error>, mempool::Updates>;
+    [[nodiscard]] auto insert_txs(TxVec&&) -> std::pair<std::vector<Error>, mempool::Updates>;
     [[nodiscard]] size_t on_mempool_constraint_update();
 
     // stage methods
@@ -154,7 +154,8 @@ public:
     [[nodiscard]] auto append_mined_block(const Block&, bool verifyPOW = true) -> StateUpdateWithAPIBlocks;
 
 private:
-    api::Transaction api_dispatch_mempool(const TxHash&, TransactionMessage&&) const;
+    const AssetDetail* lookup_hash_warn(const AssetHash&) const;
+    wrt::optional<api::Transaction> api_dispatch_mempool(const TxHash&, TransactionMessage&&) const;
     api::Transaction api_dispatch_history(const TxHash&, HistoryId hid, history::HistoryVariant&&, NonzeroHeight) const;
 
     // transaction helpers
