@@ -72,7 +72,7 @@ void PeerConnection::close() {
 	negotiationNeeded = false;
 	if (!closing.exchange(true)) {
 		PLOG_VERBOSE << "Closing PeerConnection";
-		if (auto transport = std::atomic_load(&mSctpTransport))
+		if (auto transport = mSctpTransport.load())
 			transport->stop();
 		else
 			remoteClose();
@@ -119,17 +119,17 @@ size_t PeerConnection::remoteMaxMessageSize() const {
 
 // Helper for PeerConnection::initXTransport methods: start and emplace the transport
 template <typename T>
-shared_ptr<T> emplaceTransport(PeerConnection *pc, shared_ptr<T> *member, shared_ptr<T> transport) {
-	std::atomic_store(member, transport);
+shared_ptr<T> emplaceTransport(PeerConnection *pc, atomic<shared_ptr<T>> &member, shared_ptr<T> transport) {
+	member.store(transport);
 	try {
 		transport->start();
 	} catch (...) {
-		std::atomic_store(member, decltype(transport)(nullptr));
+		member.store(decltype(transport)(nullptr));
 		throw;
 	}
 
 	if (pc->closing.load() || pc->state.load() == PeerConnection::State::Closed) {
-		std::atomic_store(member, decltype(transport)(nullptr));
+		member.store(decltype(transport)(nullptr));
 		transport->stop();
 		return nullptr;
 	}
@@ -139,7 +139,7 @@ shared_ptr<T> emplaceTransport(PeerConnection *pc, shared_ptr<T> *member, shared
 
 shared_ptr<IceTransport> PeerConnection::initIceTransport() {
 	try {
-		if (auto transport = std::atomic_load(&mIceTransport))
+		if (auto transport = mIceTransport.load())
 			return transport;
 
 		PLOG_VERBOSE << "Starting ICE transport";
@@ -195,7 +195,7 @@ shared_ptr<IceTransport> PeerConnection::initIceTransport() {
 			    }
 		    });
 
-		return emplaceTransport(this, &mIceTransport, std::move(transport));
+		return emplaceTransport(this, mIceTransport, std::move(transport));
 
 	} catch (const std::exception &e) {
 		PLOG_ERROR << e.what();
@@ -216,7 +216,7 @@ shared_ptr<DtlsTransport> PeerConnection::initDtlsTransport() {
 			fingerprintAlgorithm = remote->fingerprint()->algorithm;
 		}
 
-		auto lower = std::atomic_load(&mIceTransport);
+		auto lower = mIceTransport.load();
 		if (!lower)
 			throw std::logic_error("No underlying ICE transport for DTLS transport");
 
@@ -273,7 +273,7 @@ shared_ptr<DtlsTransport> PeerConnection::initDtlsTransport() {
 			                                            dtlsStateChangeCallback);
 		}
 
-		return emplaceTransport(this, &mDtlsTransport, std::move(transport));
+		return emplaceTransport(this, mDtlsTransport, std::move(transport));
 
 	} catch (const std::exception &e) {
 		PLOG_ERROR << e.what();
@@ -334,7 +334,7 @@ shared_ptr<SctpTransport> PeerConnection::initSctpTransport() {
 			    }
 		    });
 
-		return emplaceTransport(this, &mSctpTransport, std::move(transport));
+		return emplaceTransport(this, mSctpTransport, std::move(transport));
 
 	} catch (const std::exception &e) {
 		PLOG_ERROR << e.what();

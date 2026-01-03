@@ -142,9 +142,9 @@ private:
 
 	mutable std::shared_mutex mMediaHandlerMutex;
 
-	shared_ptr<IceTransport> mIceTransport;
-	shared_ptr<DtlsTransport> mDtlsTransport;
-	shared_ptr<SctpTransport> mSctpTransport;
+	atomic<shared_ptr<IceTransport>> mIceTransport;
+	atomic<shared_ptr<DtlsTransport>> mDtlsTransport;
+	atomic<shared_ptr<SctpTransport>> mSctpTransport;
 
 	std::unordered_map<uint16_t, weak_ptr<DataChannel>> mDataChannels; // by stream ID
 	std::vector<weak_ptr<DataChannel>> mUnassignedDataChannels;

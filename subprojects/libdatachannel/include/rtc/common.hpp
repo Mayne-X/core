@@ -60,6 +60,7 @@ using std::byte;
 using std::nullopt;
 using std::optional;
 using std::shared_ptr;
+using std::atomic;
 using std::string;
 using std::string_view;
 using std::unique_ptr;
