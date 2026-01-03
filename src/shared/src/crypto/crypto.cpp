@@ -34,12 +34,12 @@ PubKey::PubKey(const std::string& hex)
     if (parse_hex(hex, serialized) && secp256k1_ec_pubkey_parse(secp256k1_ctx, &pubkey, serialized.data(), serialized.size()))
         return;
     throw Error(EBADPUBKEY);
-};
+}
 
 bool PubKey::operator==(const PubKey& rhs) const
 {
     return secp256k1_ec_pubkey_cmp(secp256k1_ctx, &pubkey, &rhs.pubkey) == 0;
-};
+}
 
 Address PubKey::address()
 {
@@ -64,7 +64,7 @@ PubKey::PubKey(const RecoverableSignature& recsig, HashView hv)
 {
     if (!secp256k1_ecdsa_recover(secp256k1_ctx, &pubkey, &recsig.recsig, hv.data()))
         throw Error(ECORRUPTEDSIG);
-};
+}
 
 //////////////////////////////
 // Key methods
@@ -88,7 +88,7 @@ PrivKey::PrivKey(std::string_view key)
 {
     if (!parse_hex(key, keydata) || check(keydata.data()) == false)
         throw Error(EBADPRIVKEY);
-};
+}
 
 PrivKey::PrivKey(const uint8_t* pbegin, const uint8_t* pend)
 {
@@ -109,16 +109,16 @@ PubKey PrivKey::pubkey() const
     PubKey pk {};
     assert(secp256k1_ec_pubkey_create(secp256k1_ctx, &pk.pubkey, keydata.data()));
     return pk;
-};
+}
 RecoverableSignature PrivKey::sign(HashView hv) const
 {
     return RecoverableSignature(keydata.data(), hv);
-};
+}
 
 bool PrivKey::check(const uint8_t* vch)
 {
     return secp256k1_ec_seckey_verify(secp256k1_ctx, vch);
-};
+}
 
 //////////////////////////////
 // RecoverableSignature methods
@@ -139,7 +139,7 @@ bool RecoverableSignature::construct(View<65> v)
         return false;
     }
     return true;
-};
+}
 
 RecoverableSignature::RecoverableSignature(View<65> v)
 {

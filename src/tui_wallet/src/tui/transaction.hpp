@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 
-struct TransactionProperty {
+struct KVProperty {
   std::string name;
   std::string value;
 };
-struct TransactionProperties {
+struct KVProperties {
   std::string title;
-  std::vector<TransactionProperty> entries;
+  std::vector<KVProperty> entries;
 };

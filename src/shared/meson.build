@@ -12,6 +12,7 @@ src_wh=[
   files(
   [
     './platformassert.cpp',
+    './src/api/http/json_converter.cpp',
     './src/block/block.cpp',
     './src/block/body/body.cpp',
     './src/block/body/container.cpp',

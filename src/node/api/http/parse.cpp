@@ -1,5 +1,6 @@
 #include "parse.hpp"
 #include "block/body/container.hpp"
+#include "api/http/json_converter.hpp"
 #include "block/header/header_impl.hpp"
 #include "general/hex.hpp"
 #include "nlohmann/json.hpp"
@@ -34,10 +35,13 @@ BlockWorker parse_block_worker(const std::vector<uint8_t>& s)
     }
 }
 
-// Funds_uint64 parse_funds(const std::vector<uint8_t>& s)
-// {
-//     std::string str(s.begin(), s.end());
-//     if (auto o { Funds_uint64::parse(str) }; o.has_value())
-//         return *o;
-//     throw Error(EINV_ARGS);
-// };
+TransactionCreate parse_transaction_create(const std::vector<uint8_t>& s)
+{
+    try {
+        auto parsed(nlohmann::json::parse(s));
+        std::string type { parsed.at("type").get<std::string>() };
+        return TransactionCreate::parse_from(type, parsed);
+    } catch (const nlohmann::json::exception& e) {
+        throw Error(ETXTYPE);
+    }
+}

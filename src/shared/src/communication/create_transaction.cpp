@@ -1,5 +1,4 @@
 #include "create_transaction.hpp"
-#include "api/http/json_converter.hpp"
 #include "nlohmann/json.hpp"
 WartTransferCreate::operator std::string()
 {
@@ -14,13 +13,3 @@ WartTransferCreate::operator std::string()
         .dump(1);
 }
 
-TransactionCreate parse_transaction_create(const std::vector<uint8_t>& s)
-{
-    try {
-        auto parsed(nlohmann::json::parse(s));
-        std::string type { parsed.at("type").get<std::string>() };
-        return TransactionCreate::parse_from(type, parsed);
-    } catch (const nlohmann::json::exception& e) {
-        throw Error(ETXTYPE);
-    }
-}

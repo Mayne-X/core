@@ -1,0 +1,12 @@
+package "tui-wallet"
+purpose "Warthog TUI wallet supporting DeFi features.
+
+
+By CoinFu MasterShifu"
+
+
+# Options
+option "create" c "Create new wallet" optional 
+option "restore" r "Restore wallet from private key" optional string typestr="PRIVATEKEY"
+option "print-only" - "Do not save generated/restored wallet to disk but print result instead" optional 
+option "file" f "Specify wallet file" string typestr="FILENAME" default="wallet.json" optional 

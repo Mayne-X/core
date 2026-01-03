@@ -7,7 +7,7 @@ namespace ui {
 void TransferPopup::on_cancel() { closed = true; }
 
 void TransferPopup::on_create() {
-  auto properties{TransactionProperties{
+  auto properties{KVProperties{
       .title{"Transfer"},
       .entries{
           {"Asset ", asset.to_string()},
@@ -49,7 +49,7 @@ TransferPopup::TransferPopup(GUI &gui, AssetNameHash a, bool isLiquidity)
 }
 
 void SwapPopup::on_create() {
-  auto properties{TransactionProperties{
+  auto properties{KVProperties{
       .title{"Swap"},
       .entries{
           {"From Token ",
@@ -89,7 +89,7 @@ SwapPopup::SwapPopup(GUI &gui, AssetNameHash a)
                            Container::Horizontal({btnCancel, btnCreate})}));
 }
 void FarmPopup::on_create() {
-  auto properties{TransactionProperties{
+  auto properties{KVProperties{
       .title{"Farm"},
       .entries{
           {"From Token ",

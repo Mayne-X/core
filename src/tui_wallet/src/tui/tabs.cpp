@@ -36,7 +36,7 @@ SpinnerWorker::SpinnerWorker(ScreenInteractive& screen)
         using namespace std;
         std::unique_lock l(m);
         while (true) {
-            if(cv.wait_for(l, std::chrono::milliseconds(300), [&]() { return this->stop_requestd; }))
+            if (cv.wait_for(l, std::chrono::milliseconds(300), [&]() { return this->stop_requestd; }))
                 break;
             spinnerStep += 1;
             this->screen.PostEvent(Event::Custom);
@@ -56,7 +56,7 @@ void RootComponent::popup_notification(std::string title, std::string message)
     add_popup(Make<NotificationPopupBase>(std::move(title), std::move(message)));
 }
 
-void RootComponent::popup_confirmation(TransactionProperties txprops,
+void RootComponent::popup_confirmation(KVProperties txprops,
     onconfirm_generator_t handler)
 {
     auto confirm { Make<ConfirmationComponentBase>(gui, std::move(txprops),
@@ -65,7 +65,7 @@ void RootComponent::popup_confirmation(TransactionProperties txprops,
 }
 
 ConfirmationComponentBase::ConfirmationComponentBase(
-    GUI& gui, TransactionProperties txprops,
+    GUI& gui, KVProperties txprops,
     onconfirm_generator_t onConfirmGenerator)
     : GUIComponent(gui)
     , txdetails(TransactionDetails(std::move(txprops)))
@@ -85,8 +85,8 @@ ConfirmationComponentBase::ConfirmationComponentBase(
     btnCancel->TakeFocus();
 }
 
-AssetTab::AssetTab(GUI& gui)
-    : MakeTab(gui, "Asset")
+AssetControlTab::AssetControlTab(GUI& gui)
+    : MakeTab(gui, "Control")
     , btnTransferAsset(Button("Transfer", [&]() { on_asset_transfer(); }))
     , btnSwap(Button("Swap", [&]() { on_asset_swap(); }))
     , btnTransferLiquidity(
@@ -98,22 +98,37 @@ AssetTab::AssetTab(GUI& gui)
         { Container::Vertical({ btnTransferAsset, btnSwap }),
             Container::Vertical({ btnTransferLiquidity, btnFarm }) }));
 }
-void AssetTab::on_asset_transfer()
+void AssetControlTab::on_asset_transfer()
 {
     gui_root().add_popup(Make<TransferPopup>(gui, AssetNameHash::demo(), false));
 }
 
-void AssetTab::on_asset_swap()
+void AssetControlTab::on_asset_swap()
 {
     gui_root().add_popup(Make<SwapPopup>(gui, AssetNameHash::demo()));
 }
 
-void AssetTab::on_liquidity_transfer()
+void AssetControlTab::on_liquidity_transfer()
 {
     gui_root().add_popup(Make<TransferPopup>(gui, AssetNameHash::demo(), true));
 }
-void AssetTab::on_liquidity_farm()
+void AssetControlTab::on_liquidity_farm()
 {
     gui_root().add_popup(Make<FarmPopup>(gui, AssetNameHash::demo()));
+}
+AssetCreateTab::AssetCreateTab(GUI& gui)
+    : MakeTab(gui, "Create")
+    , btnCreateNew(Button("New", [&]() { on_create_new(); }))
+    , btnCreateFork(Button("Fork (Soon)", [&]() {}))
+    , spinner(gui.get_spinner())
+{
+    Add(Container::Horizontal(
+        { Container::Vertical({ btnCreateNew, btnCreateFork }) }));
+}
+void AssetCreateTab::on_create_new()
+{
+}
+void AssetCreateTab::on_create_fork()
+{
 }
 } // namespace ui

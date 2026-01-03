@@ -20,7 +20,7 @@ struct AssetNameHash {
 namespace ui {
 struct SelectedAsset {
 private:
-  friend AssetTab;
+  friend AssetControlTab;
   wrt::optional<AssetNameHash> nameHash;
 
 public:

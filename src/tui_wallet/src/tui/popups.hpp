@@ -1,7 +1,6 @@
 #pragma once
 #include "gui.hpp"
 #include "validated_input.hpp"
-// #include "include/ftxui/component/component.hpp"
 
 namespace ui {
 inline auto validator{[](const std::string &s) { return s.length() > 2; }};

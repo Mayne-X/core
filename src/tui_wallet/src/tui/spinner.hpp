@@ -1,5 +1,5 @@
 #pragma once
-#include "include/ftxui/component/screen_interactive.hpp"
+#include "ftxui/component/screen_interactive.hpp"
 namespace ui {
 using namespace ftxui;
 struct SpinnerWorker {
