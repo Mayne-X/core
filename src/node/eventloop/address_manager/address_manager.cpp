@@ -1,5 +1,5 @@
 #include "address_manager.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "global/globals.hpp"
 #include <nlohmann/json.hpp>
 #ifndef DISABLE_LIBUV

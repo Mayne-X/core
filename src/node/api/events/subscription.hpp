@@ -1,9 +1,10 @@
 #pragma once
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "block/chain/height.hpp"
 #include "block/chain/worksum.hpp"
 #include "crypto/address.hpp"
 #include "general/logger/log_entry.hpp"
+#include "general/start_time_points.hpp"
 #include "subscription_fwd.hpp"
 
 // struct Subscription

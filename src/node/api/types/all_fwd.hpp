@@ -1,5 +1,5 @@
 #pragma once
-#include "communication/rxtx_server/api_types_fwd.hpp"
+#include "api/types/shared_fwd.hpp"
 #include "wrt/variant_fwd.hpp"
 namespace api {
 struct AccountHistory;
@@ -29,36 +29,6 @@ struct Raw;
 struct TokenBalanceLookup;
 struct WartBalance;
 struct JanushashNumber;
-namespace block {
-
-struct RewardData;
-struct WartTransferData;
-struct TokenTransferData;
-struct AssetCreationData;
-struct NewOrderData;
-struct LiquidityDepositData;
-struct LiquidityWithdrawalData;
-struct CancelationData;
-struct OrderCancelationData;
-struct MatchData;
-
-template <typename T>
-struct WithHistoryBase;
-template <typename T>
-struct WithSignedInfo;
-
-using Reward = WithHistoryBase<RewardData>;
-using WartTransfer = WithSignedInfo<WartTransferData>;
-using TokenTransfer = WithSignedInfo<TokenTransferData>;
-using AssetCreation = WithSignedInfo<AssetCreationData>;
-using NewOrder = WithSignedInfo<NewOrderData>;
-using LiquidityDeposit = WithSignedInfo<LiquidityDepositData>;
-using LiquidityWithdrawal = WithSignedInfo<LiquidityWithdrawalData>;
-using TransactionCancelation = WithSignedInfo<CancelationData>;
-using OrderCancelation = WithHistoryBase<OrderCancelationData>;
-using Match = WithHistoryBase<MatchData>;
-
-};
 template <typename TxType>
 struct Temporal;
 using RewardTransaction = Temporal<block::Reward>;

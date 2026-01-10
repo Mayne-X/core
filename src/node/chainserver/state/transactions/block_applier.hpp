@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../transaction_ids.hpp"
-#include "api/types/forward_declarations.hpp"
+#include "api/types/all_fwd.hpp"
 #include "block/block_fwd.hpp"
 #include "chainserver/db/types_fwd.hpp"
 #include "chainserver/types.hpp"

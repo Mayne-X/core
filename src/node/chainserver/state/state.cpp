@@ -1451,7 +1451,7 @@ api::ChainHead State::api_get_head() const
     PinFloor pf { nextHeight.pin_floor() };
     PinHeight ph { pf };
     return api::ChainHead {
-        .signedSnapshot { signedSnapshot },
+        // .signedSnapshot { signedSnapshot },
         .worksum { chainstate.headers().total_work() },
         .nextTarget { chainstate.headers().next_target() },
         .hash { chainstate.final_hash() },

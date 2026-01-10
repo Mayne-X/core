@@ -2,7 +2,6 @@
 
 #include "api/http/json_converter.hpp"
 #include "block/body/labels.hpp"
-#include "block/body/messages.hpp"
 #include "block/body/nonce.hpp"
 #include "block/chain/height.hpp"
 #include "create_transaction_fwd.hpp"

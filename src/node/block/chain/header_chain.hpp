@@ -1,5 +1,5 @@
 #pragma once
-#include "api/types/forward_declarations.hpp"
+#include "api/types/all_fwd.hpp"
 #include "block/chain/fork_range.hpp"
 #include "block/header/view_inline.hpp"
 #include "communication/messages.hpp"

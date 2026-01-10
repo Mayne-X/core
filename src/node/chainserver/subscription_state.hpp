@@ -1,6 +1,6 @@
 #pragma once
 #include "api/events/subscription_fwd.hpp"
-#include "api/types/forward_declarations.hpp"
+#include "api/types/all_fwd.hpp"
 #include "block/body/account_id.hpp"
 #include "block/chain/header_chain.hpp"
 #include "block/chain/height.hpp"

@@ -4,7 +4,7 @@
 // #include "general/funds.hpp"
 #include "api/http/parse.hpp"
 #include "api/types/accountid_or_address.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "api/types/input.hpp"
 #include "chainserver/transaction_ids.hpp"
 #include "communication/mining_task.hpp"

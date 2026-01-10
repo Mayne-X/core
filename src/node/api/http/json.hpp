@@ -54,7 +54,7 @@ json to_json(const api::WartBalance&);
 json to_json(const api::WartBalanceLookup&);
 
 json to_json(const OffenseEntry& e);
-json to_json(const wrt::optional<SignedSnapshot>&);
+json to_json(const SignedSnapshot&);
 json to_json(const TransactionId&);
 json to_json(const AssetBasic&);
 json to_json(const chainserver::TransactionIds&);

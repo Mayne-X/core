@@ -1,6 +1,6 @@
 #pragma once
 
-#include "api/types/forward_declarations.hpp"
+#include "api/types/all_fwd.hpp"
 #include "block/block_fwd.hpp"
 #include "block/chain/height_header_work.hpp"
 #include "block/chain/range.hpp"

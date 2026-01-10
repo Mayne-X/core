@@ -1,5 +1,6 @@
 #include "header_chain.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
+#include "eventloop/types/conndata.hpp"
 #include "block/chain/binary_forksearch.hpp"
 #include "block/header/view_inline.hpp"
 #include "crypto/hasher_sha256.hpp"

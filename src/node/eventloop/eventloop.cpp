@@ -2,7 +2,7 @@
 #include "address_manager/address_manager_impl.hpp"
 #include "api/events/emit.hpp"
 #include "api/events/subscription.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "block/chain/header_chain.hpp"
 #include "block/header/batch.hpp"
 #include "block/header/view.hpp"

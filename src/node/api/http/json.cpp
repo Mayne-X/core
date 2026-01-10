@@ -1,5 +1,5 @@
 #include "json.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "block/header/header_impl.hpp"
 #include "block/header/view.hpp"
 #include "chainserver/transaction_ids.hpp"
@@ -883,17 +883,13 @@ json to_json(const Grid& g)
     return j;
 }
 
-json to_json(const wrt::optional<SignedSnapshot>& sp)
+json to_json(const SignedSnapshot& s)
 {
-    if (sp) {
-        auto& s = *sp;
         return json {
             { "priority", json { { "height", s.priority.height }, { "importance", s.priority.importance } } },
             { "hash", serialize_hex(s.hash) },
             { "signature", s.signature.to_string() },
         };
-    }
-    return nullptr;
 }
 
 json to_json(const TransactionId& txid)

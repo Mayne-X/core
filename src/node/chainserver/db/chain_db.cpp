@@ -1,5 +1,5 @@
 #include "chain_db.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "block/chain/header_chain.hpp"
 #include "block/chain/history/history.hpp"
 #include "block/header/header_impl.hpp"

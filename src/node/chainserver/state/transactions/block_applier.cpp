@@ -1,5 +1,5 @@
 #include "block_applier.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "block/body/rollback.hpp"
 #include "block/chain/header_chain.hpp"
 #include "block/chain/history/history.hpp"

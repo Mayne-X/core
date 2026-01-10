@@ -13,6 +13,7 @@ src_wh=[
   [
     './platformassert.cpp',
     './src/api/http/json_converter.cpp',
+    './src/api/types/shared.cpp',
     './src/block/block.cpp',
     './src/block/body/body.cpp',
     './src/block/body/container.cpp',
@@ -43,6 +44,9 @@ src_wh=[
     './src/general/is_testnet.cpp',
     './src/general/structured_reader.cpp',
     './src/general/with_uint64.cpp',
+    './src/transport/helpers/ip.cpp',
+    './src/transport/helpers/ipv4.cpp',
+    './src/transport/helpers/ipv6.cpp',
   ]
   )]
 

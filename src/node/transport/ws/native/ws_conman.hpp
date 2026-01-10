@@ -3,7 +3,7 @@
 #ifndef DISABLE_LIBUV
 #define UWS_NO_ZLIB
 #include "config.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "block/block.hpp"
 #include "transport/helpers/tcp_sockaddr.hpp"
 #include "connect_request.hpp"

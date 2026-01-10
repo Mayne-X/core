@@ -1,5 +1,5 @@
 #pragma once
-#include "../types/all.hpp"
+#include "api/types/shared.hpp"
 namespace api {
 
 namespace event {

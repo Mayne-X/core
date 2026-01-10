@@ -1,7 +1,7 @@
 #pragma once
 #include "chainstate_update.hpp"
 #include "mempool_update.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "stage_update.hpp"
 
 namespace chainserver {

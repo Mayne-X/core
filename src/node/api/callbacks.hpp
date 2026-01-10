@@ -1,5 +1,6 @@
 #pragma once
-#include "api/types/forward_declarations.hpp"
+#include "api/types/all_fwd.hpp"
+#include "communication/rxtx_server/api_types.hpp"
 #include "general/result.hpp"
 #include "wrt/expected.hpp"
 #include "wrt/optional.hpp"

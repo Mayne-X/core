@@ -1,6 +1,6 @@
 #include "subscription_state.hpp"
 #include "api/events/subscription.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "chainserver/state/state.hpp"
 #include "chainserver/state/update/update.hpp"
 #include "spdlog/spdlog.h"

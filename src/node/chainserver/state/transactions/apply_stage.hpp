@@ -1,6 +1,6 @@
 #pragma once
 #include "../state.hpp"
-#include "api/types/forward_declarations.hpp"
+#include "api/types/all_fwd.hpp"
 #include "chainserver/db/chain_db.hpp"
 
 namespace chainserver {

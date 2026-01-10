@@ -1,7 +1,7 @@
 #include "server.hpp"
 #include "api/events/emit.hpp"
 #include "api/events/subscription.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "block/header/header_impl.hpp"
 #include "chainserver/db/chain_db.hpp"
 #include "eventloop/eventloop.hpp"

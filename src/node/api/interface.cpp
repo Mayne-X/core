@@ -1,5 +1,5 @@
 #include "interface.hpp"
-#include "api/types/all.hpp"
+#include "api/types/shared.hpp"
 #include "block/header/header_impl.hpp"
 #include "chainserver/server.hpp"
 #include "communication/rxtx_server/rxtx_server.hpp"

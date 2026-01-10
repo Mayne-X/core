@@ -1,4 +1,4 @@
-#include "all.hpp"
+#include "shared.hpp"
 
 namespace api {
 void Block::set_reward(block::Reward r)

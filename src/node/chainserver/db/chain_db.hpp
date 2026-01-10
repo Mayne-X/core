@@ -3,7 +3,7 @@
 #include "SQLiteCpp/Database.h"
 #include "SQLiteCpp/Transaction.h"
 #include "api/types/asset_lookup_trace.hpp"
-#include "api/types/forward_declarations.hpp"
+#include "api/types/all_fwd.hpp"
 #include "block/block.hpp"
 #include "block/block_fwd.hpp"
 #include "block/body/container.hpp"
