@@ -1,7 +1,7 @@
 #pragma once
 #include "ftxui/component/screen_interactive.hpp"
 #include "gui_fwd.hpp"
-#include "spinner.hpp"
+// #include "spinner_clock.hpp"
 #include "ui_data.hpp"
 
 namespace ui {
@@ -16,6 +16,7 @@ protected:
     {
     }
     GUI& gui;
+    Element render_spinner(int type = 11) const;
 
 public:
     ScreenInteractive& gui_screen() const;
@@ -42,7 +43,6 @@ struct IsTab { };
 template <typename T>
 struct MakeTab : public IsTab, public NamedGUIComponent {
 private:
-
 public:
     using NamedGUIComponent::NamedGUIComponent;
 };
@@ -57,20 +57,31 @@ public:
     ScreenInteractive screen;
 
 private:
-    ui::SpinnerFactory spinnerFactory;
+    using duration = std::chrono::steady_clock::duration;
+    std::thread spinnerThread;
+    std::mutex m;
+    std::condition_variable cv;
+    bool stopRequested { false };
+    std::atomic<int> spinnerStep;
+    duration interval { std::chrono::milliseconds(200) };
+    void start_spinner_thread();
+    void stop_spinner_thread();
+
     std::shared_ptr<RootComponent> root;
 
     struct CreateToken { };
 
 public:
-    SpinnerRenderer get_spinner() const { return spinnerFactory.get_handle(); }
+    Element render_spinner(int type = 12);
     void set_connected(bool set);
     void set_unlocked(bool set);
+    void trigger_render();
     static std::shared_ptr<GUI> create_instance()
     {
         return std::make_shared<GUI>(CreateToken());
     }
     GUI(CreateToken);
+    ~GUI();
 
     void terminate() { screen.Exit(); }
     void run();

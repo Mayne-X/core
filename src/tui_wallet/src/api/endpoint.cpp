@@ -1,4 +1,4 @@
-#include "api_call.hpp"
+#include "endpoint.hpp"
 #include "block/chain/height.hpp"
 #include "general/hex.hpp"
 #include "httplib.hpp"
@@ -7,13 +7,7 @@
 using namespace std;
 using namespace nlohmann;
 
-size_t writeFunction(void* ptr, size_t size, size_t nmemb, std::string* data)
-{
-    data->append((char*)ptr, size * nmemb);
-    return size * nmemb;
-}
-
-bool Endpoint::http_get(const std::string& get, std::string& out)
+bool Endpoint::http_get(const std::string& get, std::string& out) const
 {
     httplib::Client cli(host, port);
     cli.set_read_timeout(10);
@@ -54,7 +48,7 @@ std::pair<PinHeight, PinHash> Endpoint::get_pin()
     throw std::runtime_error("API request failed, response is malformed. Is the node version compatible with this wallet?");
 }
 
-FundsDecimal Endpoint::get_balance(const std::string& account, api::TokenIdOrSpec token)
+api::FundsBalance Endpoint::get_balance(const std::string& account, api::TokenIdOrSpec token) const
 {
     std::string out;
     std::string url = "/account/" + account + "/balance/" + token.to_string();
@@ -63,16 +57,19 @@ FundsDecimal Endpoint::get_balance(const std::string& account, api::TokenIdOrSpe
     }
     try {
         json parsed = json::parse(out);
+        auto l { [](json& balance) {
+            TokenPrecision p(balance["precision"].get<uint8_t>());
+            Funds_uint64 f(balance["u64"].get<uint64_t>());
+            return FundsDecimal { f, p };
+        } };
         auto& bal { parsed["data"]["balance"] };
-        TokenPrecision p(bal["precision"].get<uint8_t>());
-        Funds_uint64 f(bal["u64"].get<uint64_t>());
-        return FundsDecimal { f, p };
+        return { .total { l(bal["total"]) }, .locked { l(bal["locked"]) } };
     } catch (...) {
         throw std::runtime_error("API request failed, response is malformed. Is the node version compatible with this wallet?");
     }
 }
 
-FundsDecimal Endpoint::get_wart_balance(const std::string& account)
+api::FundsBalance Endpoint::get_wart_balance(const std::string& account) const
 {
     return get_balance(account, TokenId::WART);
 }
@@ -109,7 +106,7 @@ auto Endpoint::send_transaction(const std::string& txjson) -> std::variant<TxHas
     }
 }
 
-std::runtime_error Endpoint::failed_msg()
+std::runtime_error Endpoint::failed_msg() const
 {
     return std::runtime_error { "API request to host " + host + " at port " + std::to_string(port) + " failed. Are you running the node with RPC endpoint enabled?" };
 };

@@ -21,8 +21,8 @@
 #include "height_or_hash.hpp"
 #include "transport/helpers/ip.hpp"
 // #include "peerserver/db/offense_entry.hpp"
-#include <cstdlib>
 #include <chrono>
+#include <cstdlib>
 #include <vector>
 namespace chainserver {
 class DBCache;
@@ -62,6 +62,7 @@ struct Account {
 struct WartBalance {
     Wart total { Wart::zero() };
     Wart locked { Wart::zero() };
+    Wart free() const { return diff_assert(total, locked); }
 };
 struct WartBalanceLookup {
     wrt::optional<Account> account;
@@ -396,7 +397,6 @@ struct Raw {
 struct IPCounter {
     std::vector<std::pair<IP, size_t>> vector;
 };
-
 
 struct DBSize {
     size_t dbSize;

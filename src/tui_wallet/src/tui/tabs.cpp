@@ -30,27 +30,6 @@ auto ConfirmationComponentBase::result_cb()
 ScreenInteractive& GUIComponent::gui_screen() const { return gui.screen; }
 RootComponent& GUIComponent::gui_root() const { return *gui.root; }
 
-SpinnerWorker::SpinnerWorker(ScreenInteractive& screen)
-    : screen(screen)
-    , t([this]() {
-        using namespace std;
-        std::unique_lock l(m);
-        while (true) {
-            if (cv.wait_for(l, std::chrono::milliseconds(300), [&]() { return this->stop_requestd; }))
-                break;
-            spinnerStep += 1;
-            this->screen.PostEvent(Event::Custom);
-        }
-    })
-{
-}
-
-auto SpinnerFactory::get_handle() const -> SpinnerHandle
-{
-    if (!handle)
-        handle = std::make_shared<SpinnerWorker>(screen);
-    return { handle };
-}
 void RootComponent::popup_notification(std::string title, std::string message)
 {
     add_popup(Make<NotificationPopupBase>(std::move(title), std::move(message)));
@@ -78,7 +57,6 @@ ConfirmationComponentBase::ConfirmationComponentBase(
               onConfirm();
           },
           ButtonRoundOption()))
-    , spinner(gui.get_spinner())
 {
     Add(Container::Vertical(
         { txdetails, Container::Horizontal({ btnCancel, btnConfirm }) }));
@@ -92,7 +70,6 @@ AssetControlTab::AssetControlTab(GUI& gui)
     , btnTransferLiquidity(
           Button("Transfer", [&]() { on_liquidity_transfer(); }))
     , btnFarm(Button("Farm", [&]() { on_liquidity_farm(); }))
-    , spinner(gui.get_spinner())
 {
     Add(Container::Horizontal(
         { Container::Vertical({ btnTransferAsset, btnSwap }),
@@ -126,7 +103,6 @@ AssetCreateTab::AssetCreateTab(GUI& gui)
     : MakeTab(gui, "Create")
     , btnCreateNew(Button("New", [&]() { on_create_new(); }))
     , btnCreateFork(Button("Fork (Soon)", [&]() {}))
-    , spinner(gui.get_spinner())
 {
     Add(Container::Horizontal(
         { Container::Vertical({ btnCreateNew, btnCreateFork }) }));
