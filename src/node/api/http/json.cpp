@@ -372,7 +372,7 @@ json tx_to_json(const api::block::LiquidityDeposit& tx)
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
     j["baseDeposited"] = to_json(tx.baseDeposited.to_decimal(tx.assetInfo.precision));
     j["quoteDeposited"] = to_json(tx.quoteDeposited);
-    j["sharesReceived"] = (tx.sharesReceived ? to_json(tx.sharesReceived->to_decimal(TokenPrecision::digits8())) : json(nullptr));
+    j["sharesReceived"] = (tx.sharesReceived ? to_json(tx.sharesReceived->to_decimal(TokenPrecision::LIQUIDITY)) : json(nullptr));
     return {};
 }
 
@@ -380,7 +380,7 @@ json tx_to_json(const api::block::LiquidityWithdrawal& tx)
 {
     json j(to_json_signed_info(tx, "address"));
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
-    j["sharesRedeemed"] = to_json(tx.sharesRedeemed.to_decimal(TokenPrecision::digits8()));
+    j["sharesRedeemed"] = to_json(tx.sharesRedeemed.to_decimal(TokenPrecision::LIQUIDITY));
     j["baseReceived"] = (tx.baseReceived ? to_json(tx.baseReceived->to_decimal(tx.assetInfo.precision)) : json(nullptr));
     j["quoteReceived"] = (tx.quoteReceived ? to_json(*tx.quoteReceived) : json(nullptr));
     return {};

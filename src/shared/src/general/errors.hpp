@@ -175,7 +175,7 @@
     XX(305, ENOTSYNCED, "node not synced yet")                                     \
     XX(306, EBADTOKEN, "invalid token")                                            \
     XX(307, EINV_TOKEN, "malformed token specification")                           \
-    XX(308, ETOKENNOTFOUND, "token not found")                           \
+    XX(308, ETOKENNOTFOUND, "token not found")                                     \
     XX(309, EPARSEHASH, "cannot parse hash")                                       \
     XX(310, EBADLIQUIDITYFLAG, "cannot parse liquidity flag")                      \
     XX(311, EBADBUYFLAG, "cannot parse buy flag")                                  \
@@ -183,7 +183,9 @@
     XX(313, EBADCANCELNONCE, "cannot parse cancel nonce")                          \
     XX(314, EBADASSETUNITS, "cannot parse asset units")                            \
     XX(315, EBADASSETPRECISION, "cannot parse asset precision")                    \
-    XX(316, BADHEADER, "cannot parse header")                                      \
+    XX(316, EBADHEADER, "cannot parse header")                                     \
+    XX(317, EHTTPREQUEST, "HTTP request failed")                                   \
+    XX(318, EINVJSON, "Invalid JSON received")                                     \
     XX(1000, ESIGTERM, "received SIGTERM")                                         \
     XX(1001, ESIGHUP, "received SIGHUP")                                           \
     XX(1002, ESIGINT, "received SIGINT")                                           \

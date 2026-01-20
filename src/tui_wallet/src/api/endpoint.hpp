@@ -2,29 +2,30 @@
 #include "api/types/input.hpp"
 #include "api/types/shared.hpp"
 #include "crypto/hash.hpp"
+#include "types.hpp"
 #include <string>
-#include <variant>
-#include <vector>
+
 class PinHeight;
 class Endpoint {
     std::string host;
     uint16_t port;
 
 public:
-    struct Error {
-        int code;
-        std::string message;
-    };
     Endpoint(std::string host, uint16_t port)
         : host(host)
         , port(port) { };
     api::FundsBalance get_balance(const std::string& account, api::TokenIdOrSpec token) const;
+    api_types::TokenList token_list(const std::string& prefix);
     api::FundsBalance get_wart_balance(const std::string& account) const;
-    std::variant<TxHash, Error> send_transaction(const std::string& txjson);
+    TxHash send_transaction(const std::string& txjson);
     std::pair<PinHeight, PinHash> get_pin();
 
 private:
-    bool http_get(const std::string& get, std::string& out) const;
-    int http_post(const std::string& path, const std::vector<uint8_t>& postdata, std::string& out);
+    [[nodiscard]] nlohmann::json extract_data(const std::string& json) const;
+    [[nodiscard]] std::string http_get(const std::string& path) const;
+    [[nodiscard]] nlohmann::json api_get(const std::string& path) const;
+    [[nodiscard]] std::string http_post(const std::string& path, std::span<const uint8_t> postdata) const;
+    [[nodiscard]] nlohmann::json api_post(const std::string& path, std::span<const uint8_t> postdata) const;
+    [[nodiscard]] nlohmann::json api_post(const std::string& path, std::string_view s) const;
     std::runtime_error failed_msg() const;
 };

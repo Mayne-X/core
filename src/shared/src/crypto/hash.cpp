@@ -1,6 +1,6 @@
 #include "hash.hpp"
-#include "general/params.hpp"
 #include "general/hex.hpp"
+#include "general/params.hpp"
 #include "hasher_sha256.hpp"
 
 std::string Hash::hex_string() const
@@ -8,11 +8,20 @@ std::string Hash::hex_string() const
     return serialize_hex(*this);
 }
 
-wrt::optional<Hash> Hash::parse_string(std::string_view hex){
-    auto h{uninitialized()};
+wrt::optional<Hash> Hash::try_parse(std::string_view hex)
+{
+    auto h { uninitialized() };
     if (parse_hex(hex, h))
         return h;
     return {};
+}
+
+Hash Hash::parse_throw(std::string_view s)
+{
+    auto o { try_parse(s) };
+    if (o)
+        return *o;
+    throw Error(EPARSEHASH);
 }
 
 BlockHash BlockHash::genesis()

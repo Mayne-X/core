@@ -3,6 +3,7 @@
 #include "crypto/hasher_sha256.hpp"
 #include "general/reader.hpp"
 #include "general/writer.hpp"
+#include "tools/try_parse.hpp"
 #include <algorithm>
 #include <climits>
 #include <random>
@@ -15,6 +16,12 @@ NonceId NonceId::random()
     memcpy(&val, rand.data(), rand.size());
     return NonceId(val);
 };
+
+wrt::optional<NonceId> NonceId::try_parse(std::string_view s)
+{
+    return ::try_parse<uint32_t>(s)
+        .transform([](uint32_t i) { return NonceId { i }; });
+}
 
 NonceReserved::NonceReserved(Reader& r)
     : NonceReserved(r.view<3>())
@@ -49,4 +56,3 @@ wrt::optional<PinNonce> PinNonce::make_pin_nonce(NonceId nid, NonzeroHeight heig
         return {};
     return PinNonce(nid, (uint8_t)index);
 }
-

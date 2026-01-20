@@ -4,8 +4,8 @@
 // #include "general/funds.hpp"
 #include "api/http/parse.hpp"
 #include "api/types/accountid_or_address.hpp"
-#include "api/types/shared.hpp"
 #include "api/types/input.hpp"
+#include "api/types/shared.hpp"
 #include "chainserver/transaction_ids.hpp"
 #include "communication/mining_task.hpp"
 #include "communication/rxtx_server/rxtx_server.hpp"
@@ -125,12 +125,17 @@ class RouterHook {
 public:
     RouterHook(T& t)
         : t(t) { };
-    void GET_INTERNAL(bool priv, std::string pattern, auto asyncfun, auto serializer)
+    struct Options {
+        bool priv = true;
+        bool hidden = true;
+    };
+    void GET_INTERNAL(Options opts, std::string pattern, auto asyncfun, auto serializer)
     {
         auto& t { this->t };
-        if (priv && t.isPublic)
+        if (opts.priv && t.isPublic)
             return;
-        t.indexGenerator.get(pattern);
+        if (!opts.hidden)
+            t.indexGenerator.get(pattern);
         t.router().get(pattern,
             [&t, asyncfun, serializer](auto* res, auto* req) {
                 spdlog::debug("GET {}", req->getUrl());
@@ -142,13 +147,14 @@ public:
             });
     }
 
-    void GET_INTERNAL(bool priv, std::string pattern, auto asyncfun)
+    void GET_INTERNAL(Options opts, std::string pattern, auto asyncfun)
     {
         auto& t { this->t };
-        if (priv && t.isPublic)
+        if (opts.priv && t.isPublic)
             return;
+        if (!opts.hidden)
+            t.indexGenerator.get(pattern);
         constexpr size_t ARGC = count_fnptr_args<std::remove_cvref_t<decltype(asyncfun)>>;
-        t.indexGenerator.get(pattern);
         t.router().get(pattern,
             [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun)](auto* res, auto* req) {
                 spdlog::debug("GET {}", req->getUrl());
@@ -170,12 +176,29 @@ public:
     template <typename... Ts>
     void GET_PUB(Ts&&... ts)
     {
-        GET_INTERNAL(false, std::forward<Ts>(ts)...);
+        Options opts {
+            .priv = false,
+            .hidden = false,
+        };
+        GET_INTERNAL(opts, std::forward<Ts>(ts)...);
+    }
+    template <typename... Ts>
+    void GET_PUB_HIDDEN(Ts&&... ts)
+    {
+        Options opts {
+            .priv = false,
+            .hidden = true,
+        };
+        GET_INTERNAL(opts, std::forward<Ts>(ts)...);
     }
     template <typename... Ts>
     void GET_PRIV(Ts&&... ts)
     {
-        GET_INTERNAL(true, std::forward<Ts>(ts)...);
+        Options opts {
+            .priv = true,
+            .hidden = false,
+        };
+        GET_INTERNAL(opts, std::forward<Ts>(ts)...);
     }
 
     void POST_INTERNAL(bool priv, std::string pattern, auto parser, auto asyncfun)
@@ -250,7 +273,7 @@ public:
         POST_PRIV("/chain/append", parse_block_worker, put_chain_append);
 
         SECTION("Token Endpoints");
-        GET_PUB("/token/list/", api_call<ListTokens>);
+        GET_PUB_HIDDEN("/token/complete/", api_call<ListTokens>);
         GET_PUB("/token/complete/:string", api_call<CompleteToken>);
 
         SECTION("Account Endpoints");

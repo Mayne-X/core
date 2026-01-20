@@ -35,10 +35,8 @@ public:
         s << val;
     }
     static const TokenPrecision zero;
-    static constexpr TokenPrecision digits8()
-    {
-        return 8;
-    }
+    static const TokenPrecision WART;
+    static const TokenPrecision LIQUIDITY;
     constexpr auto operator()() const { return val; }
     static constexpr TokenPrecision from_number_throw(uint8_t v)
     {
@@ -54,11 +52,9 @@ public:
     }
 };
 
-class AssetPrecision: public TokenPrecision{
-    using TokenPrecision::TokenPrecision;
-};
-
 constexpr const TokenPrecision TokenPrecision::zero { 0 };
+constexpr const TokenPrecision TokenPrecision::WART { 8 };
+constexpr const TokenPrecision TokenPrecision::LIQUIDITY { 8 };
 
 struct ParsedFunds {
     [[nodiscard]] static wrt::optional<ParsedFunds> parse(std::string_view);
@@ -74,7 +70,6 @@ struct ParsedFunds {
     uint8_t decimalPlaces;
 };
 
-
 template <typename R>
 class FundsBase : public IsUint64 {
 public:
@@ -85,7 +80,7 @@ public:
     static constexpr R from_value_throw(uint64_t val) { return R(val); }
     auto operator<=>(const FundsBase<R>&) const = default;
 
-    bool is_zero() const { return val == 0; }
+    constexpr bool is_zero() const { return val == 0; }
     // std::string format(std::string_view unit) const;
 
     void add_throw(R add)
@@ -97,7 +92,7 @@ public:
         *this = sum_assert(*this, add);
     }
 
-    static wrt::optional<R> sum(FundsBase<R> a, FundsBase<R> b)
+    static constexpr wrt::optional<R> sum(FundsBase<R> a, FundsBase<R> b)
     {
         auto s { a.val + b.val };
         if (s < a.val)
@@ -106,7 +101,7 @@ public:
     }
 
     template <typename... T>
-    static wrt::optional<R> sum(FundsBase<R> a, FundsBase<R> b, T&&... t)
+    static constexpr wrt::optional<R> sum(FundsBase<R> a, FundsBase<R> b, T&&... t)
     {
         auto s { sum(a, b) };
         if (!s.has_value())
@@ -115,7 +110,7 @@ public:
     }
 
     template <typename... T>
-    friend R sum_throw(FundsBase<R> a, T&&... t)
+    friend constexpr R sum_throw(FundsBase<R> a, T&&... t)
     {
         auto s { sum(a, std::forward<T>(t)...) };
         if (!s.has_value())
@@ -135,19 +130,19 @@ public:
     {
         *this = diff_assert(*this, f);
     }
-    friend wrt::optional<R> diff(FundsBase<R> a, FundsBase<R> b)
+    friend constexpr wrt::optional<R> diff(FundsBase<R> a, FundsBase<R> b)
     {
         if (a.val < b.val)
             return {};
         return from_value(a.val - b.val);
     }
-    friend R diff_assert(FundsBase<R> a, FundsBase<R> b)
+    friend constexpr R diff_assert(FundsBase<R> a, FundsBase<R> b)
     {
         auto d { diff(a, b) };
         assert(d.has_value());
         return *d;
     }
-    friend R diff_throw(FundsBase<R> a, FundsBase<R> b)
+    friend constexpr R diff_throw(FundsBase<R> a, FundsBase<R> b)
     {
         auto d { diff(a, b) };
         if (!d.has_value())
@@ -193,7 +188,7 @@ struct FundsDecimal {
         s << funds << precision;
     }
     FundsDecimal(Reader& r)
-        : FundsDecimal{r, r}
+        : FundsDecimal { r, r }
     {
     }
     FundsDecimal(Funds_uint64 funds, TokenPrecision precision)
@@ -218,7 +213,7 @@ class NonzeroWart;
 class Wart : public FundsBase<Wart> {
 public:
     using FundsBase<Wart>::FundsBase;
-    static constexpr TokenPrecision precision { TokenPrecision::digits8() };
+    static constexpr TokenPrecision precision { TokenPrecision::WART };
     Wart(Reader& r);
     [[nodiscard]] static constexpr Wart from_funds(Funds_uint64 f)
     {
@@ -229,7 +224,7 @@ public:
     static wrt::optional<Wart> parse(ParsedFunds);
     static Wart parse_throw(std::string_view);
     std::string to_string() const;
-    uint64_t E8() const { return val; };
+    constexpr uint64_t E8() const { return val; };
     NonzeroWart nonzero_throw() const;
     NonzeroWart nonzero_assert() const;
     operator Funds_uint64() const

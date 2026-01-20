@@ -1,7 +1,7 @@
 #include "tabs.hpp"
 #include "global.hpp"
 #include "popups.hpp"
-#include "root.hpp"
+#include "time_format.hpp"
 
 namespace ui {
 ScreenInteractive& GUIComponent::extract_screen(GUI& gui)
@@ -11,7 +11,7 @@ ScreenInteractive& GUIComponent::extract_screen(GUI& gui)
 
 RootComponent& GUIComponent::extract_root(GUI& gui) { return *gui.root; };
 
-auto ConfirmationComponentBase::result_cb()
+auto ConfirmationPopup::result_cb()
 {
     auto& screen { gui_screen() };
     return [weakgui = gui.weak_from_this(), this, &screen](std::string title,
@@ -21,7 +21,7 @@ auto ConfirmationComponentBase::result_cb()
             screen.Post([this, &screen, pgui = std::move(pgui), title,
                             message = std::move(message)]() {
                 closed = true;
-                extract_root(*pgui).popup_notification(title, message);
+                make_popup<NotificationPopup>(std::move(title), std::move(message));
                 screen.RequestAnimationFrame();
             });
         }
@@ -31,20 +31,7 @@ auto ConfirmationComponentBase::result_cb()
 ScreenInteractive& GUIComponent::gui_screen() const { return gui.screen; }
 RootComponent& GUIComponent::gui_root() const { return *gui.root; }
 
-void RootComponent::popup_notification(std::string title, std::string message)
-{
-    add_popup(Make<NotificationPopupBase>(std::move(title), std::move(message)));
-}
-
-void RootComponent::popup_confirmation(KVProperties txprops,
-    onconfirm_generator_t handler)
-{
-    auto confirm { Make<ConfirmationComponentBase>(gui, std::move(txprops),
-        std::move(handler)) };
-    add_popup(std::move(confirm));
-}
-
-ConfirmationComponentBase::ConfirmationComponentBase(
+ConfirmationPopup::ConfirmationPopup(
     GUI& gui, KVProperties txprops,
     onconfirm_generator_t onConfirmGenerator)
     : GUIComponent(gui)
@@ -76,28 +63,36 @@ AssetControlTab::AssetControlTab(GUI& gui)
         { Container::Vertical({ btnTransferAsset, btnSwap }),
             Container::Vertical({ btnTransferLiquidity, btnFarm }) }));
 }
+
 void AssetControlTab::on_asset_transfer()
 {
-    gui_root().add_popup(Make<TransferPopup>(gui, AssetNameHash::demo(), false));
+    make_popup<TransferPopup>(TokenInfo::DEMO);
 }
 
 void AssetControlTab::on_asset_swap()
 {
-    gui_root().add_popup(Make<SwapPopup>(gui, AssetNameHash::demo()));
+    make_popup<SwapPopup>(AssetInfo::demo());
 }
 
 void AssetControlTab::on_liquidity_transfer()
 {
-    gui_root().add_popup(Make<TransferPopup>(gui, AssetNameHash::demo(), true));
+    auto a { TokenInfo::DEMO };
+    a.spec.isLiquidity = true;
+    make_popup<TransferPopup>(std::move(a));
 }
+
 void AssetControlTab::on_liquidity_farm()
 {
-    gui_root().add_popup(Make<FarmPopup>(gui, AssetNameHash::demo()));
+    make_popup<FarmPopup>(AssetInfo::demo());
 }
 
 AssetSelectTab::AssetSelectTab(GUI& gui)
     : MakeTab(gui, "Select")
 {
+}
+Element AssetSelectTab::OnRender()
+{
+    return window(text("Actions"), text("Actions"));
 }
 
 AssetCreateTab::AssetCreateTab(GUI& gui)
@@ -114,9 +109,13 @@ void AssetCreateTab::on_create_new()
 void AssetCreateTab::on_create_fork()
 {
 }
+void WartTab::on_transfer()
+{
+    make_popup<TransferPopup>(TokenInfo::WART);
+}
 Element WartTab::OnRender()
 {
-    auto wart{global::globals().dataInterface.get_wart_balance(redraw_lambda())};
+    auto wart { global::globals().dataInterface.get_wart_balance(redraw_lambda()) };
     return vbox(render_balance(wart, gui), btnTransfer->Render());
     //
     //     std::vector<std::vector<Element>>
@@ -134,5 +133,52 @@ Element WartTab::OnRender()
     // table.SelectColumn(1).BorderRight(EMPTY);
     // table.SelectColumn(2).BorderRight(EMPTY);
     // return table.Render();
+}
+Element LogTab::OnRender()
+{
+    std::vector<std::vector<Element>>
+        initArg {
+            table_line("Time", "Log"),
+            // highlight_table_line(selectedRow == 0, "0x0000000000000000000000000000000000000000000000000000000000000000", "Warthog", "0.00000000", "WART"),
+        };
+    for (auto& m : global::log().messages()) {
+        initArg.push_back({ text("A"), text(m) });
+    };
+    ftxui::Table table(std::move(initArg));
+    table.SelectRow(0).BorderBottom(EMPTY);
+    table.SelectColumn(0).BorderRight(EMPTY);
+    table.SelectColumn(1).BorderRight(EMPTY);
+    table.SelectColumn(2).BorderRight(EMPTY);
+    return table.Render();
+}
+Element RequestsLogTab::OnRender()
+{
+    std::vector<std::vector<Element>>
+        initArg {
+            table_line("Time", "State", "Request"),
+            // highlight_table_line(selectedRow == 0, "0x0000000000000000000000000000000000000000000000000000000000000000", "Warthog", "0.00000000", "WART"),
+        };
+    for (auto& m : global::request_log().messages()) {
+        auto state { m->state() };
+        auto success { [&]() {
+            auto s { state.success };
+            if (s.has_value()) {
+                if (s.value()) {
+                    return text("Success");
+                } else {
+                    return text("Failed");
+                }
+            }
+            return render_spinner();
+        }() };
+
+        initArg.push_back({ text(format_duration(state.elapsed)), success, text(m->message()) });
+    };
+    ftxui::Table table(std::move(initArg));
+    table.SelectRow(0).BorderBottom(EMPTY);
+    table.SelectColumn(0).BorderRight(EMPTY);
+    table.SelectColumn(1).BorderRight(EMPTY);
+    table.SelectColumn(2).BorderRight(EMPTY);
+    return table.Render();
 }
 } // namespace ui

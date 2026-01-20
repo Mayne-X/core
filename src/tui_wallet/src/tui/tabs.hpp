@@ -1,5 +1,6 @@
 #pragma once
 #include "api/types/shared.hpp"
+#include "callbacks.hpp"
 #include "data/interface.hpp"
 #include "ftxui/component/component.hpp" // for Dropdown, Renderer, Container
 #include "ftxui/component/screen_interactive.hpp" // for ScreenInteractive
@@ -10,13 +11,12 @@
 #include "popups.hpp"
 #include "transaction.hpp"
 #include "validated_input.hpp"
+#include "validators.hpp"
 #include <cmath>
 #include <string>
 #include <vector>
 
 using namespace ftxui;
-using result_cb_t = std::function<void(std::string, std::string)>;
-using onconfirm_generator_t = std::function<std::function<void()>(result_cb_t)>;
 namespace ui {
 
 struct TabsBase : public ComponentBase {
@@ -186,14 +186,14 @@ inline Component TransactionDetails(KVProperties properties)
     // });
 }
 
-struct NotificationPopupBase : public ui::PopupBase {
+struct NotificationPopup : public ui::Popup {
 private:
     std::string title, message;
     Element linesElement;
     Component btnOk;
 
 public:
-    NotificationPopupBase(std::string title, std::string message)
+    NotificationPopup(GUI&, std::string title, std::string message)
         : title(std::move(title))
         , message(std::move(message))
         , btnOk(Button("OK", [this]() { closed = true; }))
@@ -206,22 +206,22 @@ public:
             vbox(paragraph(message), btnOk->Render() | center));
     }
 };
-struct ConfirmationComponentBase : public GUIComponent, public ui::PopupBase {
+struct ConfirmationPopup : public GUIComponent, public ui::Popup {
     Component txdetails;
     Component btnCancel;
     Component btnConfirm;
-    std::shared_ptr<NotificationPopupBase> resultPopup;
+    std::shared_ptr<NotificationPopup> resultPopup;
     bool submitting { false };
     std::function<void()> onConfirm;
 
-    ConfirmationComponentBase(GUI& gui, KVProperties txprops,
+    ConfirmationPopup(GUI& gui, KVProperties txprops,
         onconfirm_generator_t);
     [[nodiscard]] auto result_cb();
     bool OnEvent(Event e) override
     {
         if (resultPopup)
             return resultPopup->OnEvent(e);
-        return PopupBase::OnEvent(e);
+        return Popup::OnEvent(e);
     }
     Element OnRender() override
     {
@@ -267,6 +267,7 @@ struct AssetSelectTab : public MakeTab<AssetSelectTab> {
 private:
 public:
     AssetSelectTab(GUI& gui);
+    Element OnRender() override;
 };
 struct AssetCreateTab : public MakeTab<AssetCreateTab> {
     Component btnCreateNew;
@@ -294,21 +295,10 @@ struct AssetTab : public MakeTab<AssetTab> {
 };
 
 struct WalletTab : public MakeTab<WalletTab> {
-    Component address;
-    Component amount;
-    Component nonceId;
 
-    Element OnRender()
-    {
-        return vbox({ address->Render(), amount->Render(), nonceId->Render() });
-    }
     WalletTab(GUI& gui)
         : MakeTab(gui, "Wallet")
-        , address(ui::LabeledValidated("Wallet:  ", validator))
-        , amount(ui::LabeledValidated("Amount:  ", validator))
-        , nonceId(ui::LabeledValidated("NonceId: ", validator))
     {
-        Add(Container::Vertical({ address, amount, nonceId }));
     }
 };
 
@@ -341,14 +331,33 @@ struct WartTab : public MakeTab<WartTab>, public std::enable_shared_from_this<Wa
     Component btnTransfer;
 
     Element OnRender();
-    void onTransfer() { }
+    void on_transfer();
     WartTab(GUI& gui)
         : MakeTab(gui, "Wart")
-        , btnTransfer(Button("Transfer", [this]() { onTransfer(); }))
+        , btnTransfer(Button("Transfer", [this]() { on_transfer(); }))
     {
         Add(Container::Vertical({ btnTransfer }));
     }
 };
-using MainTabs = Tabs<WalletTab, WartTab, AssetTab>;
+
+struct LogTab : public MakeTab<LogTab> {
+    int selectedRow { 0 };
+    Element OnRender();
+    LogTab(GUI& gui)
+        : MakeTab(gui, "Log")
+    {
+    }
+};
+
+struct RequestsLogTab : public MakeTab<RequestsLogTab> {
+    int selectedRow { 0 };
+    Element OnRender();
+    RequestsLogTab(GUI& gui)
+        : MakeTab(gui, "Requests")
+    {
+    }
+};
+
+using MainTabs = Tabs<WalletTab, WartTab, AssetTab, RequestsLogTab>;
 
 } // namespace ui

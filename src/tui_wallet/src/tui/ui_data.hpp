@@ -1,29 +1,59 @@
 #pragma once
+#include "api/types/input.hpp"
+#include "crypto/hash.hpp"
+#include "general/funds.hpp"
+#include "general/hex.hpp"
 #include "tabs_fwd.hpp"
 
-#include "wrt/optional.hpp"
 #include <string>
 
-struct AssetNameHash {
-  std::string name;
-  std::string hash;
-  std::string market() const { return name + "/WART"; }
-  std::string liquidity_name() const { return name + "-LIQUIDITY"; }
-  std::string to_string() const { return name + " (" + hash + ")"; }
-  AssetNameHash(std::string name, std::string hash)
-      : name(std::move(name)), hash(std::move(hash)) {}
-  static AssetNameHash demo() {
-    return {"DEMO", "0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"};
-  }
+struct TokenInfo {
+    std::string assetName;
+    api::TokenSpec spec;
+    TokenPrecision assetPrec;
+    std::string market() const { return assetName + "/WART"; }
+    std::string liquidity_name() const { return assetName + "-LIQUIDITY"; }
+    std::string to_string() const { return spec.to_string() + " (" + assetName + ")"; }
+    TokenPrecision prec() const { return spec.isLiquidity ? TokenPrecision::LIQUIDITY : assetPrec; };
+    std::string pretty_name() const { return spec.isLiquidity ? liquidity_name() : assetName; }
+    constexpr TokenInfo(std::string name, api::TokenSpec spec, TokenPrecision precision)
+        : assetName(std::move(name))
+        , spec(std::move(spec))
+        , assetPrec(precision)
+    {
+    }
+    static const TokenInfo DEMO;
+    static const TokenInfo WART;
+};
+inline const TokenInfo TokenInfo::DEMO { "DEMO", api::TokenSpec::WART, 8 };
+inline const TokenInfo TokenInfo::WART { "WART", api::TokenSpec::WART, TokenPrecision::WART };
+
+struct AssetInfo {
+    std::string name;
+    AssetHash hash;
+    TokenPrecision precision;
+    std::string market() const { return name + "/WART"; }
+    std::string liquidity_name() const { return name + "-LIQUIDITY"; }
+    std::string to_string() const { return name + " (" + serialize_hex(hash) + ")"; }
+    AssetInfo(std::string name, AssetHash hash, TokenPrecision precision)
+        : name(std::move(name))
+        , hash(std::move(hash))
+        , precision(precision)
+    {
+    }
+    static AssetInfo demo()
+    {
+        return { "DEMO", AssetHash::zero(), 8 };
+    }
 };
 
 namespace ui {
 struct SelectedAsset {
 private:
-  friend AssetControlTab;
-  wrt::optional<AssetNameHash> nameHash;
+    friend AssetControlTab;
+    wrt::optional<AssetInfo> nameHash;
 
 public:
-  const wrt::optional<AssetNameHash> &name_hash() const { return nameHash; };
+    const wrt::optional<AssetInfo>& name_hash() const { return nameHash; };
 };
 } // namespace ui

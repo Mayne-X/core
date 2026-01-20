@@ -25,6 +25,7 @@ class NonceId : public IsUint32 {
 public:
     static NonceId random();
     explicit NonceId(Nonce);
+    static wrt::optional<NonceId> try_parse(std::string_view);
     using IsUint32::IsUint32;
 };
 

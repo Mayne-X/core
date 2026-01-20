@@ -1,7 +1,7 @@
 #pragma once
 #include "ftxui/component/screen_interactive.hpp"
 #include "gui_fwd.hpp"
-// #include "spinner_clock.hpp"
+#include "tui/popup.hpp"
 #include "ui_data.hpp"
 
 namespace ui {
@@ -16,6 +16,9 @@ protected:
     {
     }
     GUI& gui;
+
+    template <typename T, typename... Ts>
+    void make_popup(Ts&&... ts);
     auto redraw_lambda() const;
     Element render_spinner(int type = 11) const;
 
@@ -92,5 +95,69 @@ inline auto GUIComponent::redraw_lambda() const
 {
     return [this]() { gui.trigger_render(); };
 };
+
+struct RootComponent : public GUIComponent, public ComponentBase {
+    Component mainContainer;
+    bool connected { false };
+    bool unlocked { false };
+    std::vector<std::shared_ptr<Popup>> popups;
+
+private:
+    Element render_connected()
+    {
+        return (connected ? text("•node connected") | color(Color::Green)
+                          : text("⚠ node disconnected") | color(Color::Red));
+    }
+    Element render_unlocked()
+    {
+        return (unlocked ? text("•wallet unlocked") | color(Color::Green)
+                         : text("⚠ wallet locked") | color(Color::Red));
+    }
+    bool has_popup()
+    {
+        size_t i = 0;
+        for (; i < popups.size(); ++i) {
+            if (!popups[popups.size() - 1 - i]->is_closed()) {
+                popups.erase(popups.end() - i,
+                    popups.end()); // erase closed popups from list
+                return true;
+            }
+        }
+        return false;
+    }
+
+public:
+    void add_popup(std::shared_ptr<Popup> e)
+    {
+        popups.push_back(std::move(e));
+    };
+
+    Element OnRender() override
+    {
+        if (has_popup())
+            return popups.back()->OnRender();
+        else
+            return ComponentBase::OnRender();
+    }
+    bool OnEvent(Event event) override
+    {
+        if (event == Event::q) {
+            gui_screen().Exit();
+            return true;
+        }
+        if (has_popup())
+            return popups.back()->OnEvent(std::move(event));
+        else
+            return ComponentBase::OnEvent(std::move(event));
+    }
+    // Tabs(
+    //               Make<WalletTab>(gui), Make<WartTab>(gui), Make<AssetControlTab>(gui), Make<AssetCreateTab>(gui))
+    RootComponent(GUI& gui);
+};
+template <typename T, typename... Ts>
+inline void GUIComponent::make_popup(Ts&&... ts)
+{
+    gui_root().add_popup(Make<T>(gui, std::forward<Ts>(ts)...));
+}
 
 } // namespace ui

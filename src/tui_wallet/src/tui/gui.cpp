@@ -1,6 +1,6 @@
 #include "gui.hpp"
 #include "ftxui/component/screen_interactive.hpp"
-#include "root.hpp"
+#include "tui/tabs.hpp"
 namespace ui {
 Element GUIComponent::render_spinner(int type) const
 {
@@ -67,5 +67,12 @@ GUI::~GUI()
 void GUI::trigger_render()
 {
     screen.PostEvent(ftxui::Event::Custom);
+}
+
+RootComponent::RootComponent(GUI& gui)
+    : GUIComponent(gui)
+    , mainContainer(Container::Horizontal({ Make<MainTabs>(gui) }))
+{
+    Add(mainContainer);
 }
 } // namespace ui

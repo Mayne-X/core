@@ -76,7 +76,7 @@ public:
         // - limit price variable is quoteU64/baseU64
         //   and does not respect precision
         // => We must take precision difference into account for real limit price
-        return int(TokenPrecision::digits8().value()) - int(prec.value());
+        return int(TokenPrecision::WART.value()) - int(prec.value());
     }
 
     // compute double price respecting the asset precision
@@ -118,9 +118,9 @@ public:
 
     auto operator<=>(const Price_uint64&) const = default;
 
-    static wrt::optional<Price_uint64> from_double_adjusted(double d, TokenPrecision prec, bool ceil = false)
+    static wrt::optional<Price_uint64> from_double_adjusted(double d, TokenPrecision basePrec, bool ceil = false)
     {
-        return from_double(d * std::pow(10.0, 8 - int(prec.value())), ceil);
+        return from_double(d * std::pow(10.0, 8 - int(basePrec.value())), ceil);
     }
 
     static wrt::optional<Price_uint64> from_double(double d, bool ceil = false)
@@ -145,6 +145,11 @@ public:
     {
         return try_parse<double>(s)
             .and_then([&](double d) { return from_double(d, ceil); });
+    }
+    static wrt::optional<Price_uint64> from_string_adjusted(std::string_view s, TokenPrecision prec, bool ceil = false)
+    {
+        return try_parse<double>(s)
+            .and_then([&](double d) { return from_double_adjusted(d, prec, ceil); });
     }
 
 private:

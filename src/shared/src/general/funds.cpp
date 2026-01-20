@@ -132,7 +132,7 @@ wrt::optional<Wart> Wart::parse(std::string_view s)
 
 wrt::optional<Wart> Wart::parse(ParsedFunds fd)
 {
-    auto p { Funds_uint64::parse(fd, TokenPrecision::digits8()) };
+    auto p { Funds_uint64::parse(fd, TokenPrecision::WART) };
     if (p)
         return Wart::from_value(p->value());
     return {};

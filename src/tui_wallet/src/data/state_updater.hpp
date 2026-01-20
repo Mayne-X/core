@@ -2,7 +2,6 @@
 
 #include "data/retrieval_context.hpp"
 #include <chrono>
-#include <iostream>
 #include <memory>
 #include <thread>
 
@@ -38,7 +37,6 @@ class DataStateUpdater {
                 std::lock_guard l(r.m);
                 r.expires = sc::now() + expirationInterval;
                 r.value = std::move(v);
-                std::cerr << "r.value.has_value()" << r.value.has_value() << std::endl;
                 on_complete();
             });
         }
@@ -52,7 +50,6 @@ public:
         try_update<T>(std::move(on_complete));
         const Entry<T>& r { *std::get<TupleEntry<T>>(tuple) };
         std::lock_guard l(r.m);
-        std::cerr << "2: r.value.has_value()" << r.value.has_value() << std::endl;
         return r.value;
     }
     DataStateUpdater(DataRetrievalContext retrievalContext)

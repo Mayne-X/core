@@ -5,7 +5,7 @@
 class Reader;
 class CompactUInt;
 class CompactUInt {
-    static wrt::optional<Wart> uncompact_value(uint16_t val)
+    static constexpr wrt::optional<Wart> uncompact_value(uint16_t val)
     { // OK
         uint64_t e = (val & uint64_t(0xFC00u)) >> 10; // < 2^6 = 64
         uint64_t m = (val & uint64_t(0x03FFu)) + uint64_t(0x0400u);
@@ -44,14 +44,44 @@ public:
             return CompactUInt { val };
         return {};
     }
-    Wart uncompact() const
+    constexpr Wart uncompact() const
     {
         auto v { uncompact_value(val) };
         assert(v.has_value());
         return *v;
     };
     auto to_string() const { return uncompact().to_string(); }
-    [[nodiscard]] static CompactUInt compact(Wart, bool ceil = false);
+    // [[nodiscard]] static CompactUInt compact(Wart, bool ceil = false);
+    [[nodiscard]] static constexpr CompactUInt compact(Wart f, bool ceil = false)
+    {
+        if (f.is_zero())
+            return uint16_t(0x0000u);
+        uint16_t e = 10;
+        const uint64_t threshold = uint64_t(0x07FFu);
+        uint64_t e8 { f.E8() };
+        bool exact { true };
+        while (e8 > threshold) {
+            e += 1;
+            if (ceil && ((e8 & 1) != 0)) {
+                exact = false;
+            }
+            e8 >>= 1;
+        }
+        if (ceil && exact == false) {
+            e8 += 1;
+            if (e8 > threshold) {
+                e8 >>= 1;
+                e += 1;
+                if (e > 53)
+                    return largest();
+            }
+        }
+        while (e8 < uint64_t(0x0400u)) {
+            e -= 1;
+            e8 <<= 1;
+        }
+        return (e << 10) | (uint16_t(e8) & uint16_t(0x03FF));
+    }
     auto next() const
     {
         auto res(*this);
@@ -59,7 +89,7 @@ public:
         return res;
         assert(res.val != 0);
     }
-    uint16_t value() const { return val; }
+    constexpr uint16_t value() const { return val; }
     void serialize(RawSerializer auto&& s) const
     {
         s << value();

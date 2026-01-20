@@ -18,6 +18,7 @@ struct TokenSpec {
         , isLiquidity(liquidity)
     {
     }
+    bool operator==(const TokenSpec&) const = default;
     static const TokenSpec WART;
 
     static TokenSpec parse_throw(std::string_view s)

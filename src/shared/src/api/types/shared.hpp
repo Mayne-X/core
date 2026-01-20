@@ -147,7 +147,7 @@ struct TokenTransferData {
     bool isLiquidity;
     Address toAddress;
     Funds_uint64 amount;
-    FundsDecimal amount_decimal() const { return { amount, isLiquidity ? TokenPrecision::digits8() : assetInfo.precision }; }
+    FundsDecimal amount_decimal() const { return { amount, isLiquidity ? TokenPrecision::LIQUIDITY : assetInfo.precision }; }
 };
 
 struct NewOrderData {
@@ -308,7 +308,7 @@ struct Token {
     TokenPrecision assetPrecision;
     TokenPrecision token_precision() const
     {
-        return spec.isLiquidity ? TokenPrecision::digits8() : assetPrecision;
+        return spec.isLiquidity ? TokenPrecision::LIQUIDITY : assetPrecision;
     }
     static constexpr Token WART()
     {
@@ -316,7 +316,7 @@ struct Token {
             .id { TokenId::WART },
             .spec { api::TokenSpec::WART },
             .name { "WART" },
-            .assetPrecision { TokenPrecision::digits8() }
+            .assetPrecision { TokenPrecision::WART }
         };
     }
 };
