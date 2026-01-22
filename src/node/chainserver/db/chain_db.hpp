@@ -2,8 +2,8 @@
 
 #include "SQLiteCpp/Database.h"
 #include "SQLiteCpp/Transaction.h"
-#include "api/types/asset_lookup_trace.hpp"
 #include "api/types/all_fwd.hpp"
+#include "api/types/asset_lookup_trace.hpp"
 #include "block/block.hpp"
 #include "block/block_fwd.hpp"
 #include "block/body/container.hpp"
@@ -214,7 +214,6 @@ public:
     std::pair<BlockId, bool> insert_protect(const Block&);
     void set_block_undo(BlockId id, const std::vector<uint8_t>& undo);
 
-
     /////////////////////
     // Order functions
     void prune_candles(Timestamp timestamp);
@@ -322,7 +321,7 @@ private:
 public:
     ////////////////////
     // Asset functions
-    [[nodiscard]] std::vector<AssetDetail> lookup_assets_by_prefix(std::string_view prefix) const ;
+    [[nodiscard]] std::vector<AssetDetail> search_assets(const api::AssetSearchArgs&) const;
     [[nodiscard]] wrt::optional<AssetDetail> lookup_asset(AssetId) const;
     [[nodiscard]] wrt::optional<AssetDetail> lookup_asset(const AssetHash&) const;
     void set_balance(BalanceId, Balance_uint64 bl);
@@ -460,7 +459,9 @@ private:
     Statement stmtAssetInsert;
     mutable Statement stmtAssetSelectForkHeight;
     mutable Statement stmtAssetLookup;
-    mutable Statement stmtAssetLookupByPrefix;
+    mutable Statement stmtAssetLookupByNameHash1;
+    mutable Statement stmtAssetLookupByNameHash2;
+    mutable Statement stmtAssetLookupByNameHash3;
     mutable Statement stmtAssetLookupByHash;
     mutable Statement stmtSelectBalanceId;
 

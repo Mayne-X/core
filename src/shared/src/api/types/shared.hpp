@@ -246,10 +246,14 @@ struct BlockBinary {
     std::vector<uint8_t> data;
     ParseAnnotations annotations;
 };
+struct AssetSearchArgs {
+    std::string namePrefix;
+    std::string hashPrefix;
+};
 
-struct AssetPrefixList {
-    AssetPrefixList(std::string_view prefix)
-        : prefix(prefix)
+struct AssetSearchResult {
+    AssetSearchResult(AssetSearchArgs args)
+        : args(std::move(args))
     {
     }
     struct Entry {
@@ -258,7 +262,7 @@ struct AssetPrefixList {
         NonzeroHeight height;
     };
     std::vector<Entry> entries;
-    std::string prefix;
+    AssetSearchArgs args;
 };
 
 struct CompleteBlock : public Block {

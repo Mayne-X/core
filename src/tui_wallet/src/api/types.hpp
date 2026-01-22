@@ -1,5 +1,6 @@
 #pragma once
 
+#include "crypto/hash.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>

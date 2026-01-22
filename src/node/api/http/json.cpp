@@ -246,7 +246,7 @@ json to_json(const api::BlockBinary& b)
         { "structure", to_json(b.annotations) }
     };
 }
-json to_json(const api::AssetPrefixList& a)
+json to_json(const api::AssetSearchResult& a)
 {
     json matches = json::array();
     for (auto& e : a.entries) {
@@ -257,7 +257,8 @@ json to_json(const api::AssetPrefixList& a)
 
     return {
         { "matches", matches },
-        { "prefix", a.prefix }
+        { "hashPrefix", a.args.hashPrefix },
+        { "namePrefix", a.args.namePrefix }
     };
 }
 

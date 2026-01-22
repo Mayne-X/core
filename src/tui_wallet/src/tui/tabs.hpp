@@ -265,10 +265,15 @@ public:
 struct AssetSelectTab : public MakeTab<AssetSelectTab> {
 
 private:
+    Component input;
+    bool clearCache{false};
+    std::string prefix;
+    void on_change();
 public:
     AssetSelectTab(GUI& gui);
     Element OnRender() override;
 };
+
 struct AssetCreateTab : public MakeTab<AssetCreateTab> {
     Component btnCreateNew;
     Component btnCreateFork;

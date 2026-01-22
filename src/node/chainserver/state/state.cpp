@@ -82,10 +82,10 @@ auto State::api_get_header(const api::HeightOrHash& hh) const
     return get_header(*h);
 }
 
-auto State::api_complete_token(std::string_view prefix) const -> Result<api::AssetPrefixList>
+auto State::api_search_asset(const api::AssetSearchArgs& args) const -> Result<api::AssetSearchResult>
 {
-    api::AssetPrefixList result(prefix);
-    for (auto& a : db.lookup_assets_by_prefix(prefix)) {
+    api::AssetSearchResult result(args);
+    for (auto& a : db.search_assets(args)) {
         result.entries.push_back({ .name { a.name.to_string() }, .hash { a.hash }, .height { a.height } });
     };
     return result;

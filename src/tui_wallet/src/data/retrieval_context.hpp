@@ -11,6 +11,6 @@ struct DataRetrievalContext {
     }
     auto get_wart_balance() const
     {
-        return endpoint.get_wart_balance(address());
+        return endpoint.wart_balance(address());
     }
 };

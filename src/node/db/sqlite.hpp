@@ -81,8 +81,8 @@ inline T Row::get(int index) const
 template <>
 inline uint64_t Row::get<uint64_t>(int index) const
 {
-    int64_t v{ operator[](index)};
-    assert(v >=0);
+    int64_t v { operator[](index) };
+    assert(v >= 0);
     return v;
 }
 
@@ -143,12 +143,14 @@ void bind_param(SQLite::Statement& stmt, int i, const T& a)
 }
 
 template <typename T>
-requires std::is_convertible_v<T,std::span<const uint8_t>>
+requires std::is_convertible_v<T, std::span<const uint8_t>>
 void bind_param(SQLite::Statement& stmt, int i, const T& s)
 {
-    stmt.bind(i, s.data(), s.size());
+    // We don't want the SQLite behavior 
+    // "If the third parameter to sqlite3_bind_blob() is a NULL pointer then the fourth parameter is ignored and the end result is the same as sqlite3_bind_null()."
+    // We want zero length blob, not null, so we use ternary operator.
+    stmt.bind(i, s.size() == 0 ? (void*)"" : s.data(), s.size());
 }
-
 
 // template<>
 // void bind_param<std::string>(SQLite::Statement& stmt, int i, const std::string& s)

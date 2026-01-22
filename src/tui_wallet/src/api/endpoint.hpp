@@ -15,14 +15,16 @@ public:
         : host(host)
         , port(port) { };
     api::FundsBalance get_balance(const std::string& account, api::TokenIdOrSpec token) const;
-    api_types::TokenList token_list(const std::string& prefix);
-    api::FundsBalance get_wart_balance(const std::string& account) const;
+    api_types::TokenList token_complete(std::string_view) const;
+    api::FundsBalance wart_balance(const std::string& account) const;
     TxHash send_transaction(const std::string& txjson);
     std::pair<PinHeight, PinHash> get_pin();
 
 private:
     [[nodiscard]] nlohmann::json extract_data(const std::string& json) const;
     [[nodiscard]] std::string http_get(const std::string& path) const;
+    template<typename T>
+   [[nodiscard]] T parse_get(const std::string& path) const;
     [[nodiscard]] nlohmann::json api_get(const std::string& path) const;
     [[nodiscard]] std::string http_post(const std::string& path, std::span<const uint8_t> postdata) const;
     [[nodiscard]] nlohmann::json api_post(const std::string& path, std::span<const uint8_t> postdata) const;

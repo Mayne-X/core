@@ -4,10 +4,17 @@
 #include "httplib.hpp"
 #include "log.hpp"
 #include "nlohmann/json.hpp"
+#include "parse.hpp"
 #include <algorithm>
 #include <iostream>
 using namespace std;
 using namespace nlohmann;
+
+template <typename T>
+T Endpoint::parse_get(const std::string& path) const
+{
+    return Parse(http_get(path));
+}
 
 std::string Endpoint::http_get(const std::string& path) const
 {
@@ -44,8 +51,6 @@ nlohmann::json Endpoint::extract_data(const std::string& json) const
             throw std::runtime_error(std::format("API error \"{}\", code {}", error, code));
         } else {
             auto j = parsed["data"];
-            bool b { j.is_object() };
-            auto s { j.size() };
             return j;
         }
     } catch (...) {
@@ -99,41 +104,57 @@ std::pair<PinHeight, PinHash> Endpoint::get_pin()
     throw std::runtime_error(std::format("Invalid pinHeight {}.", v));
 }
 
+namespace {
+struct GetBalanceData {
+    struct {
+        struct Bal {
+            uint64_t u64;
+            uint8_t precision;
+            FundsDecimal funds() const { return { Funds_uint64(u64), TokenPrecision(precision) }; };
+        };
+        Bal total;
+        Bal locked;
+    } balance;
+};
+}
 api::FundsBalance Endpoint::get_balance(const std::string& account, api::TokenIdOrSpec token) const
 {
     std::string url = "/account/" + account + "/balance/" + token.to_string();
-    auto data(api_get("/chain/head"));
-    auto l { [](json& balance) {
-        TokenPrecision p(balance["precision"].get<uint8_t>());
-        Funds_uint64 f(balance["u64"].get<uint64_t>());
-        return FundsDecimal { f, p };
-    } };
-    auto iter = data.find("balance");
-    auto bal = data["balance"];
-    return { .total { l(bal["total"]) }, .locked { l(bal["locked"]) } };
+    auto p { parse_get<GetBalanceData>(url) };
+    return { .total { p.balance.total.funds() }, .locked { p.balance.locked.funds() } };
 }
 
-api::FundsBalance Endpoint::get_wart_balance(const std::string& account) const
+api::FundsBalance Endpoint::wart_balance(const std::string& account) const
 {
     return get_balance(account, TokenId::WART);
 }
 
-api_types::TokenList Endpoint::token_list(const std::string& prefix)
+namespace {
+
+struct GetTokenList {
+    std::vector<api_types::TokenListEntry> matches;
+};
+}
+
+api_types::TokenList Endpoint::token_complete(std::string_view prefix) const
 {
-    api_types::TokenList res(prefix);
+    api_types::TokenList res { std::string(prefix) };
     if (!std::all_of(prefix.begin(), prefix.end(), [](char c) {
             return isalnum(c);
         }))
         return res; // return empty list
-    std::string url { "/token/complete/" + prefix };
-    auto data(api_get(url));
-    for (auto& m : data["matches"]) {
-        res.entries.push_back({
-            .hash { m["hash"].get<std::string>() },
-            .height = m["height"].get<uint32_t>(),
-            .name { m["name"].get<std::string>() },
-        });
-    }
+    std::string url { std::format("/token/complete/{}", prefix) };
+    auto l { parse_get<GetTokenList>(url) };
+    res.entries = std::move(l.matches);
+    //     auto data(api_get(url));
+    // for (auto& m : data["matches"]) {
+    //
+    //     res.entries.push_back({
+    //         .hash { m["hash"].get<std::string>() },
+    //         .height = m["height"].get<uint32_t>(),
+    //         .name { m["name"].get<std::string>() },
+    //     });
+    // }
     return res;
 }
 auto Endpoint::send_transaction(const std::string& txjson) -> TxHash

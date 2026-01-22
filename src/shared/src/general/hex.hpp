@@ -23,10 +23,15 @@ std::string serialize_hex(View<N> v)
     return serialize_hex(p, v.size());
 }
 
-[[nodiscard]] inline std::string serialize_hex(const std::vector<uint8_t>& vec)
+[[nodiscard]] inline std::string serialize_hex(std::span<const uint8_t> s)
 {
-    return serialize_hex(vec.data(), vec.size());
+    return serialize_hex(s.data(), s.size());
 }
+
+// [[nodiscard]] inline std::string serialize_hex(const std::vector<uint8_t>& vec)
+// {
+//     return serialize_hex(vec.data(), vec.size());
+// }
 
 inline std::string serialize_hex(uint32_t v)
 {
@@ -61,10 +66,11 @@ inline bool parse_hex(std::string_view in, std::vector<uint8_t>& out)
     return parse_hex(in, out.data(), in.size() / 2);
 }
 
-inline std::vector<uint8_t> hex_to_vec(std::string_view in)
+[[nodiscard]] inline std::vector<uint8_t> hex_to_vec(std::string_view in)
 {
     std::vector<uint8_t> out;
     out.resize(in.size() / 2);
     parse_hex_throw(in, out.data(), in.size() / 2);
     return out;
 }
+

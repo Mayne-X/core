@@ -11,6 +11,7 @@
 #include "defi/token/info.hpp"
 #include "general/address_funds.hpp"
 #include "general/hex.hpp"
+#include "general/lexicographic_binary_range.hpp"
 #include "general/writer.hpp"
 #include "global/globals.hpp"
 #include "sqlite3.h"
@@ -178,6 +179,8 @@ ChainDB::Database::Database(const std::string& path)
          "`" ASSETS_TABLE "` (height)");
     exec("CREATE INDEX IF NOT EXISTS `" ASSETS_TABLE "ParentIndex` ON "
          "`" ASSETS_TABLE "` (parent_id, height)");
+    exec("CREATE INDEX IF NOT EXISTS `" ASSETS_TABLE "NameIndex` ON "
+         "`" ASSETS_TABLE "` (name)");
 
     exec("CREATE TABLE IF NOT EXISTS `" BALANCES_TABLE "` (`id` INTEGER NOT NULL, `account_id` INTEGER NOT NULL, `token_id` INTEGER NOT NULL, `total` INTEGER NOT NULL DEFAULT 0, `locked` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))");
     exec("CREATE UNIQUE INDEX IF NOT EXISTS `" BALANCES_TABLE "Index` ON "
@@ -301,7 +304,9 @@ ChainDB::ChainDB(const std::string& path)
     , stmtAssetInsert(db, "INSERT INTO `" ASSETS_TABLE "` (id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id, data) VALUES (?,?,?,?,?,?,?,?,?,?)")
     , stmtAssetSelectForkHeight(db, "SELECT height FROM `" ASSETS_TABLE "` WHERE parent_id=? AND height>=? ORDER BY height DESC LIMIT 1")
     , stmtAssetLookup(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `id`=?")
-    , stmtAssetLookupByPrefix(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? LIMIT 100")
+    , stmtAssetLookupByNameHash1(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? LIMIT 100")
+    , stmtAssetLookupByNameHash2(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? AND `hash` >= ? LIMIT 100")
+    , stmtAssetLookupByNameHash3(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? AND `hash` >= ? AND `hash` < ? LIMIT 100")
     , stmtAssetLookupByHash(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `hash`=?")
     , stmtSelectBalanceId(db, "SELECT `account_id`, `token_id`, `total`, `locked` FROM `" BALANCES_TABLE "` WHERE `id`=?")
     , stmtTokenInsertBalance(db, "INSERT INTO `" BALANCES_TABLE "` ( id, `token_id`, `account_id`, `total`, `locked`) VALUES (?,?,?,?,?)")
@@ -984,13 +989,15 @@ auto ChainDB::get_token_balance(BalanceId id) const -> wrt::optional<BalanceData
     });
 }
 
-std::vector<AssetDetail> ChainDB::lookup_assets_by_prefix(std::string_view prefix) const
+std::vector<AssetDetail> ChainDB::search_assets(const api::AssetSearchArgs& args) const
 {
+    auto& namePrefix { args.namePrefix };
     std::string prefixLike;
-    prefixLike.resize(prefix.size() + 1);
-    std::ranges::copy(prefix, prefixLike.begin());
-    prefixLike[prefix.size()] = '%';
-    return stmtAssetLookupByPrefix.all([](const auto& o) -> AssetDetail {
+    prefixLike.resize(namePrefix.size() + 1);
+    std::ranges::copy(namePrefix, prefixLike.begin());
+    prefixLike[namePrefix.size()] = '%';
+
+    auto lambda { [](const auto& o) -> AssetDetail {
         return {
             AssetBasic {
                 .id = o[0],
@@ -1006,8 +1013,15 @@ std::vector<AssetDetail> ChainDB::lookup_assets_by_prefix(std::string_view prefi
                 .parent_id = o[8],
             }
         };
-    },
-        prefixLike);
+    } };
+    auto r { LexicographicByteRange::from_hex(args.hashPrefix) };
+    if (!r)
+        return {};
+    if (!r->end) {
+        return stmtAssetLookupByNameHash2.all(lambda, prefixLike, r->begin);
+    } else {
+        return stmtAssetLookupByNameHash3.all(lambda, prefixLike, r->begin, *r->end);
+    }
 }
 
 wrt::optional<AssetDetail> ChainDB::lookup_asset(AssetId id) const

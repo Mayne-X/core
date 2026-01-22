@@ -12,9 +12,24 @@ struct WartBalance : public api::FundsBalance {
     }
 };
 
-struct DataInterface : public DataStateUpdater<WartBalance> {
+struct TokenCompletion : public api_types::TokenList {
+    static std::jthread get_data(const DataRetrievalContext& ctx, auto callback, std::string s)
+    {
+        return std::jthread([&ctx, callback = std::move(callback), s]() {
+            // endpoint.token_complete(prefix)
+            auto bal { ctx.endpoint.token_complete(s) };
+            callback(std::optional<TokenCompletion>(bal));
+        });
+    }
+};
+
+struct DataInterface : public DataStateUpdater<WartBalance, TokenCompletion> {
     auto get_wart_balance(auto onComplete)
     {
-        return get<WartBalance>(std::move(onComplete));
+        return get<WartBalance>(false,std::move(onComplete));
+    }
+    [[nodiscard]] auto token_complete(bool clearCache, auto onComplete, std::string prefix)
+    {
+        return get<TokenCompletion>(clearCache, std::move(onComplete), prefix);
     }
 };

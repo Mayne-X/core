@@ -1,4 +1,5 @@
 #include "api/endpoint.hpp"
+#include "api/parse.hpp"
 #include "global.hpp"
 #include "tui/gui.hpp"
 #include <filesystem>
@@ -24,6 +25,43 @@ void init_globals()
         // TODO don't hardcode wallet
         .wallet { PrivKey("02e8005492d1edb977c0387af96687d569dcbe7171b4740dc4f45291a830e594") } });
 }
+
+const auto jsonStr = R"({
+ "code": 0,
+ "data": {
+  "account": {
+   "accountId": 9,
+   "address": "2de77d5e23dc63e4c4149d394c979361e9e8e966336c8cd4"
+  },
+  "balance": {
+   "locked": {
+    "precision": 8,
+    "str": "0",
+    "u64": 0
+   },
+   "total": {
+    "precision": 8,
+    "str": "3.00000000",
+    "u64": 300000000
+   }
+  },
+  "lookupTrace": {
+   "fails": [],
+   "snapshotHeight": null
+  },
+  "token": {
+   "id": 1,
+   "name": "WART",
+   "precision": 8,
+   "spec": "asset:0000000000000000000000000000000000000000000000000000000000000000"
+  }
+ }
+})";
+struct AccountBalance {
+    struct {
+        int id;
+    } token;
+};
 
 int main()
 {

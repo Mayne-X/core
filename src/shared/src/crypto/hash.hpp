@@ -87,7 +87,7 @@ public:
     }
     [[nodiscard]] static T parse_throw(std::string_view s)
     {
-        return Hash::parse_throw(s);
+        return T(Hash::parse_throw(s));
     }
     static T uninitialized()
     {
