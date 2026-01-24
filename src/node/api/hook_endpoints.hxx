@@ -1,5 +1,6 @@
 #pragma once
 #include "api/http/json.hpp"
+#include "general/static_string.hpp"
 #include "tools/try_parse.hpp"
 // #include "general/funds.hpp"
 #include "api/http/parse.hpp"
@@ -12,6 +13,7 @@
 #include "general/hex.hpp"
 #include "http/json.hpp"
 #include "spdlog/spdlog.h"
+#include "uwebsockets/HttpParser.h"
 #include <string>
 
 namespace {
@@ -117,7 +119,101 @@ struct ParameterParser {
         return Address(sv);
     }
 };
+
+struct UrlArgsCount {
+protected:
+    struct GetIndex {
+        bool labeled;
+        size_t i;
+    };
+
+public:
+    size_t UnlabeledArgs { 0 };
+    size_t TotalArgs { 0 };
+    constexpr GetIndex get_index(size_t i) const
+    {
+        if (i < UnlabeledArgs)
+            return { .labeled = false, .i = i };
+        if (i < TotalArgs)
+            return { .labeled = true, .i = i - UnlabeledArgs };
+        throw std::runtime_error("Out of bounds");
+    }
+};
+
+struct UrlArgs : public UrlArgsCount {
+    static constexpr size_t MaxLabels { 4 };
+    using Labels = std::array<std::string_view, MaxLabels>;
+    Labels labels;
+    std::string_view pattern;
+
+    template <GetIndex gi>
+    std::string_view get(auto& req) const
+    {
+        if constexpr (gi.labeled)
+            return req->getQuery(labels[gi.i]);
+        return req->getParameter(gi.i);
+    }
+
+    constexpr UrlArgs(std::string_view patternWithQuery)
+    {
+        bool enteredParam { false };
+        size_t n { 0 };
+        for (; n < patternWithQuery.size(); ++n) {
+            auto c { patternWithQuery[n] };
+            if (c == '?')
+                break;
+            if (c == ':') {
+                UnlabeledArgs += !enteredParam;
+                TotalArgs += 1;
+                enteredParam = true;
+            } else if (c == '/')
+                enteredParam = false;
+        }
+        pattern = patternWithQuery.substr(0, n);
+        if (n == patternWithQuery.size()) // no query string
+            return;
+
+        auto s { patternWithQuery.substr(n + 1) };
+
+        for (size_t i = 0; i < MaxLabels; ++i) {
+            if (s.empty())
+                return;
+            n = s.find('=');
+            if (n == s.npos)
+                throw std::runtime_error("Cannot parse query.");
+            TotalArgs += 1;
+            labels[i] = { s.begin(), s.begin() + n };
+
+            n = s.find('&', n + 1);
+            if (n == s.npos)
+                s = {};
+            else
+                s = s.substr(n + 1);
+        }
+        if (!s.empty())
+            throw std::runtime_error("Too many query arguments.");
+    }
+    constexpr size_t sum_sizes() const
+    {
+        size_t N { 0 };
+        for (auto& s : labels) {
+            N += s.size();
+        }
+        return N;
+    }
+};
 }
+
+template <UrlArgsCount urlArgs>
+struct UrlArgsRetriever {
+    template <size_t I>
+    requires(I < urlArgs.TotalArgs)
+    constexpr static std::string_view get()
+    {
+        return {};
+    }
+};
+
 template <typename T>
 class RouterHook {
     T& t;
@@ -129,40 +225,56 @@ public:
         bool priv = true;
         bool hidden = true;
     };
-    void GET_INTERNAL(Options opts, std::string pattern, auto asyncfun, auto serializer)
-    {
-        auto& t { this->t };
-        if (opts.priv && t.isPublic)
-            return;
-        if (!opts.hidden)
-            t.indexGenerator.get(pattern);
-        t.router().get(pattern,
-            [&t, asyncfun, serializer](auto* res, auto* req) {
-                spdlog::debug("GET {}", req->getUrl());
-                asyncfun(
-                    [&t, res, serializer](auto& data) {
-                        t.async_reply(res, serializer(data));
-                    });
-                t.insert_pending(res);
-            });
-    }
 
-    void GET_INTERNAL(Options opts, std::string pattern, auto asyncfun)
+    template <StaticString s>
+    void GET_INTERNAL(Options opts, auto asyncfun, auto serializer)
     {
+        constexpr UrlArgs args { s.value };
         auto& t { this->t };
         if (opts.priv && t.isPublic)
             return;
         if (!opts.hidden)
-            t.indexGenerator.get(pattern);
+            t.indexGenerator.get(std::string(s.value));
         constexpr size_t ARGC = count_fnptr_args<std::remove_cvref_t<decltype(asyncfun)>>;
-        t.router().get(pattern,
-            [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun)](auto* res, auto* req) {
+        t.router().get(std::string(args.pattern),
+            [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun), serializer, args](auto* res, auto* req) {
+                constexpr UrlArgsCount argsCount { UrlArgs { s.value } };
                 spdlog::debug("GET {}", req->getUrl());
                 try {
                     static_assert(ARGC > 0); // last argument is for callback
 
                     [&]<size_t... Ids>(std::index_sequence<Ids...>) {
-                        asyncfun(ParameterParser(req->getParameter(Ids))...,
+                        asyncfun(ParameterParser(args.get<argsCount.get_index(Ids)>(req))...,
+                            [&t, res, serializer](auto& data) {
+                                t.async_reply(res, serializer(data));
+                            });
+                    }(std::make_index_sequence<ARGC - 1>());
+                    t.insert_pending(res);
+                } catch (Error e) {
+                    t.reply_json(res, jsonmsg::serialize(tl::make_unexpected(e)));
+                }
+            });
+    }
+
+    template <StaticString s>
+    void GET_INTERNAL(Options opts, auto asyncfun)
+    {
+        constexpr UrlArgs args { s.value };
+        auto& t { this->t };
+        if (opts.priv && t.isPublic)
+            return;
+        if (!opts.hidden)
+            t.indexGenerator.get(std::string(s.value));
+        constexpr size_t ARGC = count_fnptr_args<std::remove_cvref_t<decltype(asyncfun)>>;
+        t.router().get(std::string(args.pattern),
+            [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun), args](auto* res, auto* req) {
+                constexpr UrlArgsCount argsCount { UrlArgs { s.value } };
+                spdlog::debug("GET {}", req->getUrl());
+                try {
+                    static_assert(ARGC > 0); // last argument is for callback
+
+                    [&]<size_t... Ids>(std::index_sequence<Ids...>) {
+                        asyncfun(ParameterParser(args.get<argsCount.get_index(Ids)>(req))...,
                             [&t, res](auto& data) {
                                 t.async_reply(res, jsonmsg::serialize(data));
                             });
@@ -173,32 +285,41 @@ public:
                 }
             });
     }
-    template <typename... Ts>
+    template <StaticString s, typename... Ts>
     void GET_PUB(Ts&&... ts)
     {
         Options opts {
             .priv = false,
             .hidden = false,
         };
-        GET_INTERNAL(opts, std::forward<Ts>(ts)...);
+        GET_INTERNAL<s>(opts, std::forward<Ts>(ts)...);
     }
-    template <typename... Ts>
+    // template <typename... Ts>
+    // void GET_PUB(Ts&&... ts)
+    // {
+    //     Options opts {
+    //         .priv = false,
+    //         .hidden = false,
+    //     };
+    //     GET_INTERNAL(opts, std::forward<Ts>(ts)...);
+    // }
+    template <StaticString s, typename... Ts>
     void GET_PUB_HIDDEN(Ts&&... ts)
     {
         Options opts {
             .priv = false,
             .hidden = true,
         };
-        GET_INTERNAL(opts, std::forward<Ts>(ts)...);
+        GET_INTERNAL<s>(opts, std::forward<Ts>(ts)...);
     }
-    template <typename... Ts>
+    template <StaticString s, typename... Ts>
     void GET_PRIV(Ts&&... ts)
     {
         Options opts {
             .priv = true,
             .hidden = false,
         };
-        GET_INTERNAL(opts, std::forward<Ts>(ts)...);
+        GET_INTERNAL<s>(opts, std::forward<Ts>(ts)...);
     }
 
     void POST_INTERNAL(bool priv, std::string pattern, auto parser, auto asyncfun)
@@ -230,15 +351,15 @@ public:
                 t.insert_pending(res);
             });
     }
-    template <typename... Ts>
+    template <StaticString s, typename... Ts>
     void POST_PUB(Ts&&... ts)
     {
-        POST_INTERNAL(false, std::forward<Ts>(ts)...);
+        POST_INTERNAL(false, s.value, std::forward<Ts>(ts)...);
     }
-    template <typename... Ts>
+    template <StaticString s, typename... Ts>
     void POST_PRIV(Ts&&... ts)
     {
-        POST_INTERNAL(true, std::forward<Ts>(ts)...);
+        POST_INTERNAL(true, s.value, std::forward<Ts>(ts)...);
     }
     void SECTION(std::string name)
     {
@@ -248,72 +369,72 @@ public:
     {
         using namespace chainserver;
         SECTION("Transaction Endpoints");
-        POST_PUB("/transaction/add", parse_transaction_create, api_call<PutMempool>);
-        GET_PUB("/transaction/mempool", api_call<GetMempool>);
-        GET_PUB("/transaction/lookup/:txid", api_call<LookupTxHash>);
-        GET_PUB("/transaction/latest", get_latest_transactions);
-        GET_PUB("/transaction/minfee", get_transaction_minfee);
+        POST_PUB<"/transaction/add">(parse_transaction_create, api_call<PutMempool>);
+        GET_PUB<"/transaction/mempool">(api_call<GetMempool>);
+        GET_PUB<"/transaction/lookup/:txid">(api_call<LookupTxHash>);
+        GET_PUB<"/transaction/latest">(get_latest_transactions);
+        GET_PUB<"/transaction/minfee">(get_transaction_minfee);
 
         SECTION("Settings Endpoints");
-        GET_PRIV("/settings/mempool/minfee/:feeE8", set_minfee);
+        GET_PRIV<"/settings/mempool/minfee/:feeE8">(set_minfee);
 
         SECTION("Chain Endpoints");
-        GET_PUB("/chain/head", get_block_head);
-        GET_PRIV("/chain/grid", api_call<GetGrid>);
-        GET_PUB("/chain/block/:id/hash", api_call<GetBlockHash>);
-        GET_PUB("/chain/block/:id/header", api_call<GetHeader>);
-        GET_PUB("/chain/block/:id/binary", api_call<GetBlockBinary>);
-        GET_PUB("/chain/block/:id", api_call<GetBlock>);
-        GET_PUB("/chain/mine/:account", get_chain_mine);
-        GET_PUB("/chain/txcache", api_call<GetTxcache>);
-        GET_PUB("/chain/hashrate/:window", get_hashrate_n);
-        GET_PRIV("/chain/signed_snapshot", get_signed_snapshot);
-        GET_PRIV("/chain/hashrate/chart/block/:from/:to/:window", get_hashrate_block_chart);
-        GET_PRIV("/chain/hashrate/chart/time/:from/:to/:interval", get_hashrate_time_chart);
-        POST_PRIV("/chain/append", parse_block_worker, put_chain_append);
+        GET_PUB<"/chain/head">(get_block_head);
+        GET_PRIV<"/chain/grid">(api_call<GetGrid>);
+        GET_PUB<"/chain/block/:id/hash">(api_call<GetBlockHash>);
+        GET_PUB<"/chain/block/:id/header">(api_call<GetHeader>);
+        GET_PUB<"/chain/block/:id/binary">(api_call<GetBlockBinary>);
+        GET_PUB<"/chain/block/:id">(api_call<GetBlock>);
+        GET_PUB<"/chain/mine/:account">(get_chain_mine);
+        GET_PUB<"/chain/txcache">(api_call<GetTxcache>);
+        GET_PUB<"/chain/hashrate/:window">(get_hashrate_n);
+        GET_PRIV<"/chain/signed_snapshot">(get_signed_snapshot);
+        GET_PRIV<"/chain/hashrate/chart/block/:from/:to/:window">(get_hashrate_block_chart);
+        GET_PRIV<"/chain/hashrate/chart/time/:from/:to/:interval">(get_hashrate_time_chart);
+        POST_PRIV<"/chain/append">(parse_block_worker, put_chain_append);
 
         SECTION("Token Endpoints");
-        GET_PUB_HIDDEN("/token/complete/", api_call<ListTokens>);
-        GET_PUB("/token/complete/:string", api_call<CompleteToken>);
-
+        GET_PUB_HIDDEN<"/token/complete/">(api_call<ListTokens>);
+        GET_PUB<"/token/complete?namePrefix=...&hashPrefix=...">(api_call<CompleteToken>);
+        //
         SECTION("Account Endpoints");
-        GET_PUB("/account/:account/balance/:token", api_call<GetTokenBalance>);
-        GET_PUB("/account/:account/balance_wart", api_call<GetWartBalance>);
-        GET_PUB("/account/:account/history/:beforeTxIndex", api_call<GetAccountHistory>);
-        GET_PUB("/account/richlist/:token", get_token_richlist);
+        GET_PUB<"/account/:account/balance/:token">(api_call<GetTokenBalance>);
+        GET_PUB<"/account/:account/balance_wart">(api_call<GetWartBalance>);
+        GET_PUB<"/account/:account/history/:beforeTxIndex">(api_call<GetAccountHistory>);
+        GET_PUB<"/account/richlist/:token">(get_token_richlist);
 
         SECTION("Peers Endpoints");
-        GET_PUB("/peers/ip_count", get_ip_count);
-        GET_PUB("/peers/banned", get_banned_peers);
-        GET_PUB("/peers/offenses/:page", get_offenses);
-        GET_PUB("/peers/connected/connection", get_connected_connection);
-        GET_PUB("/peers/connection_schedule", get_connection_schedule);
-        GET_PRIV("/peers/unban", unban_peers);
-        GET_PRIV("/peers/connected", get_connected_peers2);
-        GET_PRIV("/peers/disconnect/:id", disconnect_peer);
-        GET_PRIV("/peers/throttled", get_throttled_peers);
-        GET_PRIV("/peers/transmission_hours", get_transmission_hours);
-        GET_PRIV("/peers/transmission_minutes", get_transmission_minutes);
-        // GET_PRIV(t,"/peers/endpoints", inspect_eventloop, jsonmsg::endpoints);
-        // GET_PRIV(t,"/peers/connect_timers", inspect_eventloop, jsonmsg::connect_timers);
+        GET_PUB<"/peers/ip_count">(get_ip_count);
+        GET_PUB<"/peers/banned">(get_banned_peers);
+        GET_PUB<"/peers/offenses/:page">(get_offenses);
+        GET_PUB<"/peers/connected/connection">(get_connected_connection);
+        GET_PUB<"/peers/connection_schedule">(get_connection_schedule);
+        GET_PRIV<"/peers/unban">(unban_peers);
+        GET_PRIV<"/peers/connected">(get_connected_peers2);
+        GET_PRIV<"/peers/disconnect/:id">(disconnect_peer);
+        GET_PRIV<"/peers/throttled">(get_throttled_peers);
+        GET_PRIV<"/peers/transmission_hours">(get_transmission_hours);
+        GET_PRIV<"/peers/transmission_minutes">(get_transmission_minutes);
+        // GET_PRIV<t,"/peers/endpoints">( inspect_eventloop, jsonmsg::endpoints);
+        // GET_PRIV<t,"/peers/connect_timers">( inspect_eventloop, jsonmsg::connect_timers);
 
         SECTION("Tools Endpoints");
-        GET_PUB("/tools/encode16bit/from_e8/:feeE8", get_round16bit_e8);
-        GET_PUB("/tools/encode16bit/from_string/:string", get_round16bit_funds);
-        GET_PUB("/tools/parse_price/:price/:precision", parse_price);
-        GET_PUB("/tools/info", get_info);
-        GET_PRIV("/tools/wallet/new", get_wallet_new);
-        GET_PUB("/tools/wallet/from_privkey/:privkey", get_wallet_from_privkey);
-        GET_PUB("/tools/janushash_number/:headerhex", get_janushash_number);
-        GET_PUB("/tools/sample_verified_peers/:number", sample_verified_peers);
+        GET_PUB<"/tools/encode16bit/from_e8/:feeE8">(get_round16bit_e8);
+        GET_PUB<"/tools/encode16bit/from_string/:string">(get_round16bit_funds);
+        GET_PUB<"/tools/parse_price/:price/:precision">(parse_price);
+        GET_PUB<"/tools/info">(get_info);
+        GET_PRIV<"/tools/wallet/new">(get_wallet_new);
+        GET_PUB<"/tools/wallet/from_privkey/:privkey">(get_wallet_from_privkey);
+        GET_PUB<"/tools/janushash_number/:headerhex">(get_janushash_number);
+        GET_PUB<"/tools/sample_verified_peers/:number">(sample_verified_peers);
 
         SECTION("Debug Endpoints");
-        GET_PRIV("/debug/header_download", inspect_eventloop, jsonmsg::header_download);
-        GET_PRIV("/loadtest/block_request/:conn_id", loadtest_block);
-        GET_PRIV("/loadtest/header_request/:conn_id", loadtest_header);
-        GET_PRIV("/loadtest/disable/:conn_id", loadtest_disable);
-        GET_PRIV("/debug/fakemine", api_call<FakeMineToZero>);
-        GET_PRIV("/debug/fakemine/:address", api_call<FakeMine>);
+        GET_PRIV<"/debug/header_download">(inspect_eventloop, jsonmsg::header_download);
+        GET_PRIV<"/loadtest/block_request/:conn_id">(loadtest_block);
+        GET_PRIV<"/loadtest/header_request/:conn_id">(loadtest_header);
+        GET_PRIV<"/loadtest/disable/:conn_id">(loadtest_disable);
+        GET_PRIV<"/debug/fakemine">(api_call<FakeMineToZero>);
+        GET_PRIV<"/debug/fakemine/:address">(api_call<FakeMine>);
     }
 };
 
