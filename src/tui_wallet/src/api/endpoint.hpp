@@ -15,7 +15,7 @@ public:
         : host(host)
         , port(port) { };
     api::FundsBalance get_balance(const std::string& account, api::TokenIdOrSpec token) const;
-    api_types::TokenList token_complete(std::string_view) const;
+    api_types::TokenList token_complete(std::string_view namePrefix, std::string_view hashPrefix) const;
     api::FundsBalance wart_balance(const std::string& account) const;
     TxHash send_transaction(const std::string& txjson);
     std::pair<PinHeight, PinHash> get_pin();

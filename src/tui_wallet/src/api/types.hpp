@@ -1,6 +1,5 @@
 #pragma once
 
-#include "crypto/hash.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -11,11 +10,13 @@ struct api_types {
         std::string name;
     };
     struct TokenList {
-        TokenList(std::string prefix)
-            : prefix(std::move(prefix))
+        TokenList(std::string namePrefix, std::string hashPrefix)
+            : namePrefix(std::move(namePrefix))
+            , hashPrefix(std::move(hashPrefix))
         {
         }
         std::vector<TokenListEntry> entries;
-        std::string prefix;
+        std::string namePrefix;
+        std::string hashPrefix;
     };
 };

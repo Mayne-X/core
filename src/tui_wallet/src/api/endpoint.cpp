@@ -136,25 +136,16 @@ struct GetTokenList {
 };
 }
 
-api_types::TokenList Endpoint::token_complete(std::string_view prefix) const
+api_types::TokenList Endpoint::token_complete(std::string_view namePrefix, std::string_view hashPrefix) const
 {
-    api_types::TokenList res { std::string(prefix) };
-    if (!std::all_of(prefix.begin(), prefix.end(), [](char c) {
+    api_types::TokenList res { std::string(namePrefix), std::string(hashPrefix) };
+    if (!std::all_of(namePrefix.begin(), namePrefix.end(), [](char c) {
             return isalnum(c);
         }))
         return res; // return empty list
-    std::string url { std::format("/token/complete/{}", prefix) };
+    std::string url { std::format("/token/complete?namePrefix={}&hashPrefix={}", namePrefix, hashPrefix) };
     auto l { parse_get<GetTokenList>(url) };
     res.entries = std::move(l.matches);
-    //     auto data(api_get(url));
-    // for (auto& m : data["matches"]) {
-    //
-    //     res.entries.push_back({
-    //         .hash { m["hash"].get<std::string>() },
-    //         .height = m["height"].get<uint32_t>(),
-    //         .name { m["name"].get<std::string>() },
-    //     });
-    // }
     return res;
 }
 auto Endpoint::send_transaction(const std::string& txjson) -> TxHash

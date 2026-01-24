@@ -93,19 +93,27 @@ void AssetSelectTab::on_change()
 }
 AssetSelectTab::AssetSelectTab(GUI& gui)
     : MakeTab(gui, "Select")
-    , input(Input([&] {
+    , nameInput(Input([&] {
         InputOption o;
-        o.content = &prefix;
+        o.multiline = false;
+        o.content = &namePrefix;
+        o.on_change = [&] { on_change(); };
+        return o;
+    }()))
+    , hashInput(Input([&] {
+        InputOption o;
+        o.multiline = false;
+        o.content = &hashPrefix;
         o.on_change = [&] { on_change(); };
         return o;
     }()))
 {
-    Add(input);
+    Add(Container::Horizontal({ nameInput, hashInput }));
 }
 
 Element AssetSelectTab::OnRender()
 {
-    auto t { global::data_interface().token_complete(clearCache, redraw_lambda(), prefix) };
+    auto t { global::data_interface().token_complete(clearCache, redraw_lambda(), namePrefix, hashPrefix) };
     clearCache = false;
     std::vector<std::vector<Element>>
         initArg {
@@ -113,17 +121,16 @@ Element AssetSelectTab::OnRender()
             // highlight_table_line(selectedRow == 0, "0x0000000000000000000000000000000000000000000000000000000000000000", "Warthog", "0.00000000", "WART"),
         };
     // t.value().entries[0].hash
+    initArg.push_back({ nameInput->Render(), hashInput->Render() });
     if (t) {
         for (auto& e : t->entries) {
             initArg.push_back({ text(e.name), text(e.hash) });
         };
     }
     ftxui::Table table(std::move(initArg));
-    table.SelectRow(0).BorderBottom(EMPTY);
-    table.SelectColumn(0).BorderRight(EMPTY);
-    table.SelectColumn(1).BorderRight(EMPTY);
-    table.SelectColumn(2).BorderRight(EMPTY);
-    return window(text("Tokens"), vbox(table.Render(), input->Render()));
+    table.SelectRow(1).BorderBottom(HEAVY);
+    table.SelectColumn(0).BorderRight(HEAVY);
+    return window(text("Tokens"), table.Render());
 }
 
 AssetCreateTab::AssetCreateTab(GUI& gui)

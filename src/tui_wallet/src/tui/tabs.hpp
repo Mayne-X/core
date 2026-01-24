@@ -265,9 +265,11 @@ public:
 struct AssetSelectTab : public MakeTab<AssetSelectTab> {
 
 private:
-    Component input;
+    Component nameInput;
+    Component hashInput;
     bool clearCache{false};
-    std::string prefix;
+    std::string namePrefix;
+    std::string hashPrefix;
     void on_change();
 public:
     AssetSelectTab(GUI& gui);
