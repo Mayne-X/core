@@ -65,7 +65,7 @@ public:
     Element OnRender() override;
     void on_create();
     void on_cancel();
-    SwapPopup(GUI& gui, AssetInfo);
+    SwapPopup(GUI& gui, AssetInfo, bool buy);
 };
 struct FarmPopup : public GUIComponent, public Popup, std::enable_shared_from_this<FarmPopup> {
 private:
@@ -80,13 +80,14 @@ private:
     Component toggle;
     Component btnCancel;
     Component btnCreate;
+    bool is_deposit() const { return side_selected == 0; }
 
 public:
     Element OnRender() override
     {
         base->label = "Max. Amount (" + asset.name + "): ";
         return vbox(
-            { window(text("Farm"),
+            { window(text("Farm Liquidity"),
                   vbox({ text("Base Asset: " + asset.to_string()),
                       hbox(text("Liquidity action: "), toggle->Render()),
                       wart->Render(), limit->Render(), fee->Render() })),
@@ -94,7 +95,7 @@ public:
     }
     void on_create();
     void on_cancel();
-    FarmPopup(GUI& gui, AssetInfo);
+    FarmPopup(GUI& gui, AssetInfo, bool deposit);
 };
 
 } // namespace ui

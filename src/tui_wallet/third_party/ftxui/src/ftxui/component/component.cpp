@@ -216,6 +216,20 @@ void ComponentBase::SetActiveChild(Component child) {  // NOLINT
   SetActiveChild(child.get());
 }
 
+void ComponentBase::OnActiveChildFocusableChange(){
+}
+
+/// @brief Call all the ancestors' OnActiveChildFocusableChange callback.
+void ComponentBase::OnFocusableChanged() {
+  auto* current = this;
+  while (current->Active()) {
+        current = current->parent_;
+        if (!current) 
+            break;
+        current->OnActiveChildFocusableChange();
+  }
+}
+
 /// @brief Configure all the ancestors to give focus to this component.
 void ComponentBase::TakeFocus() {
   ComponentBase* child = this;

@@ -394,7 +394,7 @@ public:
         POST_PRIV<"/chain/append">(parse_block_worker, put_chain_append);
 
         SECTION("Token Endpoints");
-        GET_PUB_HIDDEN<"/token/complete/">(api_call<ListTokens>);
+        // GET_PUB_HIDDEN<"/token/complete/">(api_call<ListTokens>);
         GET_PUB<"/token/complete?namePrefix=...&hashPrefix=...">(api_call<CompleteToken>);
         //
         SECTION("Account Endpoints");

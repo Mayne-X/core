@@ -260,6 +260,7 @@ struct AssetSearchResult {
         std::string name;
         AssetHash hash;
         NonzeroHeight height;
+        TokenPrecision precision;
     };
     std::vector<Entry> entries;
     AssetSearchArgs args;

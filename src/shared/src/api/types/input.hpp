@@ -21,6 +21,12 @@ struct TokenSpec {
     bool operator==(const TokenSpec&) const = default;
     static const TokenSpec WART;
 
+    static TokenSpec Asset(AssetHash ah){
+        return {ah,false};
+    }
+    static TokenSpec Liquidity(AssetHash ah){
+        return {ah,true};
+    }
     static TokenSpec parse_throw(std::string_view s)
     {
         if (auto o { parse(s) })

@@ -52,11 +52,11 @@ public:
   size_t ChildCount() const;
   int Index() const;
   void Add(Component children);
-    template<typename ...Ts>
-    void Add(Component c, Ts&& ... ts){
-        Add(c);
-        (Add(std::forward<Ts>(ts)),...);
-    }
+  template<typename ...Ts>
+  void Add(Component c, Ts&& ... ts){
+      Add(c);
+      (Add(std::forward<Ts>(ts)),...);
+  }
   void Detach();
   void DetachAllChildren();
 
@@ -96,10 +96,12 @@ public:
 
   // Make the |child| to be the "active" one.
   virtual void SetActiveChild(ComponentBase *child);
+  virtual void OnActiveChildFocusableChange();
   void SetActiveChild(Component child);
 
   // Configure all the ancestors to give focus to this component.
   void TakeFocus();
+  void OnFocusableChanged();
 
 protected:
   CapturedMouse CaptureMouse(const Event &event);

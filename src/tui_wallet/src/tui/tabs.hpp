@@ -233,36 +233,6 @@ struct ConfirmationPopup : public GUIComponent, public ui::Popup {
     }
 };
 
-// struct AssetControlTab : public MakeTab<AssetControlTab> {
-//
-// };
-
-struct AssetControlTab : public MakeTab<AssetControlTab> {
-    Component btnTransferAsset;
-    Component btnSwap;
-    Component btnTransferLiquidity;
-    Component btnFarm;
-
-private:
-    void on_asset_transfer();
-    void on_asset_swap();
-    void on_liquidity_transfer();
-    void on_liquidity_farm();
-    Element OnRender() override
-    {
-        return window(text("Actions"),
-            hbox(vbox(text("Asset") | center, separator(),
-                     btnTransferAsset->Render(),
-                     btnSwap->Render()),
-                separator(),
-                vbox(text("Liquidity") | center, separator(),
-                    btnTransferLiquidity, btnFarm->Render())));
-    }
-
-public:
-    AssetControlTab(GUI& gui);
-};
-
 struct SelectableList : public ComponentBase {
     size_t i { 0 };
     size_t n { 0 };
@@ -296,53 +266,65 @@ struct SelectableList : public ComponentBase {
     };
 };
 
-struct AssetSelectTab : public MakeTab<AssetSelectTab>, public std::enable_shared_from_this<AssetSelectTab> {
+struct AssetSelectWindow : public ui::GUIComponent, public ComponentBase, public std::enable_shared_from_this<AssetSelectWindow> {
 
 private:
     Component nameInput;
     Component hashInput;
+    Component buttonCreate;
+    bool canCreate { false };
     Component verticalButtons;
-    Component buttonsRenderer;
-    std::shared_ptr<SelectableList> selectTableDummy;
     std::vector<Component> buttons;
     bool clearCache { false };
     std::string namePrefix;
+    std::string originalNamePrefix;
     std::string hashPrefix;
     void on_change();
     void on_select(const api_types::TokenListEntry&);
+    void on_select_wart();
     void remove_buttons();
 
     void process_completions();
     auto& get_data();
 
 public:
-    AssetSelectTab(GUI& gui);
+    AssetSelectWindow(GUI& gui);
     Element OnRender() override;
 };
 
-struct AssetCreateTab : public MakeTab<AssetCreateTab> {
-    Component btnCreateNew;
-    Component btnCreateFork;
+struct AssetSelectedWindow : public ui::GUIComponent, public ComponentBase, public std::enable_shared_from_this<AssetSelectedWindow> {
 
 private:
-    void on_create_new();
-    void on_create_fork();
-    Element OnRender() override
-    {
-        return window(text("Actions"),
-            vbox(btnCreateNew, btnCreateFork));
-    }
+    std::optional<AssetHash> prevSelectedHash;
+    std::optional<AssetHash> currentSelectedHash;
+    Component btnFork;
+    Component btnTransfer;
+    Component btnBuy;
+    Component btnSell;
+    Component btnLiquidityTransfer;
+    Component btnDeposit;
+    Component btnWithdraw;
+    Component containerBalance;
+    bool anything_selected() { return currentSelectedHash.has_value(); }
+    bool nonwart_selected() { return anything_selected() && currentSelectedHash != AssetHash::WART; }
+    void on_asset_transfer();
+    void on_asset_swap(bool buy);
+    void on_liquidity_transfer();
+    void on_liquidity_farm(bool deposit);
 
 public:
-    AssetCreateTab(GUI& gui);
+    AssetSelectedWindow(GUI& gui);
+    Element OnRender() override;
 };
 
-struct AssetTab : public MakeTab<AssetTab> {
-    AssetTab(GUI& gui)
-        : MakeTab(gui, "Assets")
-    {
-        Add({ Make<Tabs<AssetSelectTab, AssetCreateTab, AssetControlTab>>(gui) });
-    }
+struct AssetsTab : public MakeTab<AssetsTab> {
+    //
+private:
+    std::shared_ptr<AssetSelectWindow> selectWindow;
+    std::shared_ptr<AssetSelectedWindow> selectedWindow;
+
+public:
+    AssetsTab(GUI& gui);
 };
 
 struct WalletTab : public MakeTab<WalletTab> {
@@ -368,28 +350,49 @@ std::vector<Element> highlight_table_line(bool highlight, Ts&&... ts)
         return { (text(std::string(std::forward<Ts>(ts))))... };
 }
 
-inline Element render_balance(const std::optional<WartBalance>& b, GUI& gui)
+inline auto padded(const api::FundsBalance& b)
 {
-    auto wart_text { [](std::string_view label, FundsDecimal w) { return text(std::string(label) + ": " + w.to_string() + " WART"); } };
-    if (b)
-        return vbox(wart_text("Total", b->total), wart_text("Locked", b->locked), wart_text("Free", b->free()));
-    else
-        return vbox(hbox(text("Total: "), gui.render_spinner()), hbox(text("Locked: "), gui.render_spinner()), hbox(text("Free: "), gui.render_spinner()));
+    auto nonfrac_digits = [](std::string n) {
+        auto p { n.find('.') };
+        return (p == n.npos ? n.size() : p);
+    };
+    auto totalStr { b.total.to_string() };
+    auto lockedStr { b.locked.to_string() };
+    auto freeStr { b.free().to_string() };
+    auto totalDigits { nonfrac_digits(totalStr) };
+    auto lockedDigits { nonfrac_digits(lockedStr) };
+    auto freeDigits { nonfrac_digits(freeStr) };
+    auto maxDigits = std::max(totalDigits, std::max(lockedDigits, freeDigits));
+    struct Padded {
+        std::string total;
+        std::string locked;
+        std::string free;
+    };
+    return Padded {
+        .total = std::string(maxDigits - totalDigits, ' ') + totalStr,
+        .locked = std::string(maxDigits - lockedDigits, ' ') + lockedStr,
+        .free = std::string(maxDigits - freeDigits, ' ') + freeStr,
+    };
 }
 
-struct WartTab : public MakeTab<WartTab>, public std::enable_shared_from_this<WartTab> {
-    int selectedRow { 0 };
-    Component btnTransfer;
-
-    Element OnRender();
-    void on_transfer();
-    WartTab(GUI& gui)
-        : MakeTab(gui, "Wart")
-        , btnTransfer(Button("Transfer", [this]() { on_transfer(); }))
-    {
-        Add(Container::Vertical({ btnTransfer }));
-    }
-};
+inline Element render_balance(const std::optional<api::FundsBalance>& b, GUI& gui)
+{
+    auto wart_text { [](std::string_view label, const std::string& w) { return text(std::string(label) + ": " + w); } };
+    if (b) {
+        auto p { padded(*b) };
+        return vbox(wart_text("Total ", p.total), wart_text("Locked", p.locked), wart_text("Free  ", p.free));
+    } else
+        return vbox(hbox(text("Total: "), gui.render_spinner()), hbox(text("Locked: "), gui.render_spinner()), hbox(text("Free: "), gui.render_spinner()));
+}
+inline Element render_balance(const std::optional<WartBalance>& b, GUI& gui)
+{
+    auto wart_text { [](std::string_view label, const std::string& w) { return text(std::string(label) + ": " + w + " WART"); } };
+    if (b) {
+        auto p { padded(*b) };
+        return vbox(wart_text("Total ", p.total), wart_text("Locked", p.locked), wart_text("Free  ", p.free));
+    } else
+        return vbox(hbox(text("Total: "), gui.render_spinner()), hbox(text("Locked: "), gui.render_spinner()), hbox(text("Free: "), gui.render_spinner()));
+}
 
 struct LogTab : public MakeTab<LogTab> {
     int selectedRow { 0 };
@@ -409,6 +412,6 @@ struct RequestsLogTab : public MakeTab<RequestsLogTab> {
     }
 };
 
-using MainTabs = Tabs<WalletTab, WartTab, AssetTab, RequestsLogTab>;
+using MainTabs = Tabs<WalletTab, AssetsTab, RequestsLogTab>;
 
 } // namespace ui

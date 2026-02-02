@@ -8,6 +8,7 @@ struct api_types {
         std::string hash;
         uint32_t height;
         std::string name;
+        int precision;
     };
     struct TokenList {
         TokenList(std::string namePrefix, std::string hashPrefix)

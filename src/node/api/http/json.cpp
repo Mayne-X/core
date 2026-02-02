@@ -252,6 +252,7 @@ json to_json(const api::AssetSearchResult& a)
     for (auto& e : a.entries) {
         matches.push_back({ { "height", e.height },
             { "hash", serialize_hex(e.hash) },
+            { "precision", e.precision.value() },
             { "name", e.name } });
     }
 

@@ -17,6 +17,10 @@ void TransferPopup::on_cancel() { closed = true; }
 
 void TransferPopup::on_create()
 {
+    auto allValid { amount->valid && toAddr->valid && fee->valid && nonceId->valid };
+    if (!allValid)
+        return;
+
     auto properties { KVProperties {
         .title { "Transfer" },
         .entries {
@@ -63,6 +67,9 @@ TransferPopup::TransferPopup(GUI& gui, TokenInfo token)
 
 void SwapPopup::on_create()
 {
+    auto allValid { amount->valid && limit->valid && fee->valid };
+    if (!allValid)
+        return;
     auto assetCaption { format_token_caption(api::TokenSpec(asset.hash, false), asset.name) };
     auto wartCaption { format_token_caption(api::TokenSpec::WART, "Wart") };
 
@@ -98,6 +105,7 @@ Element SwapPopup::OnRender()
     amount->set_validator(FundsValidator(is_buy() ? asset.precision : TokenPrecision::WART));
     limit->set_validator(LimitValidator(asset.precision, !is_buy()));
     amount->label = std::string("Amount (") + (is_buy() ? "WART" : asset.name) + "): ";
+    limit->label = "Limit (" + std::string(is_buy() ? "MAX" : "MIN") + " Price): ";
     return vbox(
         { window(text("New Swap"),
               vbox({ text("Base Asset: " + asset.to_string()),
@@ -106,11 +114,12 @@ Element SwapPopup::OnRender()
             hbox(btnCancel, btnCreate->Render()) | center });
 }
 
-SwapPopup::SwapPopup(GUI& gui, AssetInfo a)
+SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
     : GUIComponent(gui)
     , asset(std::move(a))
     , swap_directions { "BUY " + asset.name + " WITH WART",
         "SELL " + asset.name + " FOR WART" }
+    , side_selected(buy ? 0 : 1)
     , amount(ui::LabeledValidated("Amount:  "))
     , limit(ui::LabeledValidated("Limit Price:  "))
     , fee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
@@ -123,6 +132,9 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a)
 }
 void FarmPopup::on_create()
 {
+    auto allValid { wart->valid && base->valid && limit->valid && fee->valid };
+    if (!allValid)
+        return;
     auto properties { KVProperties {
         .title { "Farm" },
         .entries {
@@ -150,11 +162,12 @@ void FarmPopup::on_create()
 };
 void FarmPopup::on_cancel() { closed = true; }
 
-FarmPopup::FarmPopup(GUI& gui, AssetInfo a)
+FarmPopup::FarmPopup(GUI& gui, AssetInfo a, bool deposit)
     : GUIComponent(gui)
     , asset(std::move(a))
     , liquidity_actions { "DEPOSIT LIQUIDITY",
         "WITHDRAW LIQUIDITY" }
+    , side_selected(deposit ? 0 : 1)
     , wart(ui::LabeledValidated("Max. Amount (WART):  ", wart_validator))
     , base(ui::LabeledValidated("", FundsValidator(a.precision)))
     , limit(ui::LabeledValidated("Limit Price:  ", LimitValidator(a.precision, false)))

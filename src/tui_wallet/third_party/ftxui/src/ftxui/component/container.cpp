@@ -48,6 +48,11 @@ class ContainerBase : public ComponentBase {
 
     return children_[static_cast<size_t>(*selector_) % children_.size()];
   }
+    void OnActiveChildFocusableChange() override{
+        if (auto p{ActiveChild()}; !p || p->Focusable() == false) {
+            MoveSelectorWrap(-1);
+        }
+    }
 
   void SetActiveChild(ComponentBase* child) override {
     for (size_t i = 0; i < children_.size(); ++i) {

@@ -86,7 +86,7 @@ auto State::api_search_asset(const api::AssetSearchArgs& args) const -> Result<a
 {
     api::AssetSearchResult result(args);
     for (auto& a : db.search_assets(args)) {
-        result.entries.push_back({ .name { a.name.to_string() }, .hash { a.hash }, .height { a.height } });
+        result.entries.push_back({ .name { a.name.to_string() }, .hash { a.hash }, .height { a.height }, .precision{a.precision} });
     };
     return result;
 }

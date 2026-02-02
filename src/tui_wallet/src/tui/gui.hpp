@@ -4,6 +4,92 @@
 #include "tui/popup.hpp"
 #include "ui_data.hpp"
 
+// struct ThreadContext {
+//     std::vector<std::unique_ptr<std::jthread>> threads;
+//     void push_back(std::jthread t)
+//     {
+//         threads.push_back(std::make_unique<std::jthread>(std::move(t)));
+//     }
+//     void prune()
+//     {
+//         std::erase_if(threads, [](const std::unique_ptr<std::jthread>& t) {
+//             return t->joinable();
+//         });
+//     }
+// };
+//
+// template <typename T>
+// struct UpdatableValue : public std::enable_shared_from_this<UpdatableValue<T>> {
+// private:
+//     static constexpr auto pending_tp { std::chrono::steady_clock::time_point::max() };
+//
+//     std::chrono::steady_clock::time_point expiration;
+//     std::optional<T> value;
+//     size_t callSequence { 0 };
+//
+//     template <typename... Args>
+//     void value_update(ThreadContext& ctx, bool force, Args&&... args)
+//     {
+//         using sc = std::chrono::steady_clock;
+//         if (!force && expiration > sc::now())
+//             return;
+//         expiration = pending_tp;
+//         value.reset();
+//         callSequence += 1;
+//         ctx.push_back(T::fetch(std::forward<Args>(args)...));
+//     }
+//
+// public:
+//     void set_value(std::optional<T> newVal, size_t seq)
+//     {
+//         if (seq != callSequence)
+//             return; // stale call
+//         value = newVal;
+//         const auto interval { std::chrono::seconds(20) };
+//         expiration = std::chrono::steady_clock::now() + interval;
+//     }
+//
+//     template <typename... Args>
+//     const std::optional<T>& update_and_get(ThreadContext& ctx, bool force, Args&&... args)
+//     {
+//         value_update(ctx, force, std::forward<Args>(args)...);
+//         return value;
+//     }
+// };
+//
+// template <typename T>
+// struct KeyedSubscriptionsTemplate {
+//     struct subscription : public std::shared_ptr<UpdatableValue<T>> {
+//         subscription()
+//             : std::shared_ptr<UpdatableValue<T>>(
+//                   std::make_shared<UpdatableValue<T>>())
+//         {
+//         }
+//     };
+//     std::map<std::string, subscription> map;
+//     template <typename... Args>
+//     const auto& update_and_get(std::string key, ThreadContext ctx, bool force,
+//         Args&&... args)
+//     {
+//         return map[key]->update_and_get(ctx, force, std::forward<Args>(args)...);
+//     }
+//     void set_val(std::string key, std::optional<T> o)
+//     {
+//         map[key]->update_value(std::move(o));
+//     }
+// };
+//
+// template <typename... Ts>
+// struct KeyedSubscriptionsCombine {
+//     std::tuple<KeyedSubscriptionsTemplate<Ts>...> tuple;
+//     template <typename T>
+//     auto& get()
+//     {
+//         return std::get<KeyedSubscriptionsTemplate<T>>(tuple);
+//     }
+// };
+// using KeyedSubscriptions = KeyedSubscriptionsCombine<int, std::string>;
+
 namespace ui {
 using namespace ftxui;
 struct RootComponent;
@@ -11,18 +97,18 @@ struct GUIComponent {
 protected:
     [[nodiscard]] static ftxui::ScreenInteractive& extract_screen(GUI&);
     [[nodiscard]] static RootComponent& extract_root(GUI&);
-    GUIComponent(GUI& gui)
-        : gui(gui)
-    {
-    }
     GUI& gui;
 
     template <typename T, typename... Ts>
     void make_popup(Ts&&... ts);
     auto redraw_lambda() const;
-    Element render_spinner(int type = 11) const;
+    Element render_spinner(int type = 12) const;
 
 public:
+    GUIComponent(GUI& gui)
+        : gui(gui)
+    {
+    }
     ScreenInteractive& gui_screen() const;
     RootComponent& gui_root() const;
 };
@@ -53,12 +139,13 @@ public:
 template <typename T>
 concept is_tab = std::derived_from<T, IsTab>;
 
-struct GUI : public SelectedAsset, public std::enable_shared_from_this<GUI> {
+struct GUI : public std::enable_shared_from_this<GUI> {
     friend RootComponent;
     friend GUIComponent;
 
 public:
     ScreenInteractive screen;
+    wrt::optional<AssetInfo> selectedAsset;
 
 private:
     using duration = std::chrono::steady_clock::duration;

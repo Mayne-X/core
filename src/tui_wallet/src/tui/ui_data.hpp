@@ -32,6 +32,9 @@ struct AssetInfo {
     std::string name;
     AssetHash hash;
     TokenPrecision precision;
+    TokenInfo token(bool isLiquidity){
+        return {name, api::TokenSpec(hash,isLiquidity),precision};
+    }
     std::string market() const { return name + "/WART"; }
     std::string liquidity_name() const { return name + "-LIQUIDITY"; }
     std::string to_string() const { return name + " (" + serialize_hex(hash) + ")"; }
@@ -47,13 +50,3 @@ struct AssetInfo {
     }
 };
 
-namespace ui {
-struct SelectedAsset {
-private:
-    friend AssetControlTab;
-    wrt::optional<AssetInfo> nameHash;
-
-public:
-    const wrt::optional<AssetInfo>& name_hash() const { return nameHash; };
-};
-} // namespace ui
