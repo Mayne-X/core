@@ -138,6 +138,11 @@ public:
             return {};
         return messages::SpendToken { asset_hash(), false, base() };
     }
+    void check_throw()
+    {
+        if (base().is_zero() && quote().is_zero())
+            throw Error(EZEROAMOUNT);
+    }
     using parent_t::parent_t;
 };
 
