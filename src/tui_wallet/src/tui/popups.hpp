@@ -52,9 +52,10 @@ private:
     std::vector<std::string> swap_directions;
     int side_selected = 0;
 
-    std::shared_ptr<ui::LabeledValidatedBase> amount;
-    std::shared_ptr<ui::LabeledValidatedBase> limit;
-    std::shared_ptr<ui::LabeledValidatedBase> fee;
+    std::shared_ptr<ui::LabeledValidatedBase> inputAmount;
+    std::shared_ptr<ui::LabeledValidatedBase> inputLimit;
+    std::shared_ptr<ui::LabeledValidatedBase> inputFee;
+    std::shared_ptr<ui::LabeledValidatedBase> inputNonceId;
     Component toggle;
     Component btnCancel;
     Component btnCreate;
@@ -72,10 +73,10 @@ private:
     std::vector<std::string> liquidity_actions;
     int side_selected = 0;
 
-    std::shared_ptr<ui::LabeledValidatedBase> wart;
-    std::shared_ptr<ui::LabeledValidatedBase> base;
-    std::shared_ptr<ui::LabeledValidatedBase> limit;
-    std::shared_ptr<ui::LabeledValidatedBase> fee;
+    std::shared_ptr<ui::LabeledValidatedBase> inputWart;
+    std::shared_ptr<ui::LabeledValidatedBase> inputBase;
+    std::shared_ptr<ui::LabeledValidatedBase> inputLimit;
+    std::shared_ptr<ui::LabeledValidatedBase> inputFee;
     Component toggle;
     Component btnCancel;
     Component btnCreate;
@@ -84,12 +85,12 @@ private:
 public:
     Element OnRender() override
     {
-        base->label = "Max. Amount (" + asset.name + "): ";
+        inputBase->label = "Max. Amount (" + asset.name + "): ";
         return vbox(
             { window(text("Farm Liquidity"),
                   vbox({ text("Base Asset: " + asset.to_string()),
                       hbox(text("Liquidity action: "), toggle->Render()),
-                      wart->Render(), limit->Render(), fee->Render() })),
+                      inputWart->Render(), inputLimit->Render(), inputFee->Render() })),
                 hbox(btnCancel, btnCreate->Render()) | center });
     }
     void on_create();

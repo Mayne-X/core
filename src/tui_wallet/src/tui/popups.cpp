@@ -43,18 +43,7 @@ void TransferPopup::on_create()
                 "This transfer is for pool liquidity, not the actual asset!" });
     }
 
-    //     [tr = shared_from_this()](result_cb_t cb) -> std::function<void()> {
-    //         return [tr = std::move(tr), cb = std::move(cb)]() mutable {
-    //             std::thread t([tr = std::move(tr), cb = std::move(cb)] {
-    //                 tr->closed = true;
-    //                 std::this_thread::sleep_for(std::chrono::seconds(2));
-    //                 cb("Success", "Transaction was sent");
-    //             });
-    //             t.detach();
-    //         };
-    //     }
-    // };
-
+    // Parse text fields
     auto nId { try_parse<uint32_t>(nonceId.get()->content) };
     auto compactFee { Wart::parse(fee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
     auto amt { Funds_uint64::parse(amount.get()->content, token.prec()).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
@@ -72,16 +61,16 @@ void TransferPopup::on_create()
             auto& drc { global::data_interface().retrieval_context() };
             auto ctx { drc.tx_create_context(nonceId, compactFee) };
             auto& s { token.spec };
-            auto hash{[&]{
-            if (s.assetHash.is_wart()) {
-                WartTransferCreate tx(ctx, toAddr, amount.as_wart());
-                return drc.endpoint.send_transaction(tx);
-            } else {
-                TokenTransferCreate tx(ctx, s.assetHash, s.isLiquidity, toAddr, amount);
-                return drc.endpoint.send_transaction(tx);
-            }
-            }()};
-            return {"Success", std::format("Transaction was sent.\r Transaction Hash: {}",serialize_hex(hash))};
+            auto hash { [&] {
+                if (s.assetHash.is_wart()) {
+                    WartTransferCreate tx(ctx, toAddr, amount.as_wart());
+                    return drc.endpoint.send_transaction(tx);
+                } else {
+                    TokenTransferCreate tx(ctx, s.assetHash, s.isLiquidity, toAddr, amount);
+                    return drc.endpoint.send_transaction(tx);
+                }
+            }() };
+            return { "Success", std::format("Transaction was sent.\r Transaction Hash: {}", serialize_hex(hash)) };
         }
     };
     make_popup<ConfirmationPopup>(std::move(properties), work, close_callback());
@@ -103,11 +92,19 @@ TransferPopup::TransferPopup(GUI& gui, TokenInfo token)
 
 void SwapPopup::on_create()
 {
-    auto allValid { amount->valid && limit->valid && fee->valid };
+    auto allValid { inputAmount->valid && inputLimit->valid && inputFee->valid };
     if (!allValid)
         return;
     auto assetCaption { format_token_caption(api::TokenSpec(asset.hash, false), asset.name) };
     auto wartCaption { format_token_caption(api::TokenSpec::WART, "Wart") };
+
+    auto nId { try_parse<uint32_t>(inputNonceId.get()->content) };
+    auto compactFee { Wart::parse(inputFee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
+    auto amt { Funds_uint64::parse(inputAmount.get()->content, asset.precision).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
+    auto l { Price_uint64::from_string_adjusted(inputLimit.get()->content, asset.precision) };
+
+    if (!nId || !compactFee || !amt || !l)
+        return;
 
     auto properties { KVProperties {
         .title { "Swap" },
@@ -116,37 +113,37 @@ void SwapPopup::on_create()
                 is_buy() ? wartCaption : assetCaption },
             { "To Token ",
                 is_buy() ? assetCaption : wartCaption },
-            { "Amount", amount.get()->content },
-            { "Limit Price ", limit.get()->content },
+            { "Amount", amt->to_decimal(asset.precision).to_string() },
+            { "Limit Price ", std::to_string(l->to_double_adjusted(asset.precision)) },
         } } };
-
-    // onconfirm_generator_t generator {
-    //     [tr = shared_from_this()](result_cb_t cb) -> std::function<void()> {
-    //         return [tr = std::move(tr), cb = std::move(cb)]() mutable {
-    //             std::thread t([tr = std::move(tr), cb = std::move(cb)] {
-    //                 tr->closed = true;
-    //                 std::this_thread::sleep_for(std::chrono::seconds(2));
-    //                 cb("Success", "Transaction was sent");
-    //             });
-    //             t.detach();
-    //         };
-    //     }
-    // };
+    auto work {
+        [asset = asset, nonceId = NonceId(*nId), isBuy = is_buy(), compactFee = *compactFee, amount = *amt, limit = *l] -> NotificationData {
+            auto& drc { global::data_interface().retrieval_context() };
+            auto ctx { drc.tx_create_context(nonceId, compactFee) };
+            auto& s { asset };
+            auto hash { [&] {
+                // DEFINE_CREATE_MESSAGE(LimitSwapCreate, ::block::labels::limitSwap, AssetHashEl, BuyEl, NonzeroAmountEl, LimitPriceEl)
+                LimitSwapCreate tx(ctx, s.hash, isBuy, amount, limit);
+                return drc.endpoint.send_transaction(tx);
+            }() };
+            return { "Success", std::format("Transaction was sent.\r Transaction Hash: {}", serialize_hex(hash)) };
+        }
+    };
     make_popup<ConfirmationPopup>(std::move(properties), work, close_callback());
 };
 
 void SwapPopup::on_cancel() { closed = true; }
 Element SwapPopup::OnRender()
 {
-    amount->set_validator(FundsValidator(is_buy() ? asset.precision : TokenPrecision::WART));
-    limit->set_validator(LimitValidator(asset.precision, !is_buy()));
-    amount->label = std::string("Amount (") + (is_buy() ? "WART" : asset.name) + "): ";
-    limit->label = "Limit (" + std::string(is_buy() ? "MAX" : "MIN") + " Price): ";
+    inputAmount->set_validator(FundsValidator(is_buy() ? asset.precision : TokenPrecision::WART));
+    inputLimit->set_validator(LimitValidator(asset.precision, !is_buy()));
+    inputAmount->label = std::string("Amount (") + (is_buy() ? "WART" : asset.name) + "): ";
+    inputLimit->label = "Limit (" + std::string(is_buy() ? "MAX" : "MIN") + " Price): ";
     return vbox(
         { window(text("New Swap"),
               vbox({ text("Base Asset: " + asset.to_string()),
                   hbox(text("Swap direction: "), toggle->Render()),
-                  amount->Render(), limit->Render(), fee->Render() })),
+                  inputAmount->Render(), inputLimit->Render(), inputFee->Render() })),
             hbox(btnCancel, btnCreate->Render()) | center });
 }
 
@@ -156,19 +153,20 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
     , swap_directions { "BUY " + asset.name + " WITH WART",
         "SELL " + asset.name + " FOR WART" }
     , side_selected(buy ? 0 : 1)
-    , amount(ui::LabeledValidated("Amount:  "))
-    , limit(ui::LabeledValidated("Limit Price:  "))
-    , fee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
+    , inputAmount(ui::LabeledValidated("Amount:  "))
+    , inputLimit(ui::LabeledValidated("Limit Price:  "))
+    , inputFee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
+    , inputNonceId(ui::LabeledValidated("NonceId: ", nonce_id_validator))
     , toggle(Toggle(swap_directions, &side_selected))
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
 {
-    Add(Container::Vertical({ toggle, amount, limit, fee,
+    Add(Container::Vertical({ toggle, inputAmount, inputLimit, inputFee,
         Container::Horizontal({ btnCancel, btnCreate }) }));
 }
 void FarmPopup::on_create()
 {
-    auto allValid { wart->valid && base->valid && limit->valid && fee->valid };
+    auto allValid { inputWart->valid && inputBase->valid && inputLimit->valid && inputFee->valid };
     if (!allValid)
         return;
     auto properties { KVProperties {
@@ -178,8 +176,8 @@ void FarmPopup::on_create()
                 "95ae6efb2f4fe5e4fd3a5b21df7f755f878383610505fe64 (WART)" },
             { "To Token ",
                 "95ae6efb2f4fe5e4fd3a5b21df7f755f878383610505fe64 (WART)" },
-            { "Amount", wart.get()->content },
-            { "Limit Price ", limit.get()->content },
+            { "Amount", inputWart.get()->content },
+            { "Limit Price ", inputLimit.get()->content },
         } } };
 
     // onconfirm_generator_t generator {
@@ -204,16 +202,16 @@ FarmPopup::FarmPopup(GUI& gui, AssetInfo a, bool deposit)
     , liquidity_actions { "DEPOSIT LIQUIDITY",
         "WITHDRAW LIQUIDITY" }
     , side_selected(deposit ? 0 : 1)
-    , wart(ui::LabeledValidated("Max. Amount (WART):  ", wart_validator))
-    , base(ui::LabeledValidated("", FundsValidator(a.precision)))
-    , limit(ui::LabeledValidated("Limit Price:  ", LimitValidator(a.precision, false)))
-    , fee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
+    , inputWart(ui::LabeledValidated("Max. Amount (WART):  ", wart_validator))
+    , inputBase(ui::LabeledValidated("", FundsValidator(a.precision)))
+    , inputLimit(ui::LabeledValidated("Limit Price:  ", LimitValidator(a.precision, false)))
+    , inputFee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
     , toggle(Toggle(liquidity_actions, &side_selected))
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
 {
 
-    Add(Container::Vertical({ toggle, wart, limit, fee,
+    Add(Container::Vertical({ toggle, inputWart, inputLimit, inputFee,
         Container::Horizontal({ btnCancel, btnCreate }) }));
 }
 } // namespace ui
