@@ -24,7 +24,7 @@ auto work {
 
 void TransferPopup::on_create()
 {
-    auto allValid { amount->valid && toAddr->valid && fee->valid && nonceId->valid };
+    auto allValid { editAmount->valid && editToAddr->valid && editFee->valid && editNonceId->valid };
     if (!allValid)
         return;
 
@@ -32,10 +32,10 @@ void TransferPopup::on_create()
         .title { "Transfer" },
         .entries {
             { "Token ", token.to_string() },
-            { "Amount (" + token.pretty_name() + ") ", amount.get()->content },
-            { "Destination ", toAddr.get()->content },
-            { "Fee (WART) ", fee.get()->content },
-            { "NonceId ", nonceId.get()->content },
+            { "Amount (" + token.pretty_name() + ") ", editAmount.get()->content },
+            { "Destination ", editToAddr.get()->content },
+            { "Fee (WART) ", editFee.get()->content },
+            { "NonceId ", editNonceId.get()->content },
         } } };
     if (token.spec.isLiquidity) {
         properties.entries.push_back(
@@ -44,10 +44,10 @@ void TransferPopup::on_create()
     }
 
     // Parse text fields
-    auto nId { try_parse<uint32_t>(nonceId.get()->content) };
-    auto compactFee { Wart::parse(fee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
-    auto amt { Funds_uint64::parse(amount.get()->content, token.prec()).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
-    auto toAddress { Address::parse(toAddr.get()->content) };
+    auto nId { try_parse<uint32_t>(editNonceId.get()->content) };
+    auto compactFee { Wart::parse(editFee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
+    auto amt { Funds_uint64::parse(editAmount.get()->content, token.prec()).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
+    auto toAddress { Address::parse(editToAddr.get()->content) };
 
     // Wart itself has no liquidity
     if (token.spec.assetHash.is_wart() && token.spec.isLiquidity)
@@ -79,29 +79,29 @@ void TransferPopup::on_create()
 TransferPopup::TransferPopup(GUI& gui, TokenInfo token)
     : GUIComponent(gui)
     , token(std::move(token))
-    , amount(ui::LabeledValidated("Amount:  ", FundsValidator(token.prec())))
-    , toAddr(ui::LabeledValidated("Destination: ", address_validator))
-    , fee(ui::LabeledValidated("Fee (WART): ", wart_validator))
-    , nonceId(ui::LabeledValidated("NonceId: ", nonce_id_validator))
+    , editAmount(ui::LabeledValidated("Amount:  ", FundsValidator(token.prec())))
+    , editToAddr(ui::LabeledValidated("Destination: ", address_validator))
+    , editFee(ui::LabeledValidated("Fee (WART): ", wart_validator))
+    , editNonceId(ui::LabeledValidated("NonceId: ", nonce_id_validator))
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
 {
-    Add(Container::Vertical({ toAddr, amount, fee, nonceId,
+    Add(Container::Vertical({ editToAddr, editAmount, editFee, editNonceId,
         Container::Horizontal({ btnCancel, btnCreate }) }));
 }
 
 void SwapPopup::on_create()
 {
-    auto allValid { inputAmount->valid && inputLimit->valid && inputFee->valid };
+    auto allValid { editAmount->valid && editLimit->valid && editFee->valid };
     if (!allValid)
         return;
     auto assetCaption { format_token_caption(api::TokenSpec(asset.hash, false), asset.name) };
     auto wartCaption { format_token_caption(api::TokenSpec::WART, "Wart") };
 
-    auto nId { try_parse<uint32_t>(inputNonceId.get()->content) };
-    auto compactFee { Wart::parse(inputFee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
-    auto amt { Funds_uint64::parse(inputAmount.get()->content, asset.precision).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
-    auto l { Price_uint64::from_string_adjusted(inputLimit.get()->content, asset.precision) };
+    auto nId { try_parse<uint32_t>(editNonceId.get()->content) };
+    auto compactFee { Wart::parse(editFee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
+    auto amt { Funds_uint64::parse(editAmount.get()->content, asset.precision).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
+    auto l { Price_uint64::from_string_adjusted(editLimit.get()->content, asset.precision) };
 
     if (!nId || !compactFee || !amt || !l)
         return;
@@ -135,15 +135,15 @@ void SwapPopup::on_create()
 void SwapPopup::on_cancel() { closed = true; }
 Element SwapPopup::OnRender()
 {
-    inputAmount->set_validator(FundsValidator(is_buy() ? asset.precision : TokenPrecision::WART));
-    inputLimit->set_validator(LimitValidator(asset.precision, !is_buy()));
-    inputAmount->label = std::string("Amount (") + (is_buy() ? "WART" : asset.name) + "): ";
-    inputLimit->label = "Limit (" + std::string(is_buy() ? "MAX" : "MIN") + " Price): ";
+    editAmount->set_validator(FundsValidator(is_buy() ? asset.precision : TokenPrecision::WART));
+    editLimit->set_validator(LimitValidator(asset.precision, !is_buy()));
+    editAmount->label = std::string("Amount (") + (is_buy() ? "WART" : asset.name) + "): ";
+    editLimit->label = "Limit (" + std::string(is_buy() ? "MAX" : "MIN") + " Price): ";
     return vbox(
         { window(text("New Swap"),
               vbox({ text("Base Asset: " + asset.to_string()),
                   hbox(text("Swap direction: "), toggle->Render()),
-                  inputAmount->Render(), inputLimit->Render(), inputFee->Render() })),
+                  editAmount->Render(), editLimit->Render(), editFee->Render() })),
             hbox(btnCancel, btnCreate->Render()) | center });
 }
 
@@ -153,20 +153,20 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
     , swap_directions { "BUY " + asset.name + " WITH WART",
         "SELL " + asset.name + " FOR WART" }
     , side_selected(buy ? 0 : 1)
-    , inputAmount(ui::LabeledValidated("Amount:  "))
-    , inputLimit(ui::LabeledValidated("Limit Price:  "))
-    , inputFee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
-    , inputNonceId(ui::LabeledValidated("NonceId: ", nonce_id_validator))
+    , editAmount(ui::LabeledValidated("Amount:  "))
+    , editLimit(ui::LabeledValidated("Limit Price:  "))
+    , editFee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
+    , editNonceId(ui::LabeledValidated("NonceId: ", nonce_id_validator))
     , toggle(Toggle(swap_directions, &side_selected))
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
 {
-    Add(Container::Vertical({ toggle, inputAmount, inputLimit, inputFee,
+    Add(Container::Vertical({ toggle, editAmount, editLimit, editFee,
         Container::Horizontal({ btnCancel, btnCreate }) }));
 }
 void FarmPopup::on_create()
 {
-    auto allValid { inputWart->valid && inputBase->valid && inputLimit->valid && inputFee->valid };
+    auto allValid { editWart->valid && editBase->valid && editLimit->valid && editFee->valid };
     if (!allValid)
         return;
     auto properties { KVProperties {
@@ -176,8 +176,8 @@ void FarmPopup::on_create()
                 "95ae6efb2f4fe5e4fd3a5b21df7f755f878383610505fe64 (WART)" },
             { "To Token ",
                 "95ae6efb2f4fe5e4fd3a5b21df7f755f878383610505fe64 (WART)" },
-            { "Amount", inputWart.get()->content },
-            { "Limit Price ", inputLimit.get()->content },
+            { "Amount", editWart.get()->content },
+            { "Limit Price ", editLimit.get()->content },
         } } };
 
     // onconfirm_generator_t generator {
@@ -202,16 +202,16 @@ FarmPopup::FarmPopup(GUI& gui, AssetInfo a, bool deposit)
     , liquidity_actions { "DEPOSIT LIQUIDITY",
         "WITHDRAW LIQUIDITY" }
     , side_selected(deposit ? 0 : 1)
-    , inputWart(ui::LabeledValidated("Max. Amount (WART):  ", wart_validator))
-    , inputBase(ui::LabeledValidated("", FundsValidator(a.precision)))
-    , inputLimit(ui::LabeledValidated("Limit Price:  ", LimitValidator(a.precision, false)))
-    , inputFee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
+    , editWart(ui::LabeledValidated("Max. Amount (WART):  ", wart_validator))
+    , editBase(ui::LabeledValidated("", FundsValidator(a.precision)))
+    , editLimit(ui::LabeledValidated("Limit Price:  ", LimitValidator(a.precision, false)))
+    , editFee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
     , toggle(Toggle(liquidity_actions, &side_selected))
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
 {
 
-    Add(Container::Vertical({ toggle, inputWart, inputLimit, inputFee,
+    Add(Container::Vertical({ toggle, editWart, editLimit, editFee,
         Container::Horizontal({ btnCancel, btnCreate }) }));
 }
 } // namespace ui

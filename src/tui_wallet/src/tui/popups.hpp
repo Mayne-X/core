@@ -1,5 +1,4 @@
 #pragma once
-#include "general/compact_uint.hpp"
 #include "gui.hpp"
 #include "popup.hpp"
 #include "validated_input.hpp"
@@ -10,10 +9,10 @@ struct TransferPopup : public GUIComponent,
                        public Popup<TransferPopup> {
 private:
     TokenInfo token;
-    std::shared_ptr<ui::LabeledValidatedBase> amount;
-    std::shared_ptr<ui::LabeledValidatedBase> toAddr;
-    std::shared_ptr<ui::LabeledValidatedBase> fee;
-    std::shared_ptr<ui::LabeledValidatedBase> nonceId;
+    std::shared_ptr<ui::LabeledValidatedBase> editAmount;
+    std::shared_ptr<ui::LabeledValidatedBase> editToAddr;
+    std::shared_ptr<ui::LabeledValidatedBase> editFee;
+    std::shared_ptr<ui::LabeledValidatedBase> editNonceId;
     Component btnCancel;
     Component btnCreate;
 
@@ -23,14 +22,14 @@ public:
         using namespace std::string_literals;
         auto content = [&]() {
             if (token.spec.isLiquidity) {
-                amount->label = "Amount ("s + token.liquidity_name() + "): ";
+                editAmount->label = "Amount ("s + token.liquidity_name() + "): ";
                 return vbox({ text("Pool: "s + token.market()),
-                    text("Token: " + token.to_string()), toAddr, amount,
-                    fee, nonceId });
+                    text("Token: " + token.to_string()), editToAddr, editAmount,
+                    editFee, editNonceId });
             } else {
-                amount->label = "Amount ("s + token.assetName + "): ";
-                return vbox({ text("Token: " + token.to_string()), toAddr, amount, fee,
-                    nonceId });
+                editAmount->label = "Amount ("s + token.assetName + "): ";
+                return vbox({ text("Token: " + token.to_string()), editToAddr, editAmount, editFee,
+                    editNonceId });
             }
         }();
         auto title { "New "s + (token.spec == api::TokenSpec::WART ? "WART" : token.spec.isLiquidity ? "Liquidity"
@@ -52,10 +51,10 @@ private:
     std::vector<std::string> swap_directions;
     int side_selected = 0;
 
-    std::shared_ptr<ui::LabeledValidatedBase> inputAmount;
-    std::shared_ptr<ui::LabeledValidatedBase> inputLimit;
-    std::shared_ptr<ui::LabeledValidatedBase> inputFee;
-    std::shared_ptr<ui::LabeledValidatedBase> inputNonceId;
+    std::shared_ptr<ui::LabeledValidatedBase> editAmount;
+    std::shared_ptr<ui::LabeledValidatedBase> editLimit;
+    std::shared_ptr<ui::LabeledValidatedBase> editFee;
+    std::shared_ptr<ui::LabeledValidatedBase> editNonceId;
     Component toggle;
     Component btnCancel;
     Component btnCreate;
@@ -73,10 +72,10 @@ private:
     std::vector<std::string> liquidity_actions;
     int side_selected = 0;
 
-    std::shared_ptr<ui::LabeledValidatedBase> inputWart;
-    std::shared_ptr<ui::LabeledValidatedBase> inputBase;
-    std::shared_ptr<ui::LabeledValidatedBase> inputLimit;
-    std::shared_ptr<ui::LabeledValidatedBase> inputFee;
+    std::shared_ptr<ui::LabeledValidatedBase> editWart;
+    std::shared_ptr<ui::LabeledValidatedBase> editBase;
+    std::shared_ptr<ui::LabeledValidatedBase> editLimit;
+    std::shared_ptr<ui::LabeledValidatedBase> editFee;
     Component toggle;
     Component btnCancel;
     Component btnCreate;
@@ -85,12 +84,12 @@ private:
 public:
     Element OnRender() override
     {
-        inputBase->label = "Max. Amount (" + asset.name + "): ";
+        editBase->label = "Max. Amount (" + asset.name + "): ";
         return vbox(
             { window(text("Farm Liquidity"),
                   vbox({ text("Base Asset: " + asset.to_string()),
                       hbox(text("Liquidity action: "), toggle->Render()),
-                      inputWart->Render(), inputLimit->Render(), inputFee->Render() })),
+                      editWart->Render(), editLimit->Render(), editFee->Render() })),
                 hbox(btnCancel, btnCreate->Render()) | center });
     }
     void on_create();
