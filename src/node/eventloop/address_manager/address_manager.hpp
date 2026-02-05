@@ -7,12 +7,9 @@
 #endif
 
 #include "../types/conndata.hpp"
-#include "wrt/expected.hpp"
 #include "init_arg.hpp"
 #include "transport/helpers/per_ip_counter.hpp"
 #include <chrono>
-#include <map>
-#include <set>
 #include <vector>
 class Conref;
 struct Inspector;
@@ -126,7 +123,7 @@ public:
     [[nodiscard]] wrt::optional<Conref> find(uint64_t id) const;
     size_t size() const { return conndatamap.size(); }
     size_t ip_count(const IP& ip) const { return ipCounter.count(ip); };
-    bool erase(Conref); // returns whether is pinned
+    void erase(Conref);
 
     auto insert(
         ConnectionBase::ConnectionVariant& convar,

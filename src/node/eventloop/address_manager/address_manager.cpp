@@ -149,18 +149,15 @@ api::IPCounter AddressManager::api_count_ips() const
     return ipv;
 }
 
-bool AddressManager::erase(Conref cr)
+void AddressManager::erase(Conref cr)
 {
-    auto ip { cr.peer().ip() };
-    if (ip)
+    if (auto ip { cr.peer().ip() })
         ipCounter.erase(*ip);
-    if (cr->c->inbound()) {
+    if (cr->c->inbound())
         std::erase(inboundConnections, cr);
-    } else {
+    else
         std::erase(outboundEndpoints, cr.peer());
-    }
     delayedDelete.push_back(cr);
-    return false;
 }
 
 void AddressManager::garbage_collect()
