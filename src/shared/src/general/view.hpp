@@ -3,10 +3,6 @@
 #include "view_fwd.hpp"
 #include <array>
 #include <cassert>
-#include <compare>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
 #include <span>
 template <size_t N>
 struct View {
@@ -19,6 +15,8 @@ struct View {
     }
     bool is_null() const { return pos == nullptr; }
     const uint8_t* data() const { return pos; }
+    const uint8_t* begin() const { return data(); }
+    const uint8_t* end() const { return begin() + N; }
     uint8_t operator[](size_t i) const { return *(pos + i); }
     std::span<const uint8_t> span() const { return { data(), size() }; }
     operator std::span<const uint8_t>() const { return span(); }
@@ -31,13 +29,7 @@ struct View {
     auto operator<=>(const View& v) const
     {
         assert(!is_null() && !v.is_null());
-        auto i = memcmp(pos, v.pos, N);
-        if (i < 0)
-            return std::strong_ordering::less;
-        else if (i > 0)
-            return std::strong_ordering::greater;
-        else
-            return std::strong_ordering::equal;
+        return std::lexicographical_compare_three_way(begin(),end(), v.begin(),v.end());
     }
     bool operator==(const View& v) const
     {

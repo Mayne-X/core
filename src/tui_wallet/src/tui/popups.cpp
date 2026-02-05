@@ -1,5 +1,6 @@
 #include "popups.hpp"
 #include "general/funds.hpp"
+#include "global.hpp"
 #include "tabs.hpp"
 #include "transaction.hpp"
 #include "validators.hpp"
@@ -53,6 +54,36 @@ void TransferPopup::on_create()
     //         };
     //     }
     // };
+
+    auto nId { try_parse<uint32_t>(nonceId.get()->content) };
+    auto compactFee { Wart::parse(fee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
+    auto amt { Funds_uint64::parse(amount.get()->content, token.prec()).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
+    auto toAddress { Address::parse(toAddr.get()->content) };
+
+    // Wart itself has no liquidity
+    if (token.spec.assetHash.is_wart() && token.spec.isLiquidity)
+        return; // this should not happen and is not allowed
+
+    if (!nId || !compactFee || !amt || !toAddress)
+        return;
+
+    auto work {
+        [token = token, nonceId = NonceId(*nId), compactFee = *compactFee, amount = *amt, toAddr = *toAddress] -> NotificationData {
+            auto& drc { global::data_interface().retrieval_context() };
+            auto ctx { drc.tx_create_context(nonceId, compactFee) };
+            auto& s { token.spec };
+            auto hash{[&]{
+            if (s.assetHash.is_wart()) {
+                WartTransferCreate tx(ctx, toAddr, amount.as_wart());
+                return drc.endpoint.send_transaction(tx);
+            } else {
+                TokenTransferCreate tx(ctx, s.assetHash, s.isLiquidity, toAddr, amount);
+                return drc.endpoint.send_transaction(tx);
+            }
+            }()};
+            return {"Success", std::format("Transaction was sent.\r Transaction Hash: {}",serialize_hex(hash))};
+        }
+    };
     make_popup<ConfirmationPopup>(std::move(properties), work, close_callback());
 };
 
@@ -138,8 +169,8 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
 void FarmPopup::on_create()
 {
     auto allValid { wart->valid && base->valid && limit->valid && fee->valid };
-    // if (!allValid)
-    //     return;
+    if (!allValid)
+        return;
     auto properties { KVProperties {
         .title { "Farm" },
         .entries {

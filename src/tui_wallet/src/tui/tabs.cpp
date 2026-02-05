@@ -193,6 +193,7 @@ AssetSelectedWindow::AssetSelectedWindow(GUI& gui)
     Add(Container::Vertical({ Container::Horizontal({ btnFork }), containerBalance,
         Container::Horizontal({ btnLiquidityTransfer, btnDeposit, btnWithdraw }) }));
 }
+
 void AssetSelectedWindow::on_asset_transfer()
 {
     if (auto a { gui.selectedAsset })

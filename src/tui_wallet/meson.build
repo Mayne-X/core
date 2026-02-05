@@ -82,7 +82,6 @@ deps = [json_dep]
 exe = executable('wart-tui', [vcs_dep ,
 './src/api/endpoint.cpp',
 './src/cmdline/cmdline.cpp', 
-'./src/data/retrieval_context.cpp',
 './src/global.cpp',
 './src/log.cpp',
 './src/time_format.cpp',

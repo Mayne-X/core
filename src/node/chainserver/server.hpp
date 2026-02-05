@@ -214,7 +214,7 @@ private:
     auto handle_api(chainserver::GetChainHead&&) { return state.api_get_head(); }
     auto handle_api(chainserver::MempoolConstraintUpdate&&) { return api::MempoolUpdate { .deletedTransactions = state.on_mempool_constraint_update() }; }
     auto handle_api(chainserver::FakeMine&& f) { return fake_mine(f.address()); }
-    auto handle_api(chainserver::FakeMineToZero&&) { return fake_mine(Address::zero()); }
+    auto handle_api(chainserver::FakeMineToZero&&) { return fake_mine(Address::zero); }
 
     // void handle_event(PutMempool&&);
     void handle_event(LookupTxids&&);

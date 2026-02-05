@@ -26,9 +26,12 @@ struct JSONConverter {
     Wart wart() const;
     operator WartEl() const;
     operator NonzeroWartEl() const;
-    Funds_uint64 amount(std::string_view key) const;
+    Funds_uint64 named_amount(std::string_view key) const;
+    Funds_uint64 amount() const;
+    Funds_uint64 shares() const;
     operator AmountEl() const;
-    operator SharesEl() const;
+    operator NonzeroAmountEl() const;
+    operator NonzeroSharesEl() const;
     bool buy() const;
     operator BuyEl() const;
     Price_uint64 limit() const;

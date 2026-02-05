@@ -5,6 +5,7 @@
 #include "general/errors.hpp"
 #include "view.hpp"
 #include "wrt/optional.hpp"
+#include <cstring>
 #include <span>
 
 // inline funcitons for access

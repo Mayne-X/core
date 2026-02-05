@@ -1,5 +1,4 @@
 #include "address.hpp"
-#include "general/hex.hpp"
 #include "crypto/hasher_sha256.hpp"
 #include "general/hex.hpp"
 
@@ -18,17 +17,25 @@ std::string AddressView::to_string() const
 };
 
 Address::Address(const std::string_view address)
+    : Address(parse(address).value_or_throw())
 {
-    using namespace std::literals;
+}
+Address::Address(std::span<const uint8_t, 20> s)
+    : Address([&] {
+        std::array<uint8_t, 20> arr;
+        std::copy(s.begin(), s.end(), arr.begin());
+        return arr;
+    }()) {};
+
+Result<Address> Address::parse(std::string_view address)
+{
     std::array<uint8_t, 24> bytes;
     if (!HexRef(address).parse_to(bytes))
-        throw Error(EBADADDRESS);
-
+        return Error(EBADADDRESS);
     auto hash = hashSHA256(bytes.data(), 20);
-    if (memcmp(bytes.data() + 20, hash.data(), 4) != 0) {
-        throw Error(EBADADDRESS);
-    }
-    memcpy(data(), bytes.data(), 20);
+    if (memcmp(bytes.data() + 20, hash.data(), 4) != 0)
+        return Error(EBADADDRESS);
+    return Address(std::span<const uint8_t, 20>(bytes.begin(), 20));
 }
 
 Address& Address::operator=(const AddressView rhs)

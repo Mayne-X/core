@@ -75,7 +75,7 @@ Entry::Entry(const block_apply::AssetCreation::Verified& p, AssetId assetId)
 {
 }
 
-Entry::Entry(const block_apply::LiquidityDeposit::Verified& p, Funds_uint64 receivedShares)
+Entry::Entry(const block_apply::LiquidityDeposit::Verified& p, NonzeroFunds_uint64 receivedShares)
     : hash(p.hash)
     , data(LiquidityDeposit {
           sign_data(p.ref),

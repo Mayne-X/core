@@ -114,8 +114,8 @@ struct MatchData : public MatchDataBase {
     using MatchDataBase::MatchDataBase;
 };
 
-using LiquidityDeposit = IdCombineSigned<9, AssetIdEl, BaseEl, QuoteEl, SharesEl>;
-using LiquidityWithdraw = IdCombineSigned<10, AssetIdEl, BaseEl, QuoteEl, SharesEl>;
+using LiquidityDeposit = IdCombineSigned<9, AssetIdEl, BaseEl, QuoteEl, NonzeroSharesEl>;
+using LiquidityWithdraw = IdCombineSigned<10, AssetIdEl, BaseEl, QuoteEl, NonzeroSharesEl>;
 
 struct CantParseHistoryExceptionGenerator {
     static std::exception generate(uint8_t)
@@ -144,7 +144,7 @@ struct Entry {
     Entry(const block_apply::Order::Verified& p);
     Entry(const block_apply::Cancelation::Verified& p);
     Entry(const block_apply::AssetCreation::Verified& p, AssetId);
-    Entry(const block_apply::LiquidityDeposit::Verified& p, Funds_uint64 receivedShares);
+    Entry(const block_apply::LiquidityDeposit::Verified& p, NonzeroFunds_uint64 receivedShares);
     Entry(const block_apply::LiquidityWithdrawal::Verified& p, Funds_uint64 receivedBase, Wart receivedQuote);
     Entry(TxHash h, MatchData);
     Entry(TxHash h, HistoryVariant data)

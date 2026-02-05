@@ -134,9 +134,9 @@ public:
     [[nodiscard]] Wart spend_wart_throw() const { return sum_throw(fee(), quote()); }
     [[nodiscard]] tl::optional<messages::SpendToken> spend_token_throw() const
     {
-        if (base().is_zero())
-            return {};
-        return messages::SpendToken { asset_hash(), false, base() };
+        return base().nonzero().transform([&](NonzeroFunds_uint64 nz){
+            return messages::SpendToken { asset_hash(), false, nz };
+        });
     }
     void check_throw()
     {

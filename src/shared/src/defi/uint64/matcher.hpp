@@ -82,10 +82,9 @@ public:
         v = (toPool0->isQuote ? v0 : v1);
         auto toPool { [&]() -> wrt::optional<NonzeroDelta_uint64> {
             auto& ref { toPool0->isQuote ? *toPool0 : *toPool1 };
-            if (ref.amount == 0)
-                return {};
-NonzeroFunds_uint64(0);
-            return NonzeroDelta_uint64(ref.isQuote, NonzeroFunds_uint64(ref.amount));
+            return Funds_uint64 { ref.amount }.nonzero().transform([&](NonzeroFunds_uint64 nz) {
+                return NonzeroDelta_uint64(ref.isQuote, nz);
+            });
         }() };
 
         return { .toPool { toPool }, .filled { in } };

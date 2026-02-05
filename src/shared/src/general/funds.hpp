@@ -152,6 +152,9 @@ public:
 };
 
 struct FundsDecimal;
+class NonzeroFunds_uint64;
+class NonzeroWart;
+class Wart;
 class Funds_uint64 : public FundsBase<Funds_uint64> {
 public:
     using FundsBase<Funds_uint64>::FundsBase;
@@ -162,9 +165,12 @@ public:
     static Funds_uint64 parse_throw(std::string_view, TokenPrecision);
     constexpr uint64_t u64() const { return val; };
     FundsDecimal to_decimal(TokenPrecision d) const;
+    Wart as_wart() const;
+    wrt::optional<NonzeroFunds_uint64> nonzero() const;
 };
 class NonzeroFunds_uint64 : public Funds_uint64 {
 public:
+    NonzeroWart as_wart() const;
     constexpr NonzeroFunds_uint64(Funds_uint64 f)
         : Funds_uint64(f)
     {
@@ -205,12 +211,16 @@ inline FundsDecimal Funds_uint64::to_decimal(TokenPrecision d) const
 {
     return { value(), d };
 }
+inline wrt::optional<NonzeroFunds_uint64> Funds_uint64::nonzero() const{
+    if (is_zero()) 
+        return {};
+    return *this;
+}
 
 struct Supply : public FundsDecimal {
     nlohmann::json to_json() const;
 };
 
-class NonzeroWart;
 class Wart : public FundsBase<Wart> {
 public:
     using FundsBase<Wart>::FundsBase;
@@ -239,11 +249,15 @@ protected:
 };
 
 class NonzeroWart : public Wart {
-public:
+    friend class Wart;
     explicit constexpr NonzeroWart(Wart f)
         : Wart(f)
     {
         assert(f != 0);
+    }
+public:
+    static NonzeroWart assert_nonzero(Wart w){
+        return NonzeroWart(w);
     }
     NonzeroWart(Reader& r)
         : Wart(r)
@@ -260,9 +274,18 @@ public:
     auto operator<=>(const NonzeroWart&) const = default;
 };
 
+
+inline Wart Funds_uint64::as_wart() const{
+    return Wart::from_funds(*this);
+}
+
+inline NonzeroWart NonzeroFunds_uint64::as_wart() const{
+    return Wart::from_funds(*this).nonzero_assert();
+};
+
 inline NonzeroWart Wart::nonzero_assert() const
 {
-    return NonzeroWart(*this);
+    return NonzeroWart(Wart(*this));
 }
 
 inline NonzeroWart Wart::nonzero_throw() const

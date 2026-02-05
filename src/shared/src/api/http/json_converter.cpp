@@ -119,7 +119,7 @@ error:
 }
 JSONConverter::operator WartEl() const { return wart(); }
 JSONConverter::operator NonzeroWartEl() const { return wart().nonzero_throw(); }
-Funds_uint64 JSONConverter::amount(std::string_view key) const
+Funds_uint64 JSONConverter::named_amount(std::string_view key) const
 {
     try {
         return json.at(key).get<uint64_t>();
@@ -127,9 +127,30 @@ Funds_uint64 JSONConverter::amount(std::string_view key) const
     }
     throw Error(EBADAMOUNT);
 }
+namespace {
+NonzeroFunds_uint64 nonzero_throw(Funds_uint64 f)
+{
+    if (auto nz { f.nonzero() })
+        return *nz;
+    throw Error(EZEROAMOUNT);
+}
+}
+Funds_uint64 JSONConverter::amount() const
+{
+    return named_amount("amountU64");
+}
+Funds_uint64 JSONConverter::shares() const
+{
+    return named_amount("amountE8");
+}
 
-JSONConverter::operator AmountEl() const { return amount("amountU64"); }
-JSONConverter::operator SharesEl() const { return amount("amountE8"); }
+JSONConverter::operator AmountEl() const { return amount(); }
+JSONConverter::operator NonzeroAmountEl() const { return nonzero_throw(amount()); }
+JSONConverter::operator NonzeroSharesEl() const
+{
+    return nonzero_throw(shares());
+}
+
 bool JSONConverter::buy() const
 {
     try {

@@ -19,6 +19,12 @@ struct Result : public wrt::expected<T, Error> {
               }())
     {
     }
+    T value_or_throw() &&
+    {
+        if (this->has_value())
+            return std::move(*this).value();
+        throw this->error();
+    }
     Result(T t)
         : wrt::expected<T, Error>(std::move(t))
     {

@@ -1,4 +1,5 @@
 #pragma once
+#include "general/result.hpp"
 #include "general/view.hpp"
 #include <array>
 #include <string>
@@ -14,7 +15,6 @@ namespace wrt {
 template <size_t N>
 struct byte_arr : public std::array<uint8_t, N> {
     using parent = std::array<uint8_t, N>;
-    static constexpr size_t byte_size() { return N; }
     byte_arr(parent a)
         : parent(std::move(a))
     {
@@ -25,17 +25,28 @@ struct byte_arr : public std::array<uint8_t, N> {
 
 }
 
-class Address : public wrt::byte_arr<20> {
+class Address : public std::array<uint8_t, 20> {
+    static constexpr size_t N = 20;
     Address() { };
 
 public:
+    static constexpr size_t byte_size() { return N; }
     friend class PubKey;
+    using std::array<uint8_t, N>::array;
     static Address uninitialized() { return {}; }
-    static Address zero() { return std::array<uint8_t, 20> { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; }
+    constexpr Address(std::array<uint8_t, N> s)
+        : std::array<uint8_t, N>(std::move(s))
+    {
+    }
+
+    static const Address zero;
     Address(const std::string_view);
-    Address(std::array<uint8_t, 20> arr)
-        : byte_arr(arr) { };
-    Address(const AddressView v) { memcpy(data(), v.data(), size()); }
+    static Result<Address> parse(std::string_view);
+    Address(std::span<const uint8_t, N> s);
+    Address(const AddressView v)
+    {
+        std::copy(v.begin(), v.end(), data());
+    }
     operator AddressView() const
     {
         return AddressView(data());
@@ -62,3 +73,4 @@ public:
         }
     };
 };
+constexpr const Address Address::zero { std::array<uint8_t, N> { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };

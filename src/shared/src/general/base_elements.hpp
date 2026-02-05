@@ -163,7 +163,7 @@ struct CompactFeeEl : public ElementBaseWithAnnotation<"compactFee", CompactUInt
     ANNOTATE(QuoteEl, Wart, quote, "quoteWart")                                        \
     ANNOTATE(ReferredHistoryIdEl, HistoryId, referred_history_id, "referredHistoryId") \
     ANNOTATE(SharesEl, Funds_uint64, shares, "sharesAmount")                           \
-    ANNOTATE(NonzeroSharesEl, NonzeroFunds_uint64, shares, "sharesAmount")             \
+    ANNOTATE(NonzeroSharesEl, NonzeroFunds_uint64, shares, "sharesAmount")                           \
     ANNOTATE(SignatureEl, RecoverableSignature, signature, "signature")                \
     ANNOTATE(ToAccIdEl, AccountId, to_id, "toAccountId")                               \
     ANNOTATE(ToAddrEl, Address, to_addr, "toAddress")                                  \

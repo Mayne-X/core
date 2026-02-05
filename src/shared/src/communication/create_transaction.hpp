@@ -74,10 +74,10 @@ public:
     };
 
 DEFINE_CREATE_MESSAGE(WartTransferCreate, ::block::labels::wartTransfer, ToAddrEl, NonzeroWartEl)
-DEFINE_CREATE_MESSAGE(TokenTransferCreate, ::block::labels::tokenTransfer, AssetHashEl, LiquidityFlagEl, ToAddrEl, AmountEl)
-DEFINE_CREATE_MESSAGE(LimitSwapCreate, ::block::labels::limitSwap, AssetHashEl, BuyEl, AmountEl, LimitPriceEl)
+DEFINE_CREATE_MESSAGE(TokenTransferCreate, ::block::labels::tokenTransfer, AssetHashEl, LiquidityFlagEl, ToAddrEl, NonzeroAmountEl)
+DEFINE_CREATE_MESSAGE(LimitSwapCreate, ::block::labels::limitSwap, AssetHashEl, BuyEl, NonzeroAmountEl, LimitPriceEl)
 DEFINE_CREATE_MESSAGE(LiquidityDepositCreate, ::block::labels::liquidityDeposit, AssetHashEl, AmountEl, WartEl)
-DEFINE_CREATE_MESSAGE(LiquidityWithdrawalCreate, ::block::labels::liquidityWithdrawal, AssetHashEl, SharesEl)
+DEFINE_CREATE_MESSAGE(LiquidityWithdrawalCreate, ::block::labels::liquidityWithdrawal, AssetHashEl, NonzeroSharesEl)
 DEFINE_CREATE_MESSAGE(CancelationCreate, ::block::labels::cancelation, CancelHeightEl, CancelNonceEl)
 DEFINE_CREATE_MESSAGE(AssetCreationCreate, ::block::labels::assetCreation, AssetSupplyEl, AssetNameEl)
 
