@@ -335,9 +335,8 @@ wrt::optional<TokenFunds> Mempool::token_spend_throw(const TransactionMessage& p
 
 auto Mempool::get_balance(AccountToken at, chainserver::DBCache& cache) -> std::pair<LockedBalance, wrt::optional<balance_iterator>>
 {
-    auto balanceIter { lockedBalances.upper_bound(at) };
-    if (balanceIter == lockedBalances.end() || balanceIter->first != at) {
-        // need to insert
+    auto balanceIter { lockedBalances.find(at) };
+    if (balanceIter == lockedBalances.end()) {
         auto total { cache.balance[at] };
         return { LockedBalance(total), {} };
     }
@@ -346,7 +345,7 @@ auto Mempool::get_balance(AccountToken at, chainserver::DBCache& cache) -> std::
 
 auto Mempool::create_or_get_balance_iter(AccountToken at, chainserver::DBCache& cache) -> balance_iterator
 {
-    auto balanceIter { lockedBalances.upper_bound(at) };
+    auto balanceIter { lockedBalances.lower_bound(at) };
     if (balanceIter == lockedBalances.end() || balanceIter->first != at) {
         // need to insert
         balanceIter = lockedBalances.emplace_hint(balanceIter, at, cache.balance[at]);
