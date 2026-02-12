@@ -152,7 +152,7 @@ api_types::TokenList Endpoint::token_complete(std::string_view namePrefix, std::
 }
 auto Endpoint::send_transaction(const std::string& txjson) const -> TxHash
 {
-    cout << "=====DEBUG INFO TRANSACTION JSON=====\n"
+    cerr << "=====DEBUG INFO TRANSACTION JSON=====\n"
          << txjson << "\n"
          << "=====================================" << endl;
 

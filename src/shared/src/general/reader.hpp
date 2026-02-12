@@ -6,6 +6,7 @@
 #include "view.hpp"
 #include "wrt/optional.hpp"
 #include <cstring>
+#include <ranges>
 #include <span>
 
 // inline funcitons for access
@@ -31,6 +32,9 @@ inline uint8_t readuint8(const uint8_t* pos) { return *(pos); }
 
 template <size_t N>
 class ReaderCheck;
+
+template <typename Range>
+concept uint8_range = std::ranges::range<Range> && std::same_as<std::ranges::range_value_t<Range>, uint8_t>;
 
 // byte sequence stream-like reader with self-advancing cursor
 class Reader {
@@ -215,16 +219,25 @@ struct ReadExhaustive {
     }
 };
 
-template<typename T>
-T from_bytes(std::span<const uint8_t> s){
+template <typename T>
+[[nodiscard]] T from_bytes(std::span<const uint8_t> s)
+{
     Reader r(s);
-    return {r};
+    return { r };
+}
+
+template <typename T, typename Range>
+requires (!std::is_convertible_v<Range, std::span<std::uint8_t>> && uint8_range<Range>)
+[[nodiscard]] T from_bytes(Range&& r)
+{
+    auto v { std::forward<Range>(r) | std::ranges::to<std::vector>() };
+    return from_bytes<T>(v);
 }
 
 template <size_t N>
 class ReaderCheck {
 public:
-    ReaderCheck(Reader& r)
+    ReaderCheck(Reader & r)
         : r(r)
         , beginPos(r.cursor())
     {
@@ -242,6 +255,6 @@ public:
     {
         assert(r.cursor() == beginPos + N);
     }
-    Reader& r;
+    Reader & r;
     const uint8_t* const beginPos;
 };

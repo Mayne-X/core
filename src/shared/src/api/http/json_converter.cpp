@@ -1,4 +1,5 @@
 #include "json_converter.hpp"
+#include "general/hex.hpp"
 #include "nlohmann/json.hpp"
 Address JSONConverter::to_addr() const
 {
@@ -164,9 +165,7 @@ Price_uint64 JSONConverter::limit() const
 {
     try {
         auto pricestr { json.at("limit").get<std::string>() };
-        auto p { Price_uint64::from_string(pricestr) };
-        if (p)
-            return *p;
+        return from_bytes<Price_uint64>(HexRef(pricestr));
     } catch (...) {
     }
     throw Error(EBADPRICE);

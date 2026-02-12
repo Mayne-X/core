@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cstdint>
-[[nodiscard]] inline constexpr uint8_t hex_digit(char c, bool& valid)
+[[nodiscard]] inline constexpr unsigned char hex_digit(char c, bool& valid)
 {
     switch (c) {
     case '0':

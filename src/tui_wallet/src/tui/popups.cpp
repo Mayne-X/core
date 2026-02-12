@@ -61,15 +61,14 @@ void TransferPopup::on_create()
             auto& drc { global::data_interface().retrieval_context() };
             auto ctx { drc.tx_create_context(nonceId, compactFee) };
             auto& s { token.spec };
-            auto hash { [&] {
+            auto tx { [&] -> std::string {
                 if (s.assetHash.is_wart()) {
-                    WartTransferCreate tx(ctx, toAddr, amount.as_wart());
-                    return drc.endpoint.send_transaction(tx);
+                    return WartTransferCreate(ctx, toAddr, amount.as_wart());
                 } else {
-                    TokenTransferCreate tx(ctx, s.assetHash, s.isLiquidity, toAddr, amount);
-                    return drc.endpoint.send_transaction(tx);
+                    return TokenTransferCreate(ctx, s.assetHash, s.isLiquidity, toAddr, amount);
                 }
             }() };
+            auto hash { drc.endpoint.send_transaction(tx) };
             return { "Success", std::format("Transaction was sent.\r Transaction Hash: {}", serialize_hex(hash)) };
         }
     };
@@ -86,6 +85,9 @@ TransferPopup::TransferPopup(GUI& gui, TokenInfo token)
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
 {
+
+    editToAddr->content = "0000000000000000000000000000000000000000de47c9b2";
+    editToAddr->validate();
     Add(Container::Vertical({ editToAddr, editAmount, editFee, editNonceId,
         Container::Horizontal({ btnCancel, btnCreate }) }));
 }
