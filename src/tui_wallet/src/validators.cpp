@@ -4,7 +4,7 @@
 #include "defi/uint64/price.hpp"
 #include "general/funds.hpp"
 
-bool wart_validator(std::string_view s)
+bool validate_wart(std::string_view s)
 {
     try {
         Wart::parse_throw(s);
@@ -21,12 +21,12 @@ bool nonzero_wart_validator(std::string_view s)
         return false;
     }
 }
-bool fee_validator(std::string_view s)
+bool validate_fee(std::string_view s)
 {
-    return wart_validator(s);
+    return validate_wart(s);
 }
 
-bool address_validator(std::string_view s)
+bool validate_address(std::string_view s)
 {
     try {
         Address { s };
@@ -36,14 +36,7 @@ bool address_validator(std::string_view s)
     }
 }
 
-bool FundsValidator::valid(std::string_view s, bool allowsZero) const
-{
-    return Funds_uint64::parse(s, prec)
-        .transform([&](Funds_uint64 f) { return allowsZero || !f.is_zero(); })
-        .value_or(false);
-}
-
-bool nonce_id_validator(std::string_view s)
+bool validate_nonce_id(std::string_view s)
 {
     return NonceId::try_parse(s).has_value();
 }
@@ -52,4 +45,27 @@ bool LimitValidator::operator()(std::string_view s) const
 {
     return Price_uint64::from_string_adjusted(s, basePrec, ceil)
         .has_value();
+}
+
+bool validate_asset_supply(std::string_view s)
+{
+    return parse_asset_supply(s).has_value();
+}
+std::optional<FundsDecimal> parse_asset_supply(std::string_view s)
+{
+    if (auto p { ParsedFunds::try_parse(s) }; p.has_value()) {
+        if (auto d { TokenPrecision::from_number(p->decimalPlaces) })
+            return FundsDecimal(p->v, *d);
+    }
+    return {};
+}
+
+bool validate_asset_name(std::string_view s)
+{
+    return parse_asset_name(s).has_value();
+}
+
+Result<AssetName> parse_asset_name(std::string_view s)
+{
+    return AssetName::try_parse(s);
 }

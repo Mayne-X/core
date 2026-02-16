@@ -1,9 +1,76 @@
 #pragma once
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
+#include "general/result.hpp"
 namespace ui {
 using namespace ftxui;
 using StringValidator = std::function<bool(std::string&)>;
+
+struct ParsedInputBase : public ComponentBase {
+public:
+    std::string content;
+    [[nodiscard]] virtual bool valid() const = 0;
+    virtual void parse() const = 0;
+    auto colored() { return color(valid() ? Color::Green : Color::Red); };
+    ParsedInputBase()
+    {
+        InputOption option;
+        option.multiline = false;
+        option.content = &content;
+        option.on_change = [this]() {
+            parse();
+        };
+        option.transform = [&](InputState state) {
+            auto element { state.element };
+            element |= colored();
+            if (state.focused) {
+                return element | inverted;
+            }
+            return element;
+        };
+        Add(Input(option));
+    }
+};
+
+struct LabeledParsedInputBase : public ParsedInputBase {
+    std::string label;
+    LabeledParsedInputBase(std::string label)
+        : label(std::move(label))
+    {
+    }
+    Element OnRender() override
+    {
+        return hbox({
+            text(label) | colored(),
+            ParsedInputBase::OnRender(),
+        });
+    };
+};
+
+template <typename T>
+struct LabeledParsedInputBaseFor : public LabeledParsedInputBase {
+private:
+    Result<T>& ref;
+    LabeledParsedInputBaseFor(std::string label, Result<T>& ref)
+        : LabeledParsedInputBase(std::move(label))
+        , ref(ref)
+    {
+    }
+    bool valid() const override
+    {
+        return ref.has_value();
+    }
+    void parse() const override
+    {
+        ref = T::try_parse(content);
+    }
+};
+
+template <typename T>
+inline auto LabeledParsedInputFor(std::string label, Result<T>& r)
+{
+    return Make<LabeledParsedInputBaseFor<T>>(std::move(label), r);
+}
 
 struct ValidatedBase : public ComponentBase {
     StringValidator _validator;

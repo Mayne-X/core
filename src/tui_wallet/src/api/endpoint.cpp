@@ -141,7 +141,7 @@ struct GetTokenList {
 api_types::TokenList Endpoint::token_complete(std::string_view namePrefix, std::string_view hashPrefix) const
 {
     api_types::TokenList res { std::string(namePrefix), std::string(hashPrefix) };
-    if (!std::all_of(namePrefix.begin(), namePrefix.end(), [](char c) {
+    if (!std::ranges::all_of(namePrefix, [](char c) {
             return isalnum(c);
         }))
         return res; // return empty list

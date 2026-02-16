@@ -132,6 +132,8 @@
     XX(132, ENOPOOL, "no pool liquidity")                                          \
     XX(133, ERTCDISABLED, "WebRTC disabled, cannot receive message")               \
     XX(134, EIDPOLICY, "block transaction id policy violated")                     \
+    XX(179, EINV_WART, "Invalid WART amount")                                      \
+    XX(180, EINV_SUPPLY, "Invalid asset supply")                                   \
     XX(181, ETXTYPESTATE, "Transaction type invalud at current chain state")       \
     XX(182, EASSETNAME, "invalid asset name")                                      \
     XX(183, EZEROBASEQUOTE, "Base and quote can't be both zero")                   \
@@ -144,7 +146,7 @@
     XX(190, EEXCESSBYTES, "Excessive bytes after parsing")                         \
     XX(191, EWARTTOKID, "Illegal use of WART in non-WART token id")                \
     XX(192, EBLOCKV4, "Cannot use BlockV4 features")                               \
-    XX(193, EZEROWART, "transactions cannot send 0 WART")                          \
+    XX(193, EZEROWART, "WART amount cannot be 0")                                  \
     XX(194, EPOOLREDEEM, "Cannot redeem more shares than pool issued")             \
     XX(195, EINVBUY, "invalid buy value")                                          \
     XX(196, ETOKENPRECISION, "invalid token precision")                            \

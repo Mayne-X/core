@@ -10,6 +10,7 @@
 #include "crypto/hasher_sha256.hpp"
 #include "general/base_elements.hpp"
 #include "general/compact_uint.hpp"
+#include "wrt/variant.hpp"
 
 struct TransactionCreateContext {
     PinHash pinHash;

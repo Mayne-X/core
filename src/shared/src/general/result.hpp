@@ -3,9 +3,28 @@
 #include "wrt/expected.hpp"
 #include "wrt/optional.hpp"
 template <typename T>
+struct Result;
+namespace result{
+
+template<typename T>
+struct GetResultT;
+
+template<typename T>
+struct GetResultT<wrt::expected<T,Error>> {
+    using type = Result<T>;
+};
+
+template<typename T>
+GetResultT<T>::type make(wrt::expected<T,Error>&& e){
+    return std::move(e);
+}
+
+}
+template <typename T>
 struct Result : public wrt::expected<T, Error> {
-    Result(wrt::expected<T, Error> t)
-        : wrt::expected<T, Error>(std::move(t))
+    using parent = wrt::expected<T, Error>;
+    Result(parent t)
+        : parent(std::move(t))
     {
     }
     Result(wrt::optional<T> t)
@@ -25,6 +44,18 @@ struct Result : public wrt::expected<T, Error> {
             return std::move(*this).value();
         throw this->error();
     }
+    template <typename Self, typename F>
+    constexpr auto and_then(this Self&& self, F&& f) 
+    {
+        return result::make(std::forward<Self>(self)->parent::and_then([&f]() { return parent(std::forward<F>(f)); }));
+    }
+
+    template <typename Self, typename F>
+    constexpr auto transform(this Self&& self, F&& f) 
+    {
+        return result::make(std::forward<Self>(self)->parent::transform([&f]() { return parent(std::forward<F>(f)); }));
+    }
+
     Result(T t)
         : wrt::expected<T, Error>(std::move(t))
     {

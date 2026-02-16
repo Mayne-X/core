@@ -54,17 +54,10 @@ ConfirmationPopup::ConfirmationPopup(
 
 void AssetSelectWindow::on_change()
 {
-    auto valid_name {
-        [](const std::string& s) -> bool {
-            return s.length() <= 5 && std::ranges::all_of(s, [](char c) { return std::isalnum(c); });
-        }
-    };
-    if (!valid_name(namePrefix)) {
-        namePrefix = originalNamePrefix;
-    } else {
+    if (assetName.validate(namePrefix)|| namePrefix.empty() )
         originalNamePrefix = namePrefix;
-        canCreate = namePrefix.length() > 0;
-    }
+    else
+        namePrefix = originalNamePrefix;
     clearCache = true;
 }
 namespace {
@@ -98,11 +91,17 @@ AssetSelectWindow::AssetSelectWindow(GUI& gui)
         o.on_change = [&] { on_change(); };
         return o;
     }()))
-    , buttonCreate(Maybe(PlainButton("Create", []() {}), &canCreate))
+    , buttonCreate(Maybe(PlainButton("Create", [&] { on_create(); }), [&] -> bool { return assetName; }))
     , verticalButtons(Container::Vertical({}))
 
 {
     Add(Container::Vertical({ Container::Horizontal({ nameInput, buttonCreate }), hashInput, verticalButtons }));
+}
+
+void AssetSelectWindow::on_create()
+{
+    if (assetName)
+        make_popup<CreatePopup>(assetName.value());
 }
 
 auto& AssetSelectWindow::get_data()

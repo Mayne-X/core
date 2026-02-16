@@ -97,22 +97,23 @@ JSONConverter::operator PinHeightEl() const
 Wart JSONConverter::wart() const
 {
     try {
-        wrt::optional<Wart> f;
+        wrt::optional<Wart> o;
         auto iter = json.find("wartStr");
         if (iter != json.end()) {
-            f = Wart::parse(iter->get<std::string>());
-            if (!f.has_value())
+            auto w{Wart::try_parse(iter->get<std::string>())};
+            if (!w) 
                 goto error;
+            o = *w;
         }
         iter = json.find("wartE8");
         if (iter != json.end()) {
-            if (f.has_value())
+            if (o.has_value())
                 goto error; // exclusive, either "wartStr" or "wartE8"
-            f = Wart::from_value(iter->get<uint64_t>());
+            o = Wart::from_value(iter->get<uint64_t>());
         }
 
-        if (f.has_value())
-            return f.value();
+        if (o.has_value())
+            return o.value();
     } catch (...) {
     }
 error:
@@ -199,7 +200,7 @@ JSONConverter::operator CancelHeightEl() const { return cancel_height(); }
 AssetName JSONConverter::asset_name() const
 {
     try {
-        return AssetName(json.at("name").get<std::string>());
+        return AssetName::try_parse(json.at("name").get<std::string>()).value_or_throw();
     } catch (...) {
     }
     throw Error(EASSETNAME);

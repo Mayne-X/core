@@ -289,7 +289,7 @@ private:
     Component nameInput;
     Component hashInput;
     Component buttonCreate;
-    bool canCreate { false };
+    AssetNameValidator assetName;
     Component verticalButtons;
     std::vector<Component> buttons;
     bool clearCache { false };
@@ -297,6 +297,7 @@ private:
     std::string originalNamePrefix;
     std::string hashPrefix;
     void on_change();
+    void on_create();
     void on_select(const api_types::TokenListEntry&);
     void on_select_wart();
     void remove_buttons();

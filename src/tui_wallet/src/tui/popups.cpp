@@ -26,7 +26,6 @@ void TransferPopup::on_create()
 {
     // Parse text fields
     auto nId { try_parse<uint32_t>(editNonceId.get()->content) };
-    auto compactFee { Wart::parse(editFee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
     auto amt { Funds_uint64::parse(editAmount.get()->content, token.prec()).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
     auto toAddress { Address::parse(editToAddr.get()->content) };
 
@@ -34,17 +33,17 @@ void TransferPopup::on_create()
     if (token.spec.assetHash.is_wart() && token.spec.isLiquidity)
         return; // this should not happen and is not allowed
 
-    if (!nId || !compactFee || !amt || !toAddress)
+    if (!nId || !fee || !amt || !toAddress)
         return;
 
     auto properties { KVProperties {
         .title { "Transfer" },
         .entries {
-            { "Token ", token.to_string() },
-            { "Amount (" + token.pretty_name() + ") ", amt->to_decimal(token.prec()).to_string() },
-            { "Destination ", toAddress->to_string() },
-            { "Fee (WART) ", compactFee->to_string() },
-            { "NonceId ", std::to_string(*nId) },
+            { "Token: ", token.to_string() },
+            { "Amount (" + token.pretty_name() + "): ", amt->to_decimal(token.prec()).to_string() },
+            { "Destination: ", toAddress->to_string() },
+            { "Fee (WART): ", fee.value().to_string() },
+            { "NonceId: ", std::to_string(*nId) },
         } } };
     if (token.spec.isLiquidity) {
         properties.entries.push_back(
@@ -53,7 +52,7 @@ void TransferPopup::on_create()
     }
 
     auto work {
-        [token = token, nonceId = NonceId(*nId), compactFee = *compactFee, amount = *amt, toAddr = *toAddress] -> NotificationData {
+        [token = token, nonceId = NonceId(*nId), compactFee = fee.value(), amount = *amt, toAddr = *toAddress] -> NotificationData {
             auto& drc { global::data_interface().retrieval_context() };
             auto ctx { drc.tx_create_context(nonceId, compactFee) };
             auto& s { token.spec };
@@ -74,10 +73,11 @@ void TransferPopup::on_create()
 TransferPopup::TransferPopup(GUI& gui, TokenInfo token)
     : GUIComponent(gui)
     , token(std::move(token))
-    , editAmount(ui::LabeledValidated("Amount:  ", NonzeroFundsValidator(token.prec())))
-    , editToAddr(ui::LabeledValidated("Destination: ", address_validator))
-    , editFee(ui::LabeledValidated("Fee (WART): ", wart_validator))
-    , editNonceId(ui::LabeledValidated("NonceId: ", nonce_id_validator))
+    , amount(token.prec())
+    , editAmount(ui::LabeledValidated("Amount:  ", amount.validator()))
+    , editToAddr(ui::LabeledValidated("Destination: ", validate_address))
+    , editFee(ui::LabeledValidated("Fee (WART): ", fee.validator()))
+    , editNonceId(ui::LabeledValidated("NonceId: ", validate_nonce_id))
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
 {
@@ -86,6 +86,67 @@ TransferPopup::TransferPopup(GUI& gui, TokenInfo token)
     editToAddr->validate();
     Add(Container::Vertical({ editToAddr, editAmount, editFee, editNonceId,
         Container::Horizontal({ btnCancel, btnCreate }) }));
+}
+
+CreatePopup::CreatePopup(GUI& gui, AssetName name)
+    : GUIComponent(gui)
+    , assetName()
+    , editName(ui::LabeledValidated("Asset Name:  ", assetName.validator()))
+    , editSupply(ui::LabeledValidated("Asset Supply:  ", assetSupply.validator()))
+    , editFee(ui::LabeledValidated("Fee (WART):  ", fee.validator()))
+    , editNonceId(ui::LabeledValidated("NonceId: ", nonce.validator()))
+    , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
+    , btnCreate(Button("Create", [&]() { this->on_create(); }))
+{
+    editName->content = name.to_string();
+    editName->validate();
+    Add(Container::Vertical({ editName, editSupply, editFee, editNonceId,
+        Container::Horizontal({ btnCancel, btnCreate }) }));
+}
+
+void CreatePopup::on_create()
+{
+    if (!assetName || !assetSupply || !fee || !nonce)
+        return;
+
+    auto properties { KVProperties {
+        .title { "Asset Creation" },
+        .entries {
+            { "Asset Name: ", assetName.value().to_string() },
+            { "Total Supply: ", assetSupply.value().to_string() },
+            { "Precision: ", assetSupply.value().precision.to_string() },
+            { "Fee (WART): ", fee.value().to_string() },
+            { "NonceId: ", nonce.value().to_string() },
+        } } };
+    auto work {
+        [assetName = assetName.value(),
+            assetSupply = assetSupply.value(),
+            compactFee = fee.value(),
+            nonceId = nonce.value()]
+        -> NotificationData {
+            auto& drc { global::data_interface().retrieval_context() };
+            auto ctx { drc.tx_create_context(nonceId, compactFee) };
+            auto hash { [&] {
+                AssetCreationCreate tx(ctx, assetSupply, assetName);
+                return drc.endpoint.send_transaction(tx);
+            }() };
+            return { "Success", std::format("Transaction was sent.\r Transaction Hash: {}", serialize_hex(hash)) };
+        }
+    };
+    make_popup<ConfirmationPopup>(std::move(properties), work, close_callback());
+};
+
+void CreatePopup::on_cancel() { closed = true; }
+Element CreatePopup::OnRender()
+{
+    auto prec { assetSupply.has_value() ? assetSupply.value().precision : TokenPrecision(0) };
+    return vbox(
+        { window(text("Create Asset"),
+              vbox({ editName->Render(),
+                  editSupply->Render(),
+                  text("Decimals: " + std::to_string(int(prec.value()))),
+                  editFee->Render(), editNonceId->Render() })),
+            hbox(btnCancel, btnCreate->Render()) | center });
 }
 
 void SwapPopup::on_create()
@@ -97,25 +158,23 @@ void SwapPopup::on_create()
     auto wartCaption { format_token_caption(api::TokenSpec::WART, "Wart") };
 
     auto nId { try_parse<uint32_t>(editNonceId.get()->content) };
-    auto compactFee { Wart::parse(editFee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
-    auto amt { Funds_uint64::parse(editAmount.get()->content, asset.precision).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
     auto l { Price_uint64::from_string_adjusted(editLimit.get()->content, asset.precision) };
 
-    if (!nId || !compactFee || !amt || !l)
+    if (!nId || !fee || !amount.has_value() || !l)
         return;
 
     auto properties { KVProperties {
         .title { "Swap" },
         .entries {
-            { "From Token ",
+            { "From Token: ",
                 is_buy() ? wartCaption : assetCaption },
-            { "To Token ",
+            { "To Token: ",
                 is_buy() ? assetCaption : wartCaption },
-            { "Amount", amt->to_decimal(asset.precision).to_string() },
-            { "Limit Price ", std::to_string(l->to_double_adjusted(asset.precision)) },
-            { "Fee (WART)", compactFee->to_string() } } } };
+            { "Amount: ", amount.value().to_decimal(asset.precision).to_string() },
+            { "Limit Price: ", std::to_string(l->to_double_adjusted(asset.precision)) },
+            { "Fee (WART): ", fee.value().to_string() } } } };
     auto work {
-        [asset = asset, nonceId = NonceId(*nId), isBuy = is_buy(), compactFee = *compactFee, amount = *amt, limit = *l] -> NotificationData {
+        [asset = asset, nonceId = NonceId(*nId), isBuy = is_buy(), compactFee = fee.value(), amount = amount.value(), limit = *l] -> NotificationData {
             auto& drc { global::data_interface().retrieval_context() };
             auto ctx { drc.tx_create_context(nonceId, compactFee) };
             auto& s { asset };
@@ -133,7 +192,8 @@ void SwapPopup::on_create()
 void SwapPopup::on_cancel() { closed = true; }
 Element SwapPopup::OnRender()
 {
-    editAmount->set_validator(NonzeroFundsValidator(is_buy() ? asset.precision : TokenPrecision::WART));
+    this->amount.set_prec(is_buy() ? asset.precision : TokenPrecision::WART);
+    editAmount->validate();
     editLimit->set_validator(LimitValidator(asset.precision, !is_buy()));
     editAmount->label = std::string("Amount (") + (is_buy() ? "WART" : asset.name) + "): ";
     editLimit->label = "Limit (" + std::string(is_buy() ? "MAX" : "MIN") + " Price): ";
@@ -151,10 +211,11 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
     , swap_directions { "BUY " + asset.name + " WITH WART",
         "SELL " + asset.name + " FOR WART" }
     , side_selected(buy ? 0 : 1)
+    , amount(is_buy() ? asset.precision : TokenPrecision::WART)
     , editAmount(ui::LabeledValidated("Amount:  "))
     , editLimit(ui::LabeledValidated("Limit Price:  "))
-    , editFee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
-    , editNonceId(ui::LabeledValidated("NonceId: ", nonce_id_validator))
+    , editFee(ui::LabeledValidated("Fee (WART):  ", fee.validator()))
+    , editNonceId(ui::LabeledValidated("NonceId: ", validate_nonce_id))
     , toggle(Toggle(swap_directions, &side_selected))
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
@@ -164,18 +225,10 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
 }
 void FarmPopup::on_create()
 {
-    // editWart;
-    // std::shared_ptr<ui::LabeledValidatedBase> editBase;
-    // std::shared_ptr<ui::LabeledValidatedBase> editFee;
-    // std::shared_ptr<ui::LabeledValidatedBase> editNonceId;
-
     auto precision { is_deposit() ? asset.precision : TokenPrecision::LIQUIDITY };
-    auto amtWart { Wart::parse(editWart.get()->content) };
-    auto amtBase { Funds_uint64::parse(editBase.get()->content, precision) };
-    auto compactFee { Wart::parse(editFee.get()->content).transform([](Wart w) { return CompactUInt::compact(w); }) };
     auto nId { try_parse<uint32_t>(editNonceId.get()->content) };
 
-    if ((is_deposit() && !amtWart) || !amtBase || !compactFee || !nId)
+    if ((is_deposit() && !wart) || !amount || !fee || !nId)
         return;
 
     KVProperties properties {
@@ -184,17 +237,20 @@ void FarmPopup::on_create()
             { "Pool: ", asset.market() } }
     };
     if (is_deposit()) {
-        properties.entries.push_back({ "Amount (WART): ", amtWart->to_string() });
-        properties.entries.push_back({ "Amount (" + asset.token(false).pretty_name() + "): ", amtBase->to_decimal(precision).to_string() });
+        properties.entries.push_back({ "Amount (WART): ", wart.value().to_string() });
+        properties.entries.push_back({ "Amount (" + asset.token(false).pretty_name() + "): ", amount.value().to_decimal(precision).to_string() });
     } else {
-        properties.entries.push_back({ "Amount (" + asset.token(true).pretty_name() + "): ", amtBase->to_decimal(precision).to_string() });
+        properties.entries.push_back({ "Amount (" + asset.token(true).pretty_name() + "): ", amount.value().to_decimal(precision).to_string() });
     }
-    properties.entries.push_back({ "Fee (WART): ", compactFee->to_string() });
+    properties.entries.push_back({ "Fee (WART): ", fee.value().to_string() });
     properties.entries.push_back({ "NonceId: ", std::to_string(*nId) });
     std::function<NotificationData()> work;
     if (is_deposit()) {
+        // cannot both be zero
+        if (amount.value().is_zero() && wart.value().is_zero())
+            return;
         // we must create a LiquidityDepositCreate
-        work = [asset = asset, nonceId = NonceId(*nId), compactFee = *compactFee, amountWart = amtWart.value(), amountBase = *amtBase] -> NotificationData {
+        work = [asset = asset, nonceId = NonceId(*nId), compactFee = fee.value(), amountWart = wart.value(), amountBase = amount.value()] -> NotificationData {
             auto& drc { global::data_interface().retrieval_context() };
             auto ctx { drc.tx_create_context(nonceId, compactFee) };
             auto& s { asset };
@@ -205,11 +261,11 @@ void FarmPopup::on_create()
             return { "Success", std::format("Transaction was sent.\r Transaction Hash: {}", serialize_hex(hash)) };
         };
     } else {
-        auto nonzeroShares { amtBase->nonzero() };
+        auto nonzeroShares { amount.value().nonzero() };
         if (!nonzeroShares)
             return;
         // we must create a LiquidityWithdrawalCreate
-        work = [asset = asset, nonceId = NonceId(*nId), compactFee = *compactFee, amountShares = *nonzeroShares] -> NotificationData {
+        work = [asset = asset, nonceId = NonceId(*nId), compactFee = fee.value(), amountShares = *nonzeroShares] -> NotificationData {
             auto& drc { global::data_interface().retrieval_context() };
             auto ctx { drc.tx_create_context(nonceId, compactFee) };
             auto& s { asset };
@@ -231,38 +287,49 @@ FarmPopup::FarmPopup(GUI& gui, AssetInfo a, bool deposit)
     , liquidity_actions { "DEPOSIT LIQUIDITY",
         "WITHDRAW LIQUIDITY" }
     , side_selected(deposit ? 0 : 1)
+    , amount(is_deposit() ? a.precision : TokenPrecision::LIQUIDITY)
     , editWart(ui::LabeledValidated("Amount (WART): ",
           [this](std::string& wartContent) {
-              if (is_deposit()) {
-                  // if we are in deposit mode, then the restriction is that not both can be zero but one can be zero,
-                  auto amtBase { Funds_uint64::parse(editBase.get()->content, asset.precision) };
-                  auto amtWart { Wart::parse(wartContent) };
-                  if (amtWart && amtBase) {
-                      return !(amtWart->is_zero() && amtBase->is_zero());
+              wart.validate(wartContent);
+              if (amount) {
+                  if (is_deposit()
+                      && wart
+                      && amount.value().is_zero() && wart.value().is_zero()) {
+                      // if we are in deposit mode, then the restriction is that not both can be zero but one can be zero,
+                      editBase->valid = false;
+                      return false;
+                  } else {
+                      editBase->valid = true;
                   }
-                  // if not both fields can be parsed, we only declare as invalid if this itself cannot be parsed
-                  return amtWart.has_value();
               }
-              return true;
+              return wart.has_value();
           }))
     , maybeWart(Maybe(editWart, [&] { return is_deposit(); }))
     , editBase(ui::LabeledValidated("", [this](std::string& s) -> bool {
-        auto amtBase { Funds_uint64::parse(s, asset.precision) };
-        if (is_deposit()) {
-            // if we are in deposit mode, then the restriction is that not both can be zero but one can be zero,
-            auto amtWart { Wart::parse(editWart.get()->content) };
-            if (amtWart && amtBase) {
-                return !(amtWart->is_zero() && amtBase->is_zero());
+        amount.validate(s);
+        if (wart) {
+            if (is_deposit() && amount && amount.value().is_zero() && wart.value().is_zero()) {
+                editWart->valid = false;
+                return false;
+            } else {
+                editWart->valid = true;
             }
-            return amtBase.has_value();
+        }
+        if (is_deposit()) {
+            return amount.has_value();
         } else {
-            // if we are in withdraw mode, then we only have 1 field (number of shares) which cannot be zero.
-            return amtBase && !amtBase->is_zero();
+            // if we withdraw liquidity, there is only one field and it should
+            // be nonzero
+            return amount.has_value() && !amount.value().is_zero();
         }
     }))
-    , editFee(ui::LabeledValidated("Fee (WART):  ", fee_validator))
-    , editNonceId(ui::LabeledValidated("NonceId: ", nonce_id_validator))
-    , toggle(Toggle(liquidity_actions, &side_selected))
+    , editFee(ui::LabeledValidated("Fee (WART):  ", fee.validator()))
+    , editNonceId(ui::LabeledValidated("NonceId: ", validate_nonce_id))
+    , toggle([&] {
+        auto opt { MenuOption::Toggle() };
+        opt.on_change = [&] { editBase->validate(); };
+        return Menu(liquidity_actions, &side_selected, opt);
+    }())
     , btnCancel(Button("Cancel", [&]() { this->on_cancel(); }))
     , btnCreate(Button("Create", [&]() { this->on_create(); }))
 {

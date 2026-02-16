@@ -1,10 +1,8 @@
 #pragma once
 #include "general/errors.hpp"
-#include "general/params.hpp"
+#include "general/result.hpp"
 #include "general/serializer_fwd.hxx"
 #include "general/with_uint64.hpp"
-#include "wrt/optional.hpp"
-#include "wrt/variant.hpp"
 #include <cassert>
 
 class TokenPrecision { // number of decimal places
@@ -34,21 +32,23 @@ public:
     {
         s << val;
     }
+    [[nodiscard]] std::string to_string() const
+    {
+        return std::to_string(int(val));
+    }
     static const TokenPrecision zero;
     static const TokenPrecision WART;
     static const TokenPrecision LIQUIDITY;
     constexpr auto operator()() const { return val; }
-    static constexpr TokenPrecision from_number_throw(uint8_t v)
-    {
-        if (auto o { from_number(v) })
-            return *o;
-        throw Error(ETOKENPRECISION);
-    }
-    static constexpr wrt::optional<TokenPrecision> from_number(uint8_t v)
+    static constexpr Result<TokenPrecision> from_number(uint8_t v)
     {
         if (v > max)
-            return {};
+            return Error(ETOKENPRECISION);
         return TokenPrecision { v, Creator() };
+    }
+    static constexpr TokenPrecision from_number_throw(uint8_t v)
+    {
+        return from_number(v).value_or_throw();
     }
 };
 
@@ -57,7 +57,7 @@ constexpr const TokenPrecision TokenPrecision::WART { 8 };
 constexpr const TokenPrecision TokenPrecision::LIQUIDITY { 8 };
 
 struct ParsedFunds {
-    [[nodiscard]] static wrt::optional<ParsedFunds> parse(std::string_view);
+    [[nodiscard]] static Result<ParsedFunds> try_parse(std::string_view);
     ParsedFunds(std::string_view);
     ParsedFunds(uint64_t v, uint8_t decimalPlaces)
         : v(v)
@@ -208,12 +208,26 @@ struct FundsDecimal {
     std::string to_string() const;
 };
 
+class AssetSupply : public FundsDecimal {
+private:
+    AssetSupply(FundsDecimal fd)
+        : FundsDecimal(std::move(fd))
+    {
+    }
+
+public:
+    static Result<AssetSupply> from_funds_decimal(FundsDecimal);
+    AssetSupply(Reader& r);
+    static Result<AssetSupply> try_parse(std::string_view s);
+};
+
 inline FundsDecimal Funds_uint64::to_decimal(TokenPrecision d) const
 {
     return { value(), d };
 }
-inline wrt::optional<NonzeroFunds_uint64> Funds_uint64::nonzero() const{
-    if (is_zero()) 
+inline wrt::optional<NonzeroFunds_uint64> Funds_uint64::nonzero() const
+{
+    if (is_zero())
         return {};
     return *this;
 }
@@ -232,13 +246,14 @@ public:
         return Wart(f.value());
     }
     auto operator<=>(const Wart&) const = default;
-    static wrt::optional<Wart> parse(std::string_view);
-    static wrt::optional<Wart> parse(ParsedFunds);
+    [[nodiscard]] static Result<Wart> try_parse(std::string_view);
+    [[nodiscard]] static Result<Wart> try_parse(ParsedFunds);
     static Wart parse_throw(std::string_view);
-    std::string to_string() const;
-    constexpr uint64_t E8() const { return val; };
-    NonzeroWart nonzero_throw() const;
-    NonzeroWart nonzero_assert() const;
+    [[nodiscard]] std::string to_string() const;
+    [[nodiscard]] constexpr uint64_t E8() const { return val; };
+    [[nodiscard]] Result<NonzeroWart> nonzero() const;
+    [[nodiscard]] NonzeroWart nonzero_throw() const;
+    [[nodiscard]] NonzeroWart nonzero_assert() const;
     operator Funds_uint64() const
     {
         return Funds_uint64(E8());
@@ -256,15 +271,22 @@ class NonzeroWart : public Wart {
     {
         assert(f != 0);
     }
+
 public:
-    static NonzeroWart assert_nonzero(Wart w){
+    static NonzeroWart assert_nonzero(Wart w)
+    {
         return NonzeroWart(w);
     }
     NonzeroWart(Reader& r)
-        : Wart(r)
+        : NonzeroWart(Wart(r).nonzero_throw())
     {
-        if (val == 0)
-            throw Error(EZEROAMOUNT);
+    }
+    [[nodiscard]] static Result<NonzeroWart> try_parse(std::string_view s)
+    {
+        auto w { Wart::try_parse(s) };
+        if (w)
+            return w->nonzero();
+        return w.error();
     }
 
     bool is_zero() const = delete;
@@ -275,12 +297,13 @@ public:
     auto operator<=>(const NonzeroWart&) const = default;
 };
 
-
-inline Wart Funds_uint64::as_wart() const{
+inline Wart Funds_uint64::as_wart() const
+{
     return Wart::from_funds(*this);
 }
 
-inline NonzeroWart NonzeroFunds_uint64::as_wart() const{
+inline NonzeroWart NonzeroFunds_uint64::as_wart() const
+{
     return Wart::from_funds(*this).nonzero_assert();
 };
 
@@ -289,9 +312,14 @@ inline NonzeroWart Wart::nonzero_assert() const
     return NonzeroWart(Wart(*this));
 }
 
-inline NonzeroWart Wart::nonzero_throw() const
+inline Result<NonzeroWart> Wart::nonzero() const
 {
     if (val == 0)
-        throw Error(EZEROWART);
+        return Error(EZEROWART);
     return nonzero_assert();
+}
+
+inline NonzeroWart Wart::nonzero_throw() const
+{
+    return nonzero().value_or_throw();
 }

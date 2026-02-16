@@ -101,7 +101,7 @@ public:
     operator uint32_t() const { return getUInt32(); }
     operator AssetName() const
     {
-        return AssetName(static_cast<std::string>(c));
+        return AssetName::try_parse(static_cast<std::string>(c)).value_or_throw();
     }
     operator Price_uint64() const
     {

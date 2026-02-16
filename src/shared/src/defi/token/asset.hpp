@@ -1,6 +1,7 @@
 #pragma once
 #include "crypto/hash.hpp"
 #include "general/funds.hpp"
+#include "general/result.hpp"
 #include "general/view.hpp"
 #include "id.hpp"
 #include <algorithm>
@@ -20,6 +21,10 @@ struct TokenFunds {
 class AssetName {
     static constexpr size_t maxlen { 5 };
 
+    explicit AssetName(std::string assetName)
+        : name(std::move(assetName))
+    {
+    }
 public:
     static bool is_valid_str(std::string_view s)
     {
@@ -33,12 +38,11 @@ public:
             && std::ranges::all_of(s, ascii_alnum);
     }
 
-    AssetName(std::string assetName)
-        : name(std::move(assetName))
-    {
-        if (!is_valid_str(name))
-            throw Error(EASSETNAME);
-    };
+    static Result<AssetName> try_parse(std::string_view s){
+        if (!is_valid_str(s))
+            return Error(EASSETNAME);
+        return AssetName(std::string(s));
+    }
 
     std::string to_string() const
     {

@@ -1,7 +1,9 @@
 #pragma once
+#include "defi/token/asset.hpp"
 #include "gui.hpp"
 #include "popup.hpp"
 #include "validated_input.hpp"
+#include "validators.hpp"
 
 namespace ui {
 
@@ -9,6 +11,8 @@ struct TransferPopup : public GUIComponent,
                        public Popup<TransferPopup> {
 private:
     TokenInfo token;
+    NonzeroFundsValidator amount;
+    FeeValidator fee;
     std::shared_ptr<ui::LabeledValidatedBase> editAmount;
     std::shared_ptr<ui::LabeledValidatedBase> editToAddr;
     std::shared_ptr<ui::LabeledValidatedBase> editFee;
@@ -44,12 +48,36 @@ public:
 };
 // template<
 
+struct CreatePopup : public GUIComponent,
+                     public Popup<CreatePopup> {
+private:
+    AssetNameValidator assetName;
+    AssetSupplyValidator assetSupply;
+    FeeValidator fee;
+    NonceValidator nonce;
+
+    std::shared_ptr<ui::LabeledValidatedBase> editName;
+    std::shared_ptr<ui::LabeledValidatedBase> editSupply;
+    std::shared_ptr<ui::LabeledValidatedBase> editFee;
+    std::shared_ptr<ui::LabeledValidatedBase> editNonceId;
+    Component btnCancel;
+    Component btnCreate;
+
+public:
+    Element OnRender() override;
+    void on_create();
+    void on_cancel();
+    CreatePopup(GUI& gui, AssetName name);
+};
+
 struct SwapPopup : public GUIComponent,
                    public Popup<SwapPopup> {
 private:
     AssetInfo asset;
     std::vector<std::string> swap_directions;
     int side_selected = 0;
+    NonzeroFundsValidator amount;
+    FeeValidator fee;
 
     std::shared_ptr<ui::LabeledValidatedBase> editAmount;
     std::shared_ptr<ui::LabeledValidatedBase> editLimit;
@@ -66,11 +94,15 @@ public:
     void on_cancel();
     SwapPopup(GUI& gui, AssetInfo, bool buy);
 };
-struct FarmPopup : public GUIComponent, public Popup<FarmPopup>{
+struct FarmPopup : public GUIComponent, public Popup<FarmPopup> {
 private:
     AssetInfo asset;
     std::vector<std::string> liquidity_actions;
     int side_selected = 0;
+    FeeValidator fee;
+    FundsValidator amount;
+    WartValidator wart;
+
     std::shared_ptr<ui::LabeledValidatedBase> editWart;
     Component maybeWart;
     std::shared_ptr<ui::LabeledValidatedBase> editBase;
@@ -80,7 +112,6 @@ private:
     Component btnCancel;
     Component btnCreate;
     bool is_deposit() const { return side_selected == 0; }
-
 public:
     Element OnRender() override;
     void on_create();
