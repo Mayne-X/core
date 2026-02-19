@@ -1,10 +1,10 @@
 #pragma once
 #include "general/funds.hpp"
 #include "nonzero.hpp"
+#include "wrt/optional.hpp"
 #include <bit>
 #include <cassert>
 #include <cstdint>
-#include "wrt/optional.hpp"
 class Prod192;
 inline uint64_t shiftl(uint64_t upper, uint64_t lower, unsigned int i)
 {
@@ -69,11 +69,11 @@ public:
             return 0;
         if (shiftExp >= 0) {
             if (shiftExp >= 64 || upper != 0)
-                return {};
+                return {}; // overflow
             if (shiftExp == 0)
                 return lower;
             if ((lower >> (64 - shiftExp)) != 0)
-                return {};
+                return {}; // overflow
             return lower << shiftExp;
         } else { // (shiftExp < 0)
             bool inexact = false;
@@ -89,12 +89,12 @@ public:
                 return (upper >> shiftExp) + (ceil && inexact);
             } else {
                 if ((upper >> shiftExp) != 0)
-                    return {};
+                    return {}; // overflow
                 if ((lower << (64 - shiftExp)) != 0)
                     inexact = true;
                 auto res { (upper << (64 - shiftExp)) + (lower >> shiftExp) + (ceil && inexact) };
-                if (res == 0) // overflow because of ceiling
-                    return {};
+                if (res == 0)
+                    return {}; // overflow because of ceiling
                 return res;
             }
         }

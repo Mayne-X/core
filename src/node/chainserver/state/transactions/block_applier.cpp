@@ -152,11 +152,11 @@ struct OrderAggregator {
     }
     defi::Order_uint64 load_next_order()
     {
-        assert(!finished);
+        assert(!drained);
         auto o { last_inserted().order };
         while (true) {
             load_next();
-            if (finished || last_inserted().order.limit != o.limit)
+            if (drained || last_inserted().order.limit != o.limit)
                 break;
             o.amount.add_assert(last_inserted().remaining());
         }
@@ -164,7 +164,7 @@ struct OrderAggregator {
     }
     wrt::optional<Price_uint64> next_price() const
     {
-        if (finished)
+        if (drained)
             return {};
         return last_inserted().order.limit;
     }
@@ -177,13 +177,13 @@ private:
     }
     void load_next()
     {
-        if (finished == true)
+        if (drained == true)
             return;
 
         while (true) {
             wrt::optional<OrderData> o { l() };
             if (!o) {
-                finished = true;
+                drained = true;
                 return;
             }
             if (ignoreOrderIds.contains(o->id))
@@ -193,7 +193,7 @@ private:
     }
 
 private:
-    bool finished { false };
+    bool drained { false };
     std::vector<OrderData> loaded;
     OrderMergeLoader<ASCENDING> l;
     const std::set<HistoryId>& ignoreOrderIds;

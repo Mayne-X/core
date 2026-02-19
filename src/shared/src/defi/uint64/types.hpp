@@ -50,24 +50,20 @@ struct BaseQuote_uint64 {
     BaseQuote_uint64(Reader& r)
         : base(r)
         , quote(r) { };
-    // BaseQuote_uint64 operator-(const Delta_uint64& bq) const
-    // {
-    //     auto res { *this };
-    //     if (bq.isQuote)
-    //         res.quote.subtract_assert(bq.amount);
-    //     else
-    //         res.base -= bq.amount;
-    //     return res;
-    // }
-    Delta_uint64 excess(Price_uint64 p) const // computes excess
+
+    // Computes excess at specific price rounded towards 0.
+    // For exactly no excess, isQuote = true
+    Delta_uint64 excess(Price_uint64 p) const
     {
-        auto q { multiply_floor(base.value(), p) };
-        if (q.has_value() && *q <= quote) // too much base
+        auto q { multiply_ceil(base.value(), p) };
+        if (q.has_value() && *q <= quote) // too much quote
             return { true, diff_assert(quote, Funds_uint64::from_value_throw(*q)) };
-        auto b { divide_floor(quote.value(), p) };
-        assert(b.has_value()); // TODO: verify assert by checking precision of
-                               // divide_floor
-        assert(*b <= base);
+        // Here we know ceil(p * base) > quote but `quote` is an integer, so base * p > quote.
+        // This implies so p != 0 and quote / p < base.
+
+        auto b { divide_ceil(quote.value(), p) };
+        assert(b.has_value()); // cannot overflow since quote / p < base
+        assert(*b <= base); // ceil(quote / p) <= base because quote / p < base and base is an integer.
         return { false, diff_assert(base, Funds_uint64::from_value_throw(*b)) };
     }
     auto price() const { return PriceRelative_uint64::from_fraction(quote.value(), base.value()); }

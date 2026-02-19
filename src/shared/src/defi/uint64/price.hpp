@@ -28,7 +28,7 @@ public:
     {
         return compose(data & 0x0000FFFFu, data >> 16);
     }
-    static Price_uint64 from_bytes(std::span<const uint8_t,3> s);
+    static Price_uint64 from_bytes(std::span<const uint8_t, 3> s);
     static Price_uint64 from_hex(std::string_view s);
     Price_uint64(Reader& r);
     void serialize(RawSerializer auto& s) const
@@ -258,8 +258,8 @@ inline wrt::optional<uint64_t> divide(uint64_t a, Price_uint64 p, bool ceil)
     bool inexact = d2 * p.mantissa_16bit() != rest;
     d = (d << z2) + d2;
     auto shift { -(p.mantissa_exponent2() + z1 + z2) };
-    if (shift > 0) // overflow
-        return {};
+    if (shift > 0)
+        return {}; // overflow
     shift = -shift;
     if (shift >= 64) {
         if (d != 0)
@@ -270,8 +270,8 @@ inline wrt::optional<uint64_t> divide(uint64_t a, Price_uint64 p, bool ceil)
         inexact = true;
     }
     auto res { (d >> shift) + (ceil && inexact) };
-    if (res == 0) // overflow
-        return {};
+    if (res == 0)
+        return {}; // overflow
     return res;
 }
 
