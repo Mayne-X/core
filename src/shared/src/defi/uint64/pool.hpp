@@ -37,6 +37,7 @@ struct PoolLiquidity_uint64 : public BaseQuote_uint64 {
         return compare_fraction(price_ratio_added_base(baseToPool), p);
     }
 
+    // can be used for degenerated (zero-liquidity) pools
     [[nodiscard]] bool modified_pool_price_exceeds(const Delta_uint64& toPool, Price_uint64 p) const
     {
         if (toPool.isQuote)

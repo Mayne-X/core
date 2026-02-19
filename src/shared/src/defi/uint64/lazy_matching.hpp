@@ -9,9 +9,12 @@ namespace defi {
 
 [[nodiscard]] inline MatchResult_uint64 match_lazy(auto& loaderSellAsc, auto& loaderBuyDesc, const PoolLiquidity_uint64& poolBeforeMatch)
 {
-    auto pr { poolBeforeMatch.price() };
-    assert(pr); // TODO: ensure the pool is non-degenerate
-    const auto price { *pr };
+    wrt::optional<Price_uint64> pr { loaderBuyDesc.next_price() };
+    if (!pr)
+        pr = loaderSellAsc.next_price();
+    if (!pr)
+        return { .toPool {}, .filled { 0, 0 } }; // no orders, so no action
+    auto price { *pr };
 
     Orderbook_uint64 ob;
     wrt::optional<Price_uint64> lower, upper;
@@ -39,7 +42,7 @@ namespace defi {
     while (auto np { loaderBuyDesc.next_price() }) {
         assert(!p || *p > *np); // prices must be strictly decreasing
         p = np;
-        if (*p <= price) { 
+        if (*p <= price) {
             if (lower < *p)
                 lower = *p;
             break;
