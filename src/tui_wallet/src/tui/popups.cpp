@@ -212,7 +212,7 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
         "SELL " + asset.name + " FOR WART" }
     , side_selected(buy ? 0 : 1)
     , amount(is_buy() ? asset.precision : TokenPrecision::WART)
-    , editAmount(ui::LabeledValidated("Amount:  "))
+    , editAmount(ui::LabeledValidated("Amount:  ", amount.validator()))
     , editLimit(ui::LabeledValidated("Limit Price:  "))
     , editFee(ui::LabeledValidated("Fee (WART):  ", fee.validator()))
     , editNonceId(ui::LabeledValidated("NonceId: ", validate_nonce_id))
