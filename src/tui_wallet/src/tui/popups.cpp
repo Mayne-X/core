@@ -192,7 +192,7 @@ void SwapPopup::on_create()
 void SwapPopup::on_cancel() { closed = true; }
 Element SwapPopup::OnRender()
 {
-    this->amount.set_prec(is_buy() ? asset.precision : TokenPrecision::WART);
+    this->amount.set_prec(is_buy() ? TokenPrecision::WART : asset.precision);
     editAmount->validate();
     editLimit->set_validator(LimitValidator(asset.precision, !is_buy()));
     editAmount->label = std::string("Amount (") + (is_buy() ? "WART" : asset.name) + "): ";
