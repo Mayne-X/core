@@ -27,6 +27,7 @@
     XX(GetMining, ChainMiningTask, Address, address)                             \
     XX(GetBlockBinary, api::BlockBinary, api::HeightOrHash, heightOrHash)        \
     XX(ListTokens, api::AssetSearchResult)                                       \
+    XX(ListOrders, api::Orders, api::AssetIdOrHash, asset)                  \
     XX(CompleteToken, api::AssetSearchResult,                                    \
         std::string, namePrefix, std::string, hashPrefix)                        \
     XX(MempoolConstraintUpdate, api::MempoolUpdate)                              \
@@ -207,6 +208,7 @@ private:
     auto handle_api(chainserver::GetBlockBinary&& e) { return state.api_get_block_binary(e.heightOrHash()); }
     auto handle_api(chainserver::CompleteToken&& e) { return state.api_search_asset({ .namePrefix = e.namePrefix(), .hashPrefix = e.hashPrefix() }); }
     auto handle_api(chainserver::ListTokens&&) { return state.api_search_asset({}); }
+    auto handle_api(chainserver::ListOrders&& o) { return state.api_list_orders(o.asset()); }
     auto handle_api(chainserver::GetMining&& e) { return state.mining_task(e.address()); }
     auto handle_api(chainserver::GetTxcache&&) { return state.api_tx_cache(); }
     auto handle_api(chainserver::GetAccountHistory&& e) { return state.api_get_history(e.address(), e.beforeId()); }

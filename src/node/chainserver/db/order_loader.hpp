@@ -3,7 +3,6 @@
 #include "db/sqlite_fwd.hpp"
 #include "defi/order.hpp"
 
-
 class OrderLoaderBase {
     friend chain_db::ChainDB;
     OrderLoaderBase(sqlite::Statement& stmt);
@@ -11,6 +10,7 @@ class OrderLoaderBase {
 public:
     [[nodiscard]] wrt::optional<OrderData> operator()() const;
     OrderLoaderBase(const OrderLoaderBase&) = delete;
+    OrderLoaderBase& operator=(const OrderLoaderBase&) = delete;
     OrderLoaderBase(OrderLoaderBase&& other);
     ~OrderLoaderBase();
 

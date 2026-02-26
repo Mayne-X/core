@@ -283,11 +283,11 @@ struct ThrottleQueue {
 
     void add_throttle(duration d) { td.add(d); }
     auto reply_delay() const { return td.get(); }
-    void insert(messages::Msg, eventloop::TimerSystem& t, uint64_t connectionId);
+    void insert(msg::Msg, eventloop::TimerSystem& t, uint64_t connectionId);
     void update_timer(eventloop::TimerSystem& t, uint64_t connectionId);
     void reset_timer(eventloop::TimerSystem& t);
 
-    [[nodiscard]] messages::Msg reset_timer_pop_msg()
+    [[nodiscard]] msg::Msg reset_timer_pop_msg()
     {
         assert(timer);
         assert(rateLimitedInput.size() > 0);
@@ -302,7 +302,7 @@ struct ThrottleQueue {
 
 private:
     ThrottleDelay td;
-    std::deque<messages::Msg> rateLimitedInput;
+    std::deque<msg::Msg> rateLimitedInput;
     wrt::optional<eventloop::Timer> timer;
 };
 

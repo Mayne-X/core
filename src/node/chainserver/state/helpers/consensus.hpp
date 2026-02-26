@@ -66,7 +66,7 @@ struct Chainstate {
 
     size_t on_mempool_constraint_update();
     TxHash insert_tx_throw(TransactionMessage&& m, DBCache& ac);
-    [[nodiscard]] TxHash create_tx(const TransactionCreate& m);
+    [[nodiscard]] TxHash create_tx_throw(const TransactionCreate& m);
 
     // const functions
     Worksum work_with_new_block() const { return headerchain.total_work() + headerchain.next_target(); };
@@ -108,7 +108,7 @@ protected:
     AssetCreationMessage create_specific_tx(const TransactionId&, const AssetCreationCreate& m);
 
     TxHeight tx_height(TransactionMessage&&, TxHash, const Address& fromAddr, DBCache&);
-    TxHash insert_tx_internal(TransactionMessage&&, TxHash, const Address& fromAddr, DBCache&);
+    TxHash insert_tx_internal_throw(TransactionMessage&&, TxHash, const Address& fromAddr, DBCache&);
     void prune_txids();
     void update_free_balances(const FreeBalanceUpdates& updates);
     Chainstate(std::tuple<std::vector<Batch>, HistoryHeights, State64Heights> init,

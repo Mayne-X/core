@@ -48,7 +48,7 @@ wrt::optional<Request> Loadtest::generate_load(Conref cr)
 }
 
 using namespace std::chrono_literals;
-void ThrottleQueue::insert(messages::Msg sb, eventloop::TimerSystem& t, uint64_t connectionId)
+void ThrottleQueue::insert(msg::Msg sb, eventloop::TimerSystem& t, uint64_t connectionId)
 {
     rateLimitedInput.push_back(std::move(sb));
     if (rateLimitedInput.size() > 15)

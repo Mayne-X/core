@@ -16,7 +16,7 @@ class tcp_handle;
 };
 class StratumServer;
 namespace stratum {
-namespace messages {
+namespace msg {
     struct MiningSubscribe;
     struct MiningAuthorize;
     struct MiningSubmit;
@@ -44,9 +44,9 @@ public:
     void send_result(int64_t stratumId, wrt::optional<Error>);
 
 private:
-    void handle_message(messages::MiningSubscribe&& s);
-    void handle_message(messages::MiningSubmit&& m);
-    void handle_message(messages::MiningAuthorize&& m);
+    void handle_message(msg::MiningSubscribe&& s);
+    void handle_message(msg::MiningSubmit&& m);
+    void handle_message(msg::MiningAuthorize&& m);
     void send_work(std::string jobId, const Block& block, bool clean);
     void shutdown();
     void write_line(const std::string& line);

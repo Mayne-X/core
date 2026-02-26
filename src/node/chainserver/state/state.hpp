@@ -123,6 +123,7 @@ public:
     auto api_search_asset(const api::AssetSearchArgs&) const -> Result<api::AssetSearchResult>;
 
     auto api_get_block(const api::HeightOrHash& h) const -> Result<api::Block>;
+    auto api_list_orders(const api::AssetIdOrHash&, size_t N=100) const -> Result<api::Orders>;
     auto api_get_block_binary(const api::HeightOrHash& h) const -> wrt::optional<api::BlockBinary>;
     auto api_tx_cache() const -> const TransactionIds;
     size_t api_db_size() const;
@@ -131,7 +132,7 @@ private:
     using NormalizedToken = api::Token;
     [[nodiscard]] wrt::optional<NormalizedToken> normalize(api::TokenIdOrSpec) const;
     [[nodiscard]] wrt::optional<api::Account> normalize(api::AccountIdOrAddress) const;
-    // wrt::optional<AssetDetail> db_lookup_token(const api::AssetIdOrHash&) const;
+    [[nodiscard]] Result<AssetDetail> normalize(const api::AssetIdOrHash&) const;
     // delegated getters
     auto api_get_block(Height h) const -> wrt::optional<api::Block>;
     auto api_get_block_binary(Height h) const -> wrt::optional<api::BlockBinary>;

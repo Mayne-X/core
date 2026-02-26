@@ -834,6 +834,28 @@ json to_json(const api::Peerinfo& pi)
     return elem;
 }
 
+json to_json(const api::Orders& orders)
+{
+    auto buys(json::array());
+    auto sells(json::array());
+    auto order_json { [&](api::Order o, TokenPrecision inPrec) {
+        return json {
+            { "fromMempool", o.fromMempool},
+            { "amount", o.amount.to_decimal(inPrec).to_string() },
+            { "filled", o.filled.to_decimal(inPrec).to_string() },
+            { "price", o.price.to_double_adjusted(orders.basePrec) }
+        };
+    } };
+    for (auto& o : orders.buys)
+        buys.push_back(order_json(o, TokenPrecision::WART));
+    for (auto& o : orders.buys)
+        sells.push_back(order_json(o, orders.basePrec));
+    return {
+        {"buys", buys},
+        {"sells", sells}
+    };
+}
+
 json to_json(const api::ParsedPrice& p)
 {
 
@@ -887,11 +909,11 @@ json to_json(const Grid& g)
 
 json to_json(const SignedSnapshot& s)
 {
-        return json {
-            { "priority", json { { "height", s.priority.height }, { "importance", s.priority.importance } } },
-            { "hash", serialize_hex(s.hash) },
-            { "signature", s.signature.to_string() },
-        };
+    return json {
+        { "priority", json { { "height", s.priority.height }, { "importance", s.priority.importance } } },
+        { "hash", serialize_hex(s.hash) },
+        { "signature", s.signature.to_string() },
+    };
 }
 
 json to_json(const TransactionId& txid)

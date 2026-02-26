@@ -29,7 +29,7 @@ public:
         pos = buf.pos;
         buf.pos = 0;
     }
-    messages::Msg parse();
+    msg::Msg parse();
 
 private: // private methods
     bool verify();
@@ -44,7 +44,7 @@ private: // private methods
         // Check if message is valid. The message is encoded in the 2 message
         // type bytes header[8] and header[9]. For now, header[8] must be 0
         // because one byte header[9] is sufficient to cover all message cases.
-        size_t sb = messages::size_bound(header[9]);
+        size_t sb = msg::size_bound(header[9]);
         if (header[8] != 0 || sb == 0)
             throw Error(EMSGTYPE);
         // Check if proposed bodysize is in valid limits

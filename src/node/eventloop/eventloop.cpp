@@ -1163,7 +1163,7 @@ void Eventloop::on_request_expired(Conref cr, const BlockRequest&)
 
 void Eventloop::process_message(Conref cr, Rcvbuffer& msg)
 {
-    using namespace messages;
+    using namespace msg;
 
     auto m { msg.parse() };
     using namespace std;
@@ -1180,7 +1180,7 @@ void Eventloop::process_message(Conref cr, Rcvbuffer& msg)
     }
 }
 
-void Eventloop::dispatch_message(Conref cr, messages::Msg&& msg)
+void Eventloop::dispatch_message(Conref cr, msg::Msg&& msg)
 {
     std::visit([&](auto&& e) { 
         communication_log().info("IN  {}: {}", cr.str(), e.log_str());

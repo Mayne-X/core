@@ -184,17 +184,46 @@ auto Mempool::erase_internal(Txset::const_iter_t iter, balance_iterator wartIter
     } };
     // update locked token balance
     if (auto tokenSpend { iter->spend_token_assert() }) {
-        if (!tokenIter)
-            tokenIter = lockedBalances.find({ iter->from_id(), iter->altTokenId });
-        er.erasedToken = unlock(*tokenIter, tokenSpend->amount);
+        if (auto& s { tokenSpend->spend }) {
+            if (!tokenIter)
+                tokenIter = lockedBalances.find({ iter->from_id(), iter->altTokenId });
+            er.erasedToken = unlock(*tokenIter, s->amount);
+        }
     }
 
     // update locked wart balance
     Wart wartSpend { iter->spend_wart_assert() };
     er.erasedWart = unlock(wartIter, wartSpend);
 
+    if (iter->holds<LimitSwapMessage>()) {
+        auto nw { iter->altTokenId.non_wart() };
+        assert(nw); // should be set at mempool insert
+        auto N { erase_swap(nw->asset_id(), iter) };
+        assert(N == 1); // should match exactly one element
+    }
+
     transactions.erase(iter);
     return er;
+}
+
+void Mempool::Node::sort()
+{
+    auto lambda { [](iter_t lhs, iter_t rhs) static {
+        return lhs->get<LimitSwapMessage>().limit() < rhs->get<LimitSwapMessage>().limit();
+    } };
+    std::ranges::sort(buys, lambda);
+    std::ranges::sort(sells, lambda);
+}
+
+void Mempool::insert_swap(AssetId market, iter_t iter)
+{
+    auto& swap { iter->get<LimitSwapMessage>() };
+    orders[market].push_back(swap.buy(), iter);
+}
+size_t Mempool::erase_swap(AssetId market, iter_t iter)
+{
+    auto& swap { iter->get<LimitSwapMessage>() };
+    return orders[market].erase(swap.buy(), iter);
 }
 
 void Mempool::erase_internal(Txset::const_iter_t iter)
@@ -313,25 +342,25 @@ void Mempool::set_allowed_blockversions(const std::set<BlockVersion>& newSet)
     spdlog::debug("Deleted {} of unsupported type from mempool", format_plural(deleted, "transaction"));
 }
 
-Error Mempool::insert_tx(const TransactionMessage& pm, TxHeight txHeight, const TxHash& txHash, chainserver::DBCache& cache)
-{
-    try {
-        insert_tx_throw(pm, txHeight, txHash, cache);
-        return 0;
-    } catch (Error e) {
-        return e;
-    }
-}
+// Error Mempool::insert_tx(const TransactionMessage& pm, TxHeight txHeight, const TxHash& txHash, chainserver::DBCache& cache)
+// {
+//     try {
+//         insert_tx_throw(pm, txHeight, txHash, cache);
+//         return 0;
+//     } catch (Error e) {
+//         return e;
+//     }
+// }
 
-wrt::optional<TokenFunds> Mempool::token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const
-{
-    if (auto s { pm.spend_token_throw() }) {
-        if (auto pAsset { cache.lookup_asset(s->hash) })
-            return TokenFunds { pAsset->id.token_id(s->isLiquidity), s->amount };
-        throw Error(EASSETHASHNOTFOUND);
-    }
-    return {};
-}
+// wrt::optional<TokenFunds> Mempool::token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const
+// {
+//     if (auto s { pm.nonwart_token_throw() }) {
+//         if (auto pAsset { cache.lookup_asset(s->hash) })
+//             return TokenFunds { pAsset->id.token_id(s->isLiquidity), s->amount };
+//         throw Error(EASSETHASHNOTFOUND);
+//     }
+//     return {};
+// }
 
 auto Mempool::get_balance(AccountToken at, chainserver::DBCache& cache) -> std::pair<LockedBalance, wrt::optional<balance_iterator>>
 {
@@ -353,80 +382,76 @@ auto Mempool::create_or_get_balance_iter(AccountToken at, chainserver::DBCache& 
     return balanceIter;
 }
 
-void Mempool::insert_tx_throw(const TransactionMessage& pm,
-    TxHeight txh,
-    const TxHash& txhash, chainserver::DBCache& cache)
+void Mempool::insert_tx_throw(InsertParams tx)
 {
-    auto canInsertTxType { pm.visit([&](auto tx) {
+    auto canInsertTxType { tx.msg.visit([&](auto tx) {
         return allowedTransactionTypes.at<
             typename std::remove_cvref_t<decltype(tx)>::transaction_t>();
     }) };
     if (!canInsertTxType)
         throw Error(ETXTYPESTATE);
 
-    auto fromId { pm.from_id() };
+    auto fromId { tx.msg.from_id() };
 
     wrt::optional<Txset::const_iter_t> match;
     std::vector<Txset::const_iter_t> clear;
     const auto& t { transactions };
-    if (auto iter = t.find(pm.txid()); iter != t.end()) {
-        if (iter->compact_fee() >= pm.compact_fee()) {
+    if (auto iter = t.find(tx.msg.txid()); iter != t.end()) {
+        if (iter->compact_fee() >= tx.msg.compact_fee()) {
             throw Error(ENONCE);
         }
         clear.push_back(iter);
         match = iter;
     }
 
-    const Wart wartSpend { pm.spend_wart_throw() };
-    auto [wartBal, wartIter] { get_balance({ pm.from_id(), TokenId::WART }, cache) };
+    const Wart wartSpend { tx.msg.spend_wart_throw() };
+    auto [wartBal, wartIter] { get_balance({ tx.msg.from_id(), TokenId::WART }, tx.dbCache) };
     if (wartBal.total() < wartSpend)
         throw Error(EBALANCE);
 
-    TokenId altId { TokenId::WART };
-    Funds_uint64 tokenSpend { 0 };
     size_t token_idx0 { clear.size() };
-    if (auto ts { token_spend_throw(pm, cache) }) { // if this transaction spends tokens different from WART
+    if (tx.nonwart.spend > 0) { // if this transaction spends tokens different from WART
+        assert(tx.nonwart.tokenId != TokenId::WART);
         // first make sure we can delete enough elements from the
         // mempool to cover the amount of nonwart tokens needed
         // for this transaction
-        tokenSpend = ts->amount;
-        if (tokenSpend > 0) {
-            altId = ts->id;
 
-            AccountToken at { fromId, altId };
-            auto [tokenBal, bal_iter] { get_balance(at, cache) };
-            assert(wartIter || !bal_iter); // if no wart iterator then there is no entry in lockedBalances for any token with this account because every transaction locks some WART.
-            if (tokenBal.total() < tokenSpend)
-                throw Error(ETOKBALANCE);
-            auto& set { transactions.index().account_token_fee() };
-            // loop through the range where the AccountToken is equal
-            for (auto it { set.lower_bound(at) };
-                it != set.end() && (*it)->altTokenId == at.token_id() && (*it)->from_id() == fromId; ++it) {
-                if (tokenBal.free() >= tokenSpend)
-                    break;
-                auto iter = *it;
-                if (iter == match)
-                    continue;
-                if (iter->compact_fee() >= pm.compact_fee())
-                    break;
-                clear.push_back(iter);
-                wartBal.unlock(iter->spend_wart_assert());
-                tokenBal.unlock(iter->spend_token_throw()->amount);
-            }
-            if (tokenBal.free() < tokenSpend)
-                throw Error(ETOKBALANCE);
+        AccountToken at { fromId, tx.nonwart.tokenId };
+        auto [tokenBal, bal_iter] { get_balance(at, tx.dbCache) };
+        assert(wartIter || !bal_iter); // if no wart iterator then there is no entry in lockedBalances for any token with this account because every transaction locks some WART.
+        if (tokenBal.total() < tx.nonwart.spend)
+            throw Error(ETOKBALANCE);
+        auto& set { transactions.index().account_token_fee() };
+        // loop through the range where the AccountToken is equal
+        for (auto it { set.lower_bound(at) };
+            it != set.end() && (*it)->altTokenId == at.token_id() && (*it)->from_id() == fromId; ++it) {
+            if (tokenBal.free() >= tx.nonwart.spend)
+                break;
+            auto iter = *it;
+            if (iter == match)
+                continue;
+            if (iter->compact_fee() >= tx.msg.compact_fee())
+                break;
+            clear.push_back(iter);
+            wartBal.unlock(iter->spend_wart_assert());
+            auto nonWart { iter->nonwart_token_throw() };
+            assert(nonWart.has_value());
+            assert(nonWart->spend.has_value());
+            tokenBal.unlock(iter->nonwart_token_throw()->spend->amount);
         }
+        if (tokenBal.free() < tx.nonwart.spend)
+            throw Error(ETOKBALANCE);
     }
     size_t token_idx1 { clear.size() };
     size_t i { token_idx0 };
 
     { // check if we can delete enough old entries to insert new entry
         if (wartBal.free() < wartSpend) {
-            auto iterators { transactions.by_fee_inc_le(pm.txid().accountId, pm.compact_fee()) };
+            auto iterators { transactions.by_fee_inc_le(tx.msg.txid().accountId, tx.msg.compact_fee()) };
             for (auto iter : iterators) {
                 if (iter == match)
                     continue;
-                if (iter->compact_fee() >= pm.compact_fee())
+                if (iter->compact_fee() >= tx.msg.compact_fee())
                     break;
                 if (i < token_idx1) {
                     if (clear[i] == iter) {
@@ -448,11 +473,15 @@ void Mempool::insert_tx_throw(const TransactionMessage& pm,
     assert(clear.empty() || wartIter); // if there exist transactions that can be deleted, then there must be some WART locked.
     for (auto& iter : clear)
         erase_internal(iter, *wartIter);
-    create_or_get_balance_iter({ fromId, TokenId::WART }, cache)->second.lock(wartSpend);
-    if (altId != TokenId::WART)
-        create_or_get_balance_iter({ fromId, altId }, cache)->second.lock(tokenSpend);
+    create_or_get_balance_iter({ fromId, TokenId::WART }, tx.dbCache)->second.lock(wartSpend);
+    if (tx.nonwart.spend > 0)
+        create_or_get_balance_iter({ fromId, tx.nonwart.tokenId }, tx.dbCache)->second.lock(tx.nonwart.spend);
 
-    auto [iter, inserted] = transactions.insert(Entry { pm, txhash, txh, altId });
+    auto [iter, inserted] = transactions.insert(Entry { std::move(tx.msg), tx.hash, tx.height, tx.nonwart.tokenId });
+    if (iter->holds<LimitSwapMessage>()) {
+        assert(tx.assetId.has_value()); // this was set at caller side
+        insert_swap(*tx.assetId, iter); // to keep track of mempool orderbook
+    }
     assert(inserted);
     updates.push_back(Put { *iter });
     prune();

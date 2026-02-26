@@ -57,7 +57,7 @@ struct InitMsgV1 : public MsgCode<0> {
     Grid grid;
 };
 
-struct ForkMsg : public MsgCombine<1, Descriptor, NonzeroHeight, Worksum, NonzeroHeight, messages::ReadRest<Grid>> {
+struct ForkMsg : public MsgCombine<1, Descriptor, NonzeroHeight, Worksum, NonzeroHeight, msg::ReadRest<Grid>> {
     static constexpr size_t maxSize = 20000;
     using Base::Base;
     std::string log_str() const;
@@ -66,9 +66,9 @@ struct ForkMsg : public MsgCombine<1, Descriptor, NonzeroHeight, Worksum, Nonzer
     [[nodiscard]] const NonzeroHeight& chainLength() const { return get<1>(); }
     [[nodiscard]] const Worksum& worksum() const { return get<2>(); }
     [[nodiscard]] const NonzeroHeight& forkHeight() const { return get<3>(); }
-    [[nodiscard]] const messages::ReadRest<Grid>& grid() const { return get<4>(); }
+    [[nodiscard]] const msg::ReadRest<Grid>& grid() const { return get<4>(); }
 };
-struct AppendMsg : public MsgCombine<2, NonzeroHeight, Worksum, messages::ReadRest<Grid>> {
+struct AppendMsg : public MsgCombine<2, NonzeroHeight, Worksum, msg::ReadRest<Grid>> {
     using Base::Base;
     static constexpr size_t maxSize = 4 + 4 + 32 + 80 * 100;
 
@@ -125,7 +125,7 @@ struct BatchreqMsg : public MsgCombineRequest<6, BatchSelector> {
     [[nodiscard]] const BatchSelector& selector() const { return get<0>(); }
 };
 
-struct BatchrepMsg : public MsgCombineReply<7, messages::ReadRest<Batch>> {
+struct BatchrepMsg : public MsgCombineReply<7, msg::ReadRest<Batch>> {
     static constexpr size_t maxSize = 4 + HEADERBATCHSIZE * 80;
     using Base::Base;
 
@@ -169,14 +169,14 @@ struct BlockreqMsg : public MsgCombineRequest<10, DescriptedBlockRange> {
     [[nodiscard]] const DescriptedBlockRange& range() const { return get<0>(); }
 };
 
-struct BlockrepMsg : public MsgCombineReply<11, messages::VectorRest<block::BodyData>> {
+struct BlockrepMsg : public MsgCombineReply<11, msg::VectorRest<block::BodyData>> {
     static constexpr size_t maxSize = MAXBLOCKBATCHSIZE * (4 + MAXBLOCKSIZE);
     using Base::Base;
 
     std::string log_str() const;
     bool empty() const { return blocks().empty(); }
-    [[nodiscard]] const messages::VectorRest<block::BodyData>& blocks() const { return get<0>(); }
-    messages::VectorRest<block::BodyData>& block_bodies() { return get<0>(); }
+    [[nodiscard]] const msg::VectorRest<block::BodyData>& blocks() const { return get<0>(); }
+    msg::VectorRest<block::BodyData>& block_bodies() { return get<0>(); }
 };
 
 struct TxsubscribeMsg : public MsgCombineRequest<12, Height> {
@@ -198,21 +198,21 @@ struct TxnotifyMsg : public MsgCombineRequest<13, serialization::Vector16<TxidWi
     std::string log_str() const;
 };
 
-struct TxreqMsg : public MsgCombineRequest<14, messages::VectorRest<TransactionId>> {
+struct TxreqMsg : public MsgCombineRequest<14, msg::VectorRest<TransactionId>> {
     static constexpr size_t MAXENTRIES = 5000;
     using Base::Base;
 
     TxreqMsg(Reader& r);
-    [[nodiscard]] const messages::VectorRest<TransactionId>& txids() const { return get<0>(); }
+    [[nodiscard]] const msg::VectorRest<TransactionId>& txids() const { return get<0>(); }
     static constexpr size_t maxSize = 2 + 4 + TxreqMsg::MAXENTRIES * TransactionId::bytesize;
     std::string log_str() const;
 };
 
-struct LegacyTxrepMsg : public MsgCombineReply<15, messages::VectorRest<messages::Optional<WartTransferMessage>>> {
+struct LegacyTxrepMsg : public MsgCombineReply<15, msg::VectorRest<msg::Optional<WartTransferMessage>>> {
     static constexpr size_t maxSize = 2 + 4 + TxreqMsg::MAXENTRIES * (1 + TransactionMessage::max_byte_size);
     using Base::Base;
 
-    using vector_t = messages::VectorRest<messages::Optional<TransactionMessage>>;
+    using vector_t = msg::VectorRest<msg::Optional<TransactionMessage>>;
     LegacyTxrepMsg(Reader& r);
     [[nodiscard]] auto& txs() const { return get<0>(); }
     std::string log_str() const;
@@ -362,18 +362,18 @@ struct InitMsgV3 : public MsgCombine<30, Descriptor, SignedSnapshot::Priority, H
     [[nodiscard]] auto rtc_enabled() const { return (get<5>() & 1) != 0; }
 };
 
-struct TxrepMsg : public MsgCombineReply<31, messages::VectorRest<messages::Optional<TransactionMessage>>> {
+struct TxrepMsg : public MsgCombineReply<31, msg::VectorRest<msg::Optional<TransactionMessage>>> {
     static constexpr size_t maxSize = 2 + 4 + TxreqMsg::MAXENTRIES * (1 + TransactionMessage::max_byte_size);
     using Base::Base;
 
-    using vector_t = messages::VectorRest<messages::Optional<TransactionMessage>>;
+    using vector_t = msg::VectorRest<msg::Optional<TransactionMessage>>;
     TxrepMsg(Reader& r);
     [[nodiscard]] auto& txs() const { return get<0>(); }
     std::string log_str() const;
 };
 
-namespace messages {
+namespace msg {
 [[nodiscard]] size_t size_bound(uint8_t msgtype);
 
 using Msg = std::variant<InitMsgV1, ForkMsg, AppendMsg, SignedPinRollbackMsg, PingMsg, PongMsg, BatchreqMsg, BatchrepMsg, ProbereqMsg, ProberepMsg, BlockreqMsg, BlockrepMsg, TxnotifyMsg, TxreqMsg, LegacyTxrepMsg, LeaderMsg, RTCIdentity, RTCQuota, RTCSignalingList, RTCRequestForwardOffer, RTCForwardedOffer, RTCRequestForwardAnswer, RTCForwardOfferDenied, RTCForwardedAnswer, RTCVerificationOffer, RTCVerificationAnswer, PingV2Msg, PongV2Msg, InitMsgV3, TxrepMsg>;
-} // namespace messages
+}

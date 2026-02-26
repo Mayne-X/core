@@ -236,7 +236,7 @@ TxHash Chainstate::insert_tx_throw(TransactionMessage&& tm, DBCache& cache)
     if (tm.from_address(txHash) != fromAddr)
         throw Error(EFAKEACCID);
 
-    return insert_tx_internal(std::move(tm), txHash, *fromAddr, cache);
+    return insert_tx_internal_throw(std::move(tm), txHash, *fromAddr, cache);
 }
 
 PinHash Chainstate::pin_hash(PinHeight pinHeight) const
@@ -248,7 +248,7 @@ PinHash Chainstate::pin_hash(PinHeight pinHeight) const
     return headers().hash_at(pinHeight);
 }
 
-[[nodiscard]] TxHash Chainstate::create_tx(const TransactionCreate& m)
+[[nodiscard]] TxHash Chainstate::create_tx_throw(const TransactionCreate& m)
 {
     return m.visit([&]<typename T>(T&& m) {
         DBCache cache(db);
@@ -260,7 +260,7 @@ PinHash Chainstate::pin_hash(PinHeight pinHeight) const
             throw Error(EADDRNOTFOUND);
         // TxHeight th(pinHeight, account_height(*fromId)); // TODO: rethink transaction height
         TransactionId txid(*fromId, pinHeight, m.nonce_id());
-        return insert_tx_internal(create_specific_tx(txid, std::forward<T>(m)), txHash, fromAddr, cache);
+        return insert_tx_internal_throw(create_specific_tx(txid, std::forward<T>(m)), txHash, fromAddr, cache);
     });
 }
 
@@ -309,14 +309,32 @@ void Chainstate::update_free_balances(const FreeBalanceUpdates& updates)
         _mempool.set_free_balance(accountToken, balance);
 }
 
-TxHash Chainstate::insert_tx_internal(TransactionMessage&& m, TxHash txHash, const Address& fromAddr, DBCache& c)
+TxHash Chainstate::insert_tx_internal_throw(TransactionMessage&& m, TxHash txHash, const Address& fromAddr, DBCache& c)
 {
     auto stateHeight { state_height(m.from_id()) };
-    if (auto ah { m.asset_hash() }) {
-        auto sh { state_height(c.fetch_asset_throw(*ah).id) };
-        if (sh < stateHeight)
+    wrt::optional<AssetId> assetId;
+
+    // These two variables are set when the transaction uses non-wart token:
+    TokenId tokenId { TokenId::WART };
+    Funds_uint64 spend { 0 };
+
+    if (auto nw { m.nonwart_token_throw() }) {
+        auto aid { c.fetch_asset_throw(nw->assetHash).id };
+        assetId = aid;
+
+        // adjust state height (height that if rolled back earlier
+        // causes transaction to be reinserted into the mempool)
+        auto sh { state_height(aid) };
+        // sh is height at which asset was introduced into the chain
+        if (sh > stateHeight)
             stateHeight = sh;
+
+        if (auto& s { nw->spend }) { // set the non-wart variables
+            tokenId = aid.token_id(s->isLiquidity);
+            spend = s->amount;
+        }
     }
+
     TxHeight th(m.pin_height(), stateHeight);
 
     if (txids().contains(m.txid()))
@@ -334,7 +352,7 @@ TxHash Chainstate::insert_tx_internal(TransactionMessage&& m, TxHash txHash, con
                 throw Error(ESELFSEND);
         },
         [&](const auto&) {});
-    _mempool.insert_tx_throw(std::move(m), th, txHash, c);
+    _mempool.insert_tx_throw({ .msg { std::move(m) }, .assetId { assetId }, .height { th }, .hash { txHash }, .dbCache { c }, .nonwart { .tokenId { tokenId }, .spend { spend } } });
     return txHash;
 }
 

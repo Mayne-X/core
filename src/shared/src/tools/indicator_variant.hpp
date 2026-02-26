@@ -49,7 +49,7 @@ public:
         else
             throw parse_exception_generator_t::generate(o.error());
     }
-    static constexpr bool is_ascending()
+    static consteval bool ascending_indicators()
     {
         constexpr uint8_t values[] = { Ts::INDICATOR... };
         for (size_t i = 1; i < sizeof...(Ts); ++i) {
@@ -58,7 +58,7 @@ public:
         }
         return true;
     }
-    static_assert(is_ascending()); // indicators must be in ascending order to ensure they are all different
+    static_assert(ascending_indicators()); // indicators must be in ascending order to ensure they are all different
 
 
     using wrt::variant<Ts...>::variant;

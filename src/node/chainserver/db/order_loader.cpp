@@ -1,6 +1,5 @@
 #include "order_loader.hpp"
 #include "db/sqlite.hpp"
-#include "db/type_conv.hpp"
 
 OrderLoaderBase::OrderLoaderBase(sqlite::Statement& stmt)
     : stmt(&stmt)

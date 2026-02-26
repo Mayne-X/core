@@ -65,6 +65,7 @@ struct PoolLiquidity_uint64 : public BaseQuote_uint64 {
         quote.add_assert(quoteAdd);
         return baseDelta;
     }
+    constexpr static PoolLiquidity_uint64 zero() { return { 0, 0 }; }
 
 private:
     static uint64_t discount(uint64_t value, uint16_t feeE4)

@@ -36,6 +36,7 @@ json to_json(const api::JanushashNumber&);
 json to_json(const api::MempoolEntries&);
 json to_json(const api::MempoolUpdate&);
 json to_json(const api::MiningState&);
+json to_json(const api::Orders&);
 json to_json(const api::ParsedPrice&);
 json to_json(const api::Peerinfo&);
 json to_json(const api::PeerinfoConnections&);

@@ -1,4 +1,5 @@
 #include "defi/token/account_token.hpp"
+#include "defi/uint64/lazy_matching.hpp"
 #include "general/function_traits.hpp"
 #include "general/now.hpp"
 #include "helpers/cache.hpp"
@@ -86,7 +87,7 @@ auto State::api_search_asset(const api::AssetSearchArgs& args) const -> Result<a
 {
     api::AssetSearchResult result(args);
     for (auto& a : db.search_assets(args)) {
-        result.entries.push_back({ .name { a.name.to_string() }, .hash { a.hash }, .height { a.height }, .precision{a.precision} });
+        result.entries.push_back({ .name { a.name.to_string() }, .hash { a.hash }, .height { a.height }, .precision { a.precision } });
     };
     return result;
 }
@@ -119,6 +120,192 @@ State::api_get_block_binary(const api::HeightOrHash& hh) const
         return {};
     return api_get_block_binary(*h);
 }
+namespace {
+using MempoolOrderLoader = mempool::Mempool::OrderLoader;
+struct OrderInfo : public defi::Order_uint64 {
+    std::variant<TransactionId, TxHash> txid;
+    Funds_uint64 filled { 0 };
+    [[nodiscard]] constexpr bool is_from_mempool() const { return std::holds_alternative<TxHash>(txid); }
+    Funds_uint64 remaining() const
+    {
+        return diff_assert(amount, filled);
+    }
+    OrderInfo(const OrderData& od) // for entries that come from database
+        : defi::Order_uint64(od.order)
+        , txid(od.txid)
+        , filled(od.filled)
+    {
+    }
+    OrderInfo(const MempoolOrderLoader::Entry& e)
+        : defi::Order_uint64(e.swap().amount(), e.swap().limit())
+        , txid(e.hash())
+    {
+    }
+};
+
+template <bool ASCENDING>
+class MergeSortOrderLoader {
+    OrderLoader<ASCENDING> dbLoader;
+    MempoolOrderLoader loadFromMempool;
+
+    wrt::optional<OrderData> nextFromDb;
+    wrt::optional<MempoolOrderLoader::Entry> nextFromMempool;
+    std::vector<OrderInfo> loaded;
+
+    void load_next_from_db()
+    {
+        if (nextFromDb) // only load if last load was successsful
+            nextFromDb = dbLoader();
+    }
+    void load_next_mempool_order()
+    {
+        if (nextFromMempool)
+            nextFromMempool = loadFromMempool();
+    }
+    void push_back(OrderInfo o)
+    {
+        if (!loaded.empty()) {
+            if (ASCENDING)
+                assert(o.limit >= loaded.back().limit);
+            else
+                assert(o.limit <= loaded.back().limit);
+        }
+        loaded.push_back(std::move(o));
+    }
+
+public:
+    constexpr bool ascending() { return ASCENDING; }
+    MergeSortOrderLoader(OrderLoader<ASCENDING> loader, MempoolOrderLoader mempoolLoader)
+        : dbLoader(std::move(loader))
+        , loadFromMempool(std::move(mempoolLoader))
+    {
+        nextFromDb = dbLoader();
+        nextFromMempool = loadFromMempool();
+    }
+    const OrderInfo* operator()()
+    {
+        std::optional<bool> fromMempool;
+
+        // decide whether next element comes from mempool or from db
+        if (nextFromMempool) {
+            if (nextFromDb) {
+                if (ASCENDING) { // we need to pick smaller to find next element in ascending order
+                    fromMempool = nextFromMempool->swap().limit() < nextFromDb->order.limit;
+                } else { // we need to pick larger to find next element in descending order
+                    fromMempool = nextFromMempool->swap().limit() > nextFromDb->order.limit;
+                }
+            } else
+                fromMempool = true;
+        } else if (nextFromDb)
+            fromMempool = false;
+
+        if (fromMempool.has_value() == false)
+            return nullptr;
+
+        // load and consume the element.
+        if (*fromMempool) {
+            push_back(OrderInfo(*nextFromMempool));
+            load_next_mempool_order();
+        } else {
+            push_back(OrderInfo(*nextFromDb));
+            load_next_from_db();
+        }
+        return &loaded.back();
+    }
+    [[nodiscard]] auto fill_up_to(size_t N) &&
+    {
+        while (loaded.size() < N) {
+            if (!(*this)())
+                break;
+        }
+        return std::move(loaded);
+    }
+};
+
+template <typename Loader>
+class AggregateOrders {
+private:
+    Loader load;
+    const OrderInfo* loaded;
+
+private:
+    void load_next()
+    {
+        if (!loaded)
+            return;
+        loaded = load();
+    }
+
+public:
+    Loader&& loader() && { return std::move(load); }
+    AggregateOrders(Loader l)
+        : load(std::move(l))
+        , loaded(load())
+    {
+    }
+
+    defi::Order_uint64 load_next_order()
+    {
+        assert(loaded != nullptr);
+        defi::Order_uint64 out { loaded->remaining(), loaded->limit };
+        while (true) {
+            loaded = load();
+            if (!loaded)
+                break;
+            if (loaded->limit != out.limit) {
+                if (load.ascending()) {
+                    assert(loaded->limit > out.limit);
+                } else {
+                    assert(loaded->limit < out.limit);
+                }
+                break;
+            }
+            out.amount.add_assert(loaded->remaining());
+        }
+        return out;
+    }
+    wrt::optional<Price_uint64> next_price() const
+    {
+        if (loaded)
+            return loaded->limit;
+        return {};
+    }
+};
+
+}
+
+Result<api::Orders> State::api_list_orders(const api::AssetIdOrHash& h, size_t N) const
+{
+    auto d { normalize(h) };
+    if (!d)
+        return d.error();
+    auto assetId { d->id };
+    MergeSortOrderLoader<true> sellsAsc(db.base_order_loader_ascending(assetId), chainstate.mempool().sells_asc(assetId));
+    MergeSortOrderLoader<false> buysDesc(db.quote_order_loader_descending(assetId), chainstate.mempool().buys_desc(assetId));
+    auto aggregatedSells { AggregateOrders(std::move(sellsAsc)) };
+    auto aggregatedBuys { AggregateOrders(std::move(buysDesc)) };
+    auto pool { defi::PoolLiquidity_uint64::zero() };
+    if (auto dbpool { db.select_pool(assetId) })
+        pool = *dbpool;
+    auto res { defi::match_lazy(aggregatedSells, aggregatedBuys, pool) };
+    // res.toPool
+    api::Orders orders(d->precision);
+    auto to_api {
+        [](const OrderInfo& order) -> api::Order {
+            return {
+                .fromMempool = order.is_from_mempool(),
+                .price { order.limit },
+                .amount { order.amount },
+                .filled { order.filled },
+            };
+        }
+    };
+    for (auto& order : std::move(aggregatedBuys).loader().fill_up_to(N))
+        orders.buys.push_back(to_api(order));
+    for (auto& order : std::move(aggregatedSells).loader().fill_up_to(N))
+        orders.sells.push_back(to_api(order));
+    return orders;
+};
 
 Result<api::Block> State::api_get_block(const api::HeightOrHash& hh) const
 {
@@ -1319,7 +1506,7 @@ std::pair<mempool::Updates, TxHash>
 State::append_gentx(const TransactionCreate& m)
 {
     try {
-        auto txhash { chainstate.create_tx(m) };
+        auto txhash { chainstate.create_tx_throw(m) };
         auto log { chainstate.pop_mempool_updates() };
         spdlog::info("Added new \"{}\" transaction to mempool", m.tag());
         return { std::move(log), std::move(txhash) };
@@ -1432,12 +1619,11 @@ auto State::api_get_token_balance_recursive(AccountId aid, TokenId tid) const ->
             .locked { FundsDecimal(b.balance.locked, *prec) } } };
 }
 
-// wrt::optional<AssetDetail> State::db_lookup_token(const api::AssetIdOrHash&
-// token) const
-// {
-//     return token.visit([&](const auto& token) { return
-//     db.lookup_asset(token); });
-// }
+Result<AssetDetail> State::normalize(const api::AssetIdOrHash&
+        token) const
+{
+    return token.visit([&](const auto& token) { return db.lookup_asset(token); });
+}
 
 auto State::insert_txs(TxVec&& txs)
     -> std::pair<std::vector<Error>, mempool::Updates>

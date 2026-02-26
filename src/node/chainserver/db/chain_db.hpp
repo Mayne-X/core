@@ -322,8 +322,8 @@ public:
     ////////////////////
     // Asset functions
     [[nodiscard]] std::vector<AssetDetail> search_assets(const api::AssetSearchArgs&) const;
-    [[nodiscard]] wrt::optional<AssetDetail> lookup_asset(AssetId) const;
-    [[nodiscard]] wrt::optional<AssetDetail> lookup_asset(const AssetHash&) const;
+    [[nodiscard]] Result<AssetDetail> lookup_asset(AssetId) const;
+    [[nodiscard]] Result<AssetDetail> lookup_asset(const AssetHash&) const;
     void set_balance(BalanceId, Balance_uint64 bl);
     std::vector<std::pair<TokenId, Funds_uint64>> get_tokens(AccountId, size_t limit);
     [[nodiscard]] api::Richlist lookup_richlist(TokenId, size_t limit) const;

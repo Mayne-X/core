@@ -56,11 +56,11 @@ class VariantParser<std::variant<Types...>>{
 
 }
 
-messages::Msg Rcvbuffer::parse()
+msg::Msg Rcvbuffer::parse()
 {
     if (!verify()) 
         throw Error(ECHECKSUM);
-    using namespace messages;
+    using namespace msg;
     Reader r(*this);
-    return VariantParser<messages::Msg>::parse(type(),r);
+    return VariantParser<msg::Msg>::parse(type(),r);
 }

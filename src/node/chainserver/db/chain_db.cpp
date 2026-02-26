@@ -1024,10 +1024,10 @@ std::vector<AssetDetail> ChainDB::search_assets(const api::AssetSearchArgs& args
     }
 }
 
-wrt::optional<AssetDetail> ChainDB::lookup_asset(AssetId id) const
+Result<AssetDetail> ChainDB::lookup_asset(AssetId id) const
 {
     // , stmtAssetLookup(db, "SELECT (id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id) FROM Assets WHERE `id`=?")
-    return stmtAssetLookup.one(id).process([](auto& o) -> AssetDetail {
+    auto r { stmtAssetLookup.one(id).process([](auto& o) -> AssetDetail {
         return {
             AssetBasic {
                 .id = o[0],
@@ -1043,12 +1043,15 @@ wrt::optional<AssetDetail> ChainDB::lookup_asset(AssetId id) const
                 .parent_id = o[8],
             }
         };
-    });
+    }) };
+    if (r)
+        return *r;
+    return Error(EASSETIDNOTFOUND);
 }
 
-wrt::optional<AssetDetail> ChainDB::lookup_asset(const AssetHash& hash) const
+Result<AssetDetail> ChainDB::lookup_asset(const AssetHash& hash) const
 {
-    return stmtAssetLookupByHash.one(hash).process([](auto& o) -> AssetDetail {
+    auto r { stmtAssetLookupByHash.one(hash).process([](auto& o) -> AssetDetail {
         return {
             AssetBasic {
                 .id = o[0],
@@ -1064,7 +1067,10 @@ wrt::optional<AssetDetail> ChainDB::lookup_asset(const AssetHash& hash) const
                 .parent_id = o[8],
             }
         };
-    });
+    }) };
+    if (r)
+        return *r;
+    return Error(EASSETHASHNOTFOUND);
 }
 
 wrt::optional<BlockId> ChainDB::lookup_block_id(const HashView hash) const

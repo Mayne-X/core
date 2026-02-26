@@ -53,7 +53,7 @@ public:
     friend Writer& operator<<(Writer&, const RTCPeers&);
 };
 
-namespace messages {
+namespace msg {
 
 template <typename T>
 struct VectorRest : public std::vector<T> {

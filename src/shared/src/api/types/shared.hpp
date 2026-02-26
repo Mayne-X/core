@@ -251,6 +251,20 @@ struct AssetSearchArgs {
     std::string hashPrefix;
 };
 
+struct Order {
+    bool fromMempool; // true for mempool orders, false for chain orders
+    // TxHash hash;
+    Price_uint64 price;
+    Funds_uint64 amount;
+    Funds_uint64 filled;
+};
+struct Orders {
+    Orders(TokenPrecision basePrec):basePrec(basePrec){};
+    TokenPrecision basePrec;
+    std::vector<Order> buys;
+    std::vector<Order> sells;
+};
+
 struct AssetSearchResult {
     AssetSearchResult(AssetSearchArgs args)
         : args(std::move(args))

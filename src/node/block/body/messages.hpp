@@ -20,13 +20,10 @@ struct MsgBase : public CombineElements<TransactionIdEl, NonceReservedEl, Compac
     }
 };
 
-namespace messages {
 struct SpendToken {
-    AssetHash hash;
     bool isLiquidity;
     NonzeroFunds_uint64 amount;
 };
-}
 
 template <uint8_t indicator, typename Self, typename... Ts>
 class ComposeTransactionMessage : public MsgBase, public CombineElements<Ts..., SignatureEl> {
@@ -105,7 +102,7 @@ public:
     {
         // nothing to check since the amount() is already zero by type restriction
     }
-    [[nodiscard]] messages::SpendToken spend_token_throw() const { return messages::SpendToken { asset_hash(), is_liquidity(), amount() }; }
+    [[nodiscard]] SpendToken spend_token_throw() const { return SpendToken { is_liquidity(), amount() }; }
 };
 
 class AssetCreationMessage : public IsAssetCreate, public ComposeTransactionMessage<3, AssetCreationMessage, AssetSupplyEl, AssetNameEl> {
@@ -117,11 +114,11 @@ class LimitSwapMessage : public IsLimitSwap, public ComposeTransactionMessage<4,
     static_assert(has_asset_hash);
 
 public:
-    [[nodiscard]] wrt::optional<messages::SpendToken> spend_token_throw() const
+    [[nodiscard]] wrt::optional<SpendToken> spend_token_throw() const
     {
         if (buy())
             return {};
-        return messages::SpendToken { asset_hash(), false, amount() };
+        return SpendToken { false, amount() };
     }
     [[nodiscard]] Wart spend_wart_throw() const { return sum_throw(fee(), buy() ? Wart::from_funds(amount()) : Wart::zero()); }
     using parent_t::parent_t;
@@ -132,10 +129,10 @@ class LiquidityDepositMessage : public IsLiquidityDeposit, public ComposeTransac
 
 public:
     [[nodiscard]] Wart spend_wart_throw() const { return sum_throw(fee(), quote()); }
-    [[nodiscard]] tl::optional<messages::SpendToken> spend_token_throw() const
+    [[nodiscard]] tl::optional<SpendToken> spend_token_throw() const
     {
-        return base().nonzero().transform([&](NonzeroFunds_uint64 nz){
-            return messages::SpendToken { asset_hash(), false, nz };
+        return base().nonzero().transform([&](NonzeroFunds_uint64 nz) {
+            return SpendToken { false, nz };
         });
     }
     void check_throw()
@@ -150,9 +147,9 @@ class LiquidityWithdrawalMessage : public IsLiquidityWithdrawal, public ComposeT
     static_assert(has_asset_hash);
 
 public:
-    [[nodiscard]] messages::SpendToken spend_token_throw() const
+    [[nodiscard]] SpendToken spend_token_throw() const
     {
-        return { asset_hash(), true, amount() };
+        return { true, amount() };
     }
     using parent_t::parent_t;
 };
@@ -208,11 +205,15 @@ public:
     {
         return visit([](auto& m) { return m.spend_wart_throw(); });
     }
-    [[nodiscard]] auto spend_token_throw() const
+    [[nodiscard]] auto nonwart_token_throw() const
     {
-        return visit([]<typename T>(const T& m) -> wrt::optional<messages::SpendToken> {
+        struct Result {
+            const AssetHash& assetHash;
+            wrt::optional<SpendToken> spend;
+        };
+        return visit([]<typename T>(const T& m) -> wrt::optional<Result> {
             if constexpr (T::has_asset_hash) {
-                return m.spend_token_throw();
+                return Result { m.asset_hash(), m.spend_token_throw() };
             } else {
                 return {};
             }
@@ -240,7 +241,7 @@ public:
     [[nodiscard]] auto spend_token_assert() const
     {
         try {
-            return spend_token_throw();
+            return nonwart_token_throw();
         } catch (Error e) {
             assert(false);
         }

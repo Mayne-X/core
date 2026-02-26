@@ -181,7 +181,7 @@ private:
 
     ////////////////////////
     // Handling incoming messages
-    void dispatch_message(Conref cr, messages::Msg&& rb);
+    void dispatch_message(Conref cr, msg::Msg&& rb);
     void process_message(Conref cr, Rcvbuffer& rb);
     void handle_msg(Conref cr, PingMsg&&);
     void handle_msg(Conref cr, PingV2Msg&&);

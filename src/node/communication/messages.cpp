@@ -320,9 +320,9 @@ public:
 
 }
 
-namespace messages {
+namespace msg {
 size_t size_bound(uint8_t msgtype)
 {
-    return TypeExtractor<messages::Msg>::size_bound(msgtype);
+    return TypeExtractor<msg::Msg>::size_bound(msgtype);
 }
 }

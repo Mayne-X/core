@@ -115,19 +115,13 @@ public:
     auto& index() const { return _index; }
     auto& by_fee() const { return byFee; }
     [[nodiscard]] auto cache_validity() const { return txs.cache_validity(); }
-    std::pair<iter_t, bool> insert(Entry e);
     auto find(TransactionId id) const { return txs().find(id); }
     auto begin() const { return txs().begin(); }
     auto end() const { return txs().end(); }
-    MempoolTransactions(size_t maxSize = 10000)
-        : maxSize(maxSize)
-    {
-        assert(maxSize > 0);
-    }
-    [[nodiscard]] auto by_fee_inc_le(AccountId aid, wrt::optional<CompactUInt> threshold = {}) { return txs.by_fee_inc_le(aid, threshold); }
+
+    [[nodiscard]] auto by_fee_inc_le(AccountId aid, wrt::optional<CompactUInt> threshold = {}) const { return txs.by_fee_inc_le(aid, threshold); }
     auto max_size() const { return maxSize; }
     auto size() const { return txs.size(); }
-    void replay_updates(const Updates& log);
 
     // operator[]
     [[nodiscard]] auto operator[](const TransactionId& id) const
@@ -138,14 +132,71 @@ public:
     [[nodiscard]] auto sample(size_t, bool onlyWartTransfer) const -> std::vector<TxidWithFee>;
     [[nodiscard]] auto filter_new(const std::vector<TxidWithFee>&) const
         -> std::vector<TransactionId>;
-    void erase(iter_t);
     [[nodiscard]] auto get_transactions(size_t n, NonzeroHeight height, std::vector<TxHash>* hashes = nullptr) const -> std::vector<TransactionMessage>;
+
+    MempoolTransactions(size_t maxSize = 10000)
+        : maxSize(maxSize)
+    {
+        assert(maxSize > 0);
+    }
+
+    // non-const methods
+    void replay_updates(const Updates& log);
+    std::pair<iter_t, bool> insert(Entry e);
+    void erase(iter_t);
 };
 
 class Mempool {
     using Transactions = MempoolTransactions;
     using iter_t = Transactions::iter_t;
     using const_iter_t = Transactions::const_iter_t;
+
+    class Node {
+    public:
+        using vector_t = std::vector<iter_t>;
+
+    private:
+        mutable vector_t buys;
+        mutable vector_t sells;
+        auto& vector(bool buy) const
+        {
+            return buy ? buys : sells;
+        }
+        vector_t& vector(bool buy)
+        {
+            return buy ? buys : sells;
+        }
+        static vector_t& sort_and_get(vector_t& v, bool buy)
+        {
+            static constexpr auto by_price_inc { [](iter_t lhs, iter_t rhs) static {
+                return lhs->get<LimitSwapMessage>().limit() < rhs->get<LimitSwapMessage>().limit();
+            } };
+            static constexpr auto by_price_dec { [](iter_t lhs, iter_t rhs) static {
+                return lhs->get<LimitSwapMessage>().limit() > rhs->get<LimitSwapMessage>().limit();
+            } };
+            std::ranges::sort(v, buy ? by_price_dec : by_price_inc);
+            return v;
+        }
+
+    public:
+        void sort();
+
+        const vector_t& sorted_orders(bool buy) const
+        {
+            return sort_and_get(vector(buy), buy);
+        }
+        void push_back(bool buy, iter_t iter)
+        {
+            vector(buy).push_back(iter);
+        }
+        auto erase(bool buy, iter_t iter)
+        {
+            return std::erase(vector(buy), iter);
+        }
+    };
+    std::map<AssetId, Node> orders; // PERFORMANCE: use hash based map but not unordered_map as it is too slow, it would not be worth changing it.
+    void insert_swap(AssetId market, iter_t);
+    size_t erase_swap(AssetId market, iter_t);
 
 public:
     Mempool(const std::set<BlockVersion>& nextBlockversions,
@@ -160,9 +211,74 @@ public:
         return std::move(updates);
         updates.clear();
     }
-    Error insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& dbCache);
-    void insert_tx_throw(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& dbCache);
+    // Error insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& dbCache);
+    struct InsertParams {
+        TransactionMessage&& msg;
+        wrt::optional<AssetId> assetId; // if an assetHash parameter was involved, this holds the corresponding asset id
+        TxHeight height; // height for pruning on rollback
+        const TxHash& hash; // tx hash
+        chainserver::DBCache& dbCache;
+        struct Nonwart {
+            TokenId tokenId { TokenId::WART }; // if WART, means no nonwart token involved
+            Funds_uint64 spend { 0 };
+        } nonwart;
+    };
+    void insert_tx_throw(InsertParams);
 
+    using OrderVec = Node::vector_t;
+    class OrderLoader {
+        friend class Mempool;
+        const Node::vector_t* ptr;
+        size_t i { 0 };
+        OrderLoader(const Node::vector_t* ptr)
+            : ptr(ptr)
+        {
+        }
+
+    public:
+        class Entry {
+            iter_t iter;
+            Entry(iter_t iter)
+                : iter(iter)
+            {
+            }
+            friend OrderLoader;
+
+        public:
+            auto& hash() const { return iter->txhash; }
+            auto& swap() const { return iter->get<LimitSwapMessage>(); }
+        };
+        wrt::optional<Entry> operator()()
+        {
+            if (ptr) {
+                Entry out { (*ptr)[i++] };
+                if (i >= ptr->size()) {
+                    ptr = nullptr;
+                }
+                return out;
+            }
+            return {};
+        }
+    };
+
+private:
+    OrderLoader get_sorted_orders(AssetId market, bool buy) const
+    {
+        if (auto it { orders.find(market) }; it != orders.end()) {
+            return &it->second.sorted_orders(buy);
+        };
+        return nullptr;
+    }
+
+public:
+    OrderLoader buys_desc(AssetId market) const
+    {
+        return get_sorted_orders(market, true);
+    }
+    OrderLoader sells_asc(AssetId market) const
+    {
+        return get_sorted_orders(market, false);
+    }
     size_t on_constraint_update();
     void erase(TransactionId id);
     void set_free_balance(AccountToken, Funds_uint64 newBalance);
@@ -196,7 +312,7 @@ private:
         return i;
     }
     [[nodiscard]] std::pair<LockedBalance, wrt::optional<balance_iterator>> get_balance(AccountToken at, chainserver::DBCache&);
-    [[nodiscard]] wrt::optional<TokenFunds> token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const;
+    // [[nodiscard]] wrt::optional<TokenFunds> token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const;
     void erase_internal(Txset::const_iter_t);
     struct EraseResult {
         bool erasedWart;

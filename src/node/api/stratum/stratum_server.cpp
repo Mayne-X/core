@@ -5,18 +5,18 @@
 #include "api/interface.hpp"
 #include "block/header/header_impl.hpp"
 #include "nlohmann/json.hpp"
+#include "wrt/optional.hpp"
 #include <cassert>
 #include <iostream>
 #include <list>
 #include <memory>
-#include "wrt/optional.hpp"
 #include <uvw.hpp>
 #include <variant>
 
 using namespace std;
 
 namespace stratum {
-namespace messages {
+namespace msg {
 struct MiningSubscribe {
     int64_t id;
 };
@@ -173,7 +173,7 @@ OK SubscribeResponse(const std::array<uint8_t, 4>& extra2prefix, int64_t id)
 
 using message = std::variant<MiningSubscribe, MiningAuthorize, MiningSubmit>;
 
-wrt::optional<messages::message> parse(std::string_view v)
+wrt::optional<msg::message> parse(std::string_view v)
 {
     using namespace nlohmann;
     using array_t = json::array_t;
@@ -227,19 +227,19 @@ void Connection::on_message(std::string_view msg)
 void Connection::send_result(int64_t stratumId, wrt::optional<Error> result)
 {
     if (result.has_value()) {
-        write() << messages::OK(stratumId);
+        write() << msg::OK(stratumId);
     } else {
-        write() << messages::StratumError(stratumId, 40, result->strerror());
+        write() << msg::StratumError(stratumId, 40, result->strerror());
     }
 };
-using namespace stratum::messages;
+using namespace stratum::msg;
 
-void Connection::handle_message(messages::MiningSubscribe&& s)
+void Connection::handle_message(msg::MiningSubscribe&& s)
 {
     write() << SubscribeResponse(extra2prefix, s.id);
 }
 
-void Connection::handle_message(messages::MiningSubmit&& m)
+void Connection::handle_message(msg::MiningSubmit&& m)
 {
     if (!authorized) {
         write() << StratumError::Unauthorized(m.id);
@@ -273,7 +273,7 @@ Connection::~Connection()
     }
 }
 
-void Connection::handle_message(messages::MiningAuthorize&& m)
+void Connection::handle_message(msg::MiningAuthorize&& m)
 {
     auto pos = m.user.find(".");
     try {
@@ -308,7 +308,7 @@ void Connection::write_line(const std::string& line)
 
 void Connection::process_line()
 {
-    auto parsed = messages::parse(stratumLine);
+    auto parsed = msg::parse(stratumLine);
     if (parsed) {
         std::visit([this](auto&& message) {
             handle_message(std::move(message));

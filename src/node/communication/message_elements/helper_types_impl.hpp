@@ -5,7 +5,7 @@
 #include "serialization/byte_size.hpp"
 #include <cassert>
 
-namespace messages {
+namespace msg {
 
 template <typename T>
 inline size_t vector_bytesize(const std::vector<T>& v)
@@ -68,7 +68,7 @@ inline ReadRest<T>::ReadRest(Reader& r)
 }
 
 template <typename T>
-inline Writer& operator<<(Writer& w, const messages::Optional<T>& o)
+inline Writer& operator<<(Writer& w, const msg::Optional<T>& o)
 {
     if (o) {
         w << uint8_t(1) << *o;
@@ -79,7 +79,7 @@ inline Writer& operator<<(Writer& w, const messages::Optional<T>& o)
 }
 
 template <typename T>
-inline Writer& operator<<(Writer& w, const messages::VectorRest<T>& vec)
+inline Writer& operator<<(Writer& w, const msg::VectorRest<T>& vec)
 {
     for (auto& e : vec)
         w << e;
