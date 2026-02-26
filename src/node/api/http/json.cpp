@@ -840,10 +840,11 @@ json to_json(const api::Orders& orders)
     auto sells(json::array());
     auto order_json { [&](api::Order o, TokenPrecision inPrec) {
         return json {
+            { "txHash", serialize_hex(o.txHash)},
             { "confirmations", o.confirmations},
             { "amount", to_json(o.amount.to_decimal(inPrec)) },
             { "filled", o.filled.to_decimal(inPrec).to_string() },
-            { "limit", o.limit.to_double_adjusted(orders.basePrec) }
+            { "limit", limit_json(o.limit,orders.basePrec) }
         };
     } };
     for (auto& o : orders.buys)

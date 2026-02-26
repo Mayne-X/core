@@ -30,3 +30,33 @@ OrderLoaderBase::~OrderLoaderBase()
     if (stmt)
         stmt->reset();
 }
+
+OrderLoaderTxhashBase::OrderLoaderTxhashBase(sqlite::Statement& stmt)
+    : stmt(&stmt)
+{
+}
+wrt::optional<OrderDataWithTxhash> OrderLoaderTxhashBase::operator()() const
+{
+    wrt::optional<OrderDataWithTxhash> res;
+    auto r { stmt->next_row() };
+    if (r.has_value()) {
+        TransactionId txid {
+            TransactionId::Generator {
+                .accountId = r[1],
+                .pinHeight = r[2],
+                .nonceId = r[3] }
+        };
+        res = OrderDataWithTxhash { {r[0], txid, r[4], r[5], r[6]}, r[7] };
+    }
+    return res;
+}
+OrderLoaderTxhashBase::OrderLoaderTxhashBase(OrderLoaderTxhashBase&& other)
+{
+    stmt = other.stmt;
+    other.stmt = nullptr;
+}
+OrderLoaderTxhashBase::~OrderLoaderTxhashBase()
+{
+    if (stmt)
+        stmt->reset();
+}

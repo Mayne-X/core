@@ -284,6 +284,8 @@ ChainDB::ChainDB(const std::string& path)
     , stmtDeleteQuoteBuyOrderTxid(db, "DELETE FROM `" BUYORDERS_TABLE "` WHERE account_id = ? AND pin_height = ? AND nonce_id = ?")
     , stmtSelectBaseSellOrderAsc(db, "SELECT id, account_id, pin_height, nonce_id, totalBase, filledBase, limitPrice FROM `" SELLORDERS_TABLE "` WHERE asset_id=? ORDER BY limitPrice ASC, id ASC")
     , stmtSelectQuoteBuyOrderDesc(db, "SELECT id, account_id, pin_height, nonce_id, totalQuote, filledQuote, limitPrice FROM `" BUYORDERS_TABLE "` WHERE asset_id=? ORDER BY limitPrice DESC, id ASC")
+    , stmtSelectBaseSellOrderTxhashAsc(db, "SELECT o.id, account_id, pin_height, nonce_id, totalBase, filledBase, limitPrice, hash FROM `" SELLORDERS_TABLE "` `o` JOIN `" HISTORY_TABLE "` `h` ON h.id = o.id WHERE asset_id=? ORDER BY limitPrice ASC, o.id ASC")
+    , stmtSelectQuoteBuyOrderTxhashDesc(db, "SELECT o.id, account_id, pin_height, nonce_id, totalQuote, filledQuote, limitPrice, hash FROM `" BUYORDERS_TABLE "` `o` JOIN `" HISTORY_TABLE "` `h` ON h.id = o.id WHERE asset_id=? ORDER BY limitPrice DESC, o.id ASC")
     , stmtSelectBaseSell(db, "SELECT id, asset_id, totalBase, filledBase, limitPrice FROM `" SELLORDERS_TABLE "` WHERE account_id = ? AND pin_height = ? AND nonce_id = ?")
     , stmtSelectQuoteBuy(db, "SELECT id, asset_id, totalQuote, filledQuote, limitPrice FROM `" BUYORDERS_TABLE "` WHERE account_id = ? AND pin_height = ? AND nonce_id = ?")
     , stmtInsertCanceled(db, "INSERT INTO `" CANCELED_TABLE "` (id, account_id, pin_height, nonce_id) VALUES (?,?,?,?)")
@@ -740,6 +742,16 @@ OrderLoaderAscending ChainDB::base_order_loader_ascending(AssetId aid) const
 OrderLoaderDescending ChainDB::quote_order_loader_descending(AssetId aid) const
 {
     return { stmtSelectQuoteBuyOrderDesc.bind_multiple(aid) };
+}
+
+OrderLoaderTxhashAscending ChainDB::base_order_loader_txhash_ascending(AssetId aid) const
+{
+    return { stmtSelectBaseSellOrderTxhashAsc.bind_multiple(aid) };
+}
+
+OrderLoaderTxhashDescending ChainDB::quote_order_loader_txhash_descending(AssetId aid) const
+{
+    return { stmtSelectQuoteBuyOrderTxhashDesc.bind_multiple(aid) };
 }
 
 void ChainDB::insert_canceled(CancelId cid, AccountId aid, PinHeight ph, NonceId nid)

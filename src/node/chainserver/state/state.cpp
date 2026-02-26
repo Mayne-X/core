@@ -123,32 +123,33 @@ State::api_get_block_binary(const api::HeightOrHash& hh) const
 namespace {
 using MempoolOrderLoader = mempool::Mempool::OrderLoader;
 struct OrderInfo : public defi::Order_uint64 {
-    std::variant<HistoryId, TxHash> txid;
+    std::optional<HistoryId> hid;
+    TxHash txHash;
     Funds_uint64 filled { 0 };
-    [[nodiscard]] constexpr bool is_from_mempool() const { return std::holds_alternative<TxHash>(txid); }
     Funds_uint64 remaining() const
     {
         return diff_assert(amount, filled);
     }
-    OrderInfo(const OrderData& od) // for entries that come from database
+    OrderInfo(const OrderDataWithTxhash& od) // for entries that come from database
         : defi::Order_uint64(od.order)
-        , txid(od.id)
+        , hid(od.id)
+        , txHash(od.txHash)
         , filled(od.filled)
     {
     }
     OrderInfo(const MempoolOrderLoader::Entry& e)
         : defi::Order_uint64(e.swap().amount(), e.swap().limit())
-        , txid(e.hash())
+        , txHash(e.hash())
     {
     }
 };
 
 template <bool ASCENDING>
 class MergeSortOrderLoader {
-    OrderLoader<ASCENDING> dbLoader;
+    OrderLoaderTxhash<ASCENDING> dbLoader;
     MempoolOrderLoader loadFromMempool;
 
-    wrt::optional<OrderData> nextFromDb;
+    wrt::optional<OrderDataWithTxhash> nextFromDb;
     wrt::optional<MempoolOrderLoader::Entry> nextFromMempool;
     std::vector<OrderInfo> loaded;
 
@@ -175,7 +176,7 @@ class MergeSortOrderLoader {
 
 public:
     constexpr bool ascending() { return ASCENDING; }
-    MergeSortOrderLoader(OrderLoader<ASCENDING> loader, MempoolOrderLoader mempoolLoader)
+    MergeSortOrderLoader(OrderLoaderTxhash<ASCENDING> loader, MempoolOrderLoader mempoolLoader)
         : dbLoader(std::move(loader))
         , loadFromMempool(std::move(mempoolLoader))
     {
@@ -280,8 +281,8 @@ Result<api::Orders> State::api_list_orders(const api::AssetIdOrHash& h, size_t N
     if (!d)
         return d.error();
     auto assetId { d->id };
-    MergeSortOrderLoader<true> sellsAsc(db.base_order_loader_ascending(assetId), chainstate.mempool().sells_asc(assetId));
-    MergeSortOrderLoader<false> buysDesc(db.quote_order_loader_descending(assetId), chainstate.mempool().buys_desc(assetId));
+    MergeSortOrderLoader<true> sellsAsc(db.base_order_loader_txhash_ascending(assetId), chainstate.mempool().sells_asc(assetId));
+    MergeSortOrderLoader<false> buysDesc(db.quote_order_loader_txhash_descending(assetId), chainstate.mempool().buys_desc(assetId));
     auto aggregatedSells { AggregateOrders(std::move(sellsAsc)) };
     auto aggregatedBuys { AggregateOrders(std::move(buysDesc)) };
     auto pool { defi::PoolLiquidity_uint64::zero() };
@@ -292,14 +293,14 @@ Result<api::Orders> State::api_list_orders(const api::AssetIdOrHash& h, size_t N
     api::Orders orders(d->precision);
     auto to_api {
         [&](const OrderInfo& order) -> api::Order {
-            uint32_t confirmations{0};
-            if (std::holds_alternative<HistoryId>(order.txid)){
-                auto hid{std::get<HistoryId>(order.txid)};
-                auto hh{chainstate.history_height(hid)};
+            uint32_t confirmations { 0 };
+            if (order.hid) {
+                auto hh { chainstate.history_height(*order.hid) };
                 confirmations = chainlength() - hh + 1;
             }
             return {
                 .confirmations = confirmations,
+                .txHash{order.txHash},
                 .limit { order.limit },
                 .amount { order.amount },
                 .filled { order.filled },

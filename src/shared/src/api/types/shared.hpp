@@ -253,7 +253,7 @@ struct AssetSearchArgs {
 
 struct Order {
     uint32_t confirmations; // age of this order, 0 means it is in mempool
-    // TxHash hash;
+    TxHash txHash;
     Price_uint64 limit;
     Funds_uint64 amount;
     Funds_uint64 filled;

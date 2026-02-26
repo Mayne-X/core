@@ -234,6 +234,9 @@ public:
     [[nodiscard]] OrderLoaderAscending base_order_loader_ascending(AssetId) const;
     [[nodiscard]] OrderLoaderDescending quote_order_loader_descending(AssetId) const;
 
+    [[nodiscard]] OrderLoaderTxhashAscending base_order_loader_txhash_ascending(AssetId) const;
+    [[nodiscard]] OrderLoaderTxhashDescending quote_order_loader_txhash_descending(AssetId) const;
+
     /////////////////////
     // Canceled functions
 
@@ -437,6 +440,8 @@ private:
     Statement stmtDeleteQuoteBuyOrderTxid;
     mutable Statement stmtSelectBaseSellOrderAsc;
     mutable Statement stmtSelectQuoteBuyOrderDesc;
+    mutable Statement stmtSelectBaseSellOrderTxhashAsc;
+    mutable Statement stmtSelectQuoteBuyOrderTxhashDesc;
     mutable Statement stmtSelectBaseSell;
     mutable Statement stmtSelectQuoteBuy;
 

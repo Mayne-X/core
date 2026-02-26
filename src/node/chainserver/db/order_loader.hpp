@@ -1,5 +1,6 @@
 #pragma once
 #include "chainserver/db/types_fwd.hpp"
+#include "crypto/hash.hpp"
 #include "db/sqlite_fwd.hpp"
 #include "defi/order.hpp"
 
@@ -19,6 +20,9 @@ private:
     wrt::optional<OrderData> loaded;
 };
 
+struct OrderDataWithTxhash: public OrderData {
+    TxHash txHash;
+};
 template <bool ASCENDING>
 class OrderLoader : public OrderLoaderBase {
     using OrderLoaderBase::OrderLoaderBase;
@@ -26,3 +30,27 @@ class OrderLoader : public OrderLoaderBase {
 
 using OrderLoaderAscending = OrderLoader<true>;
 using OrderLoaderDescending = OrderLoader<false>;
+
+class OrderLoaderTxhashBase {
+    friend chain_db::ChainDB;
+    OrderLoaderTxhashBase(sqlite::Statement& stmt);
+
+public:
+    [[nodiscard]] wrt::optional<OrderDataWithTxhash> operator()() const;
+    OrderLoaderTxhashBase(const OrderLoaderTxhashBase&) = delete;
+    OrderLoaderTxhashBase& operator=(const OrderLoaderTxhashBase&) = delete;
+    OrderLoaderTxhashBase(OrderLoaderTxhashBase&& other);
+    ~OrderLoaderTxhashBase();
+
+private:
+    sqlite::Statement* stmt;
+    wrt::optional<OrderDataWithTxhash> loaded;
+};
+
+template <bool ASCENDING>
+class OrderLoaderTxhash : public OrderLoaderTxhashBase {
+    using OrderLoaderTxhashBase::OrderLoaderTxhashBase;
+};
+
+using OrderLoaderTxhashAscending = OrderLoaderTxhash<true>;
+using OrderLoaderTxhashDescending = OrderLoaderTxhash<false>;
