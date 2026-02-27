@@ -397,8 +397,8 @@ void push_history(api::Block& b, const std::pair<HistoryId, history::Entry>& p,
                 { .assetInfo { asset },
                     .poolBefore { d.pool_before() },
                     .poolAfter { d.pool_after() },
-                    .buySwaps {},
-                    .sellSwaps {} } });
+                    .buySwaps { d.buy_swaps() },
+                    .sellSwaps { d.sell_swaps() } } });
         },
         [&](const history::LiquidityDeposit& ld) {
             auto& asset { c.existing_asset(ld.asset_id()) };

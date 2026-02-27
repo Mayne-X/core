@@ -4,7 +4,8 @@
 #include "wallet.hpp"
 struct DataRetrievalContext {
     Endpoint endpoint;
-    Wallet wallet;
+    Wallet  wallet;
+
     auto address() const { return wallet.address.to_string(); }
     [[nodiscard]] TransactionCreateContext tx_create_context(NonceId nonceId, CompactUInt compactFee) const
     {
@@ -19,7 +20,6 @@ struct DataRetrievalContext {
     }
 
 public:
-
     auto get_balance(api::TokenIdOrSpec token) const
     {
         return endpoint.get_balance(address(), token);

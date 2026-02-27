@@ -1,5 +1,6 @@
 #include "tabs.hpp"
 #include "global.hpp"
+#include "plain_button.hpp"
 #include "popups.hpp"
 #include "time_format.hpp"
 #include <algorithm>
@@ -54,26 +55,11 @@ ConfirmationPopup::ConfirmationPopup(
 
 void AssetSelectWindow::on_change()
 {
-    if (assetName.validate(namePrefix)|| namePrefix.empty() )
+    if (assetName.validate(namePrefix) || namePrefix.empty())
         originalNamePrefix = namePrefix;
     else
         namePrefix = originalNamePrefix;
     clearCache = true;
-}
-namespace {
-auto PlainButton(std::string label, auto&& on_click)
-{
-
-    ButtonOption option;
-    option.transform = [](const EntryState& s) {
-        auto element = text(s.label);
-        if (s.focused) {
-            element = element | bold | inverted;
-        }
-        return element;
-    };
-    return Button(label, std::forward<decltype(on_click)>(on_click), option);
-}
 }
 AssetSelectWindow::AssetSelectWindow(GUI& gui)
     : ui::GUIComponent(gui)
@@ -267,6 +253,32 @@ AssetsTab::AssetsTab(GUI& gui)
     , selectedWindow(Make<AssetSelectedWindow>(gui))
 {
     Add(Container::Vertical({ selectWindow, selectedWindow }));
+}
+
+WalletTab::WalletTab(GUI& gui)
+    : MakeTab(gui, "Wallet")
+    , btnAddress(PlainButton(&address, [] { }))
+    , btnPubkey(PlainButton(&pubkey, [] { }))
+    , btnPrivkey(PlainButton("Show", [] { }))
+
+{
+    Add(Container::Vertical({ btnAddress, btnPubkey, btnPrivkey }));
+}
+
+Element WalletTab::OnRender()
+{
+    address = global::wallet().address.to_string();
+    pubkey = global::wallet().pubKey.to_string();
+    std::vector<std::vector<Element>> tableContent;
+    tableContent.push_back({ text("Address:"), btnAddress->Render() });
+    tableContent.push_back({ text("Public Key:"), btnPubkey->Render() });
+    tableContent.push_back({ text("Private Key:"), btnPrivkey->Render() });
+    ftxui::Table table(std::move(tableContent));
+    table.SelectRow(0).BorderBottom(EMPTY);
+    table.SelectColumn(0).BorderRight(EMPTY);
+    table.SelectColumn(1).BorderRight(EMPTY);
+    table.SelectColumn(2).BorderRight(EMPTY);
+    return table.Render();
 }
 
 Element LogTab::OnRender()

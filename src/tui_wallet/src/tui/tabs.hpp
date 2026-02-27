@@ -346,11 +346,13 @@ public:
 };
 
 struct WalletTab : public MakeTab<WalletTab> {
-
-    WalletTab(GUI& gui)
-        : MakeTab(gui, "Wallet")
-    {
-    }
+    std::string address;
+    std::string pubkey;
+    Component btnAddress;
+    Component btnPubkey;
+    Component btnPrivkey;
+    WalletTab(GUI& gui);
+    Element OnRender() override;
 };
 
 template <typename... Ts>
