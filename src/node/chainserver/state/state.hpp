@@ -123,7 +123,7 @@ public:
     auto api_search_asset(const api::AssetSearchArgs&) const -> Result<api::AssetSearchResult>;
 
     auto api_get_block(const api::HeightOrHash& h) const -> Result<api::Block>;
-    auto api_list_orders(const api::AssetIdOrHash&, size_t N=100) const -> Result<api::Orders>;
+    auto api_market_detail(const api::AssetIdOrHash&, size_t N=100) const -> Result<api::MarketDetail>;
     auto api_get_block_binary(const api::HeightOrHash& h) const -> wrt::optional<api::BlockBinary>;
     auto api_tx_cache() const -> const TransactionIds;
     size_t api_db_size() const;

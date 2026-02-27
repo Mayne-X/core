@@ -1,17 +1,12 @@
 #pragma once
 #include "pool.hpp"
 #include "types.hpp"
+#include "match_result.hpp"
+
 #include <numeric>
 
 namespace defi {
 
-struct FillResult_uint64 {
-    wrt::optional<NonzeroDelta_uint64> toPool;
-    BaseQuote_uint64 filled;
-    bool operator==(const FillResult_uint64&) const = default;
-};
-
-using MatchResult_uint64 = FillResult_uint64;
 
 class FilledAndPool {
 public:

@@ -270,13 +270,16 @@ json to_json(Wart w)
         { "E8", w.E8() }
     };
 }
-json to_json(const FundsDecimal& fd)
+json to_json(const FundsDecimal& fd, bool prec)
 {
-    return {
+    json out {
         { "str", fd.to_string() },
         { "u64", fd.funds.value() },
-        { "precision", fd.precision.value() }
     };
+    if (prec) {
+        out["precision"] = fd.precision.value();
+    }
+    return out;
 }
 namespace {
 json transaction_type(const char* label, json& j)
@@ -834,26 +837,43 @@ json to_json(const api::Peerinfo& pi)
     return elem;
 }
 
-json to_json(const api::Orders& orders)
+json to_json(const api::MarketDetail& mdet)
 {
-    auto buys(json::array());
-    auto sells(json::array());
-    auto order_json { [&](api::Order o, TokenPrecision inPrec) {
+    auto basePrec{mdet.base.precision};
+    auto quote(json::array());
+    auto base(json::array());
+    auto order_json { [&](const api::Order& o, TokenPrecision inPrec, bool convertToWart) {
         return json {
-            { "txHash", serialize_hex(o.txHash)},
-            { "confirmations", o.confirmations},
-            { "amount", to_json(o.amount.to_decimal(inPrec)) },
-            { "filled", o.filled.to_decimal(inPrec).to_string() },
-            { "limit", limit_json(o.limit,orders.basePrec) }
+            { "txHash", serialize_hex(o.txHash) },
+            { "confirmations", o.confirmations },
+            { "amount", convertToWart ? to_json(o.amount.as_wart()) : to_json(o.amount.to_decimal(inPrec), false) },
+            { "filled", convertToWart ? to_json(o.filled.as_wart()) : to_json(o.filled.to_decimal(inPrec), false) },
+            { "limit", limit_json(o.limit, basePrec) }
         };
     } };
-    for (auto& o : orders.buys)
-        buys.push_back(order_json(o, TokenPrecision::WART));
-    for (auto& o : orders.sells)
-        sells.push_back(order_json(o, orders.basePrec));
+    for (auto& o : mdet.buys)
+        quote.push_back(order_json(o, TokenPrecision::WART, true));
+    for (auto& o : mdet.sells)
+        base.push_back(order_json(o, basePrec, false));
+
+    auto& match { mdet.matchResult };
+    auto toPool([&] {
+        if (match.toPool) {
+            bool isQuote { match.toPool->is_quote() };
+            return json {
+                { "isQuote", isQuote },
+                { "amount", to_json(match.toPool->amount().to_decimal(isQuote ? TokenPrecision::WART : basePrec), false) },
+            };
+        }
+        return json(nullptr);
+    }());
     return {
-        {"buys", buys},
-        {"sells", sells}
+        { "baseAsset", to_json(mdet.base) },
+        { "swapOrders", {
+                      { "quoteWart", quote },
+                      { "baseAsset", base },
+                  } },
+        { "match", { { "filled", { { "baseAsset", to_json(match.filled.base.to_decimal(basePrec), false) }, { "quoteWart", to_json(match.filled.quote.as_wart()) } } }, { "toPool", toPool } } }
     };
 }
 

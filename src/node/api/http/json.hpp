@@ -11,7 +11,7 @@ namespace jsonmsg {
 using namespace nlohmann;
 
 json to_json(Wart);
-json to_json(const FundsDecimal&);
+json to_json(const FundsDecimal&, bool prec = true);
 json to_json(const Grid&);
 json to_json(const Hash&);
 json to_json(const PeerDB::BanEntry&);
@@ -36,7 +36,7 @@ json to_json(const api::JanushashNumber&);
 json to_json(const api::MempoolEntries&);
 json to_json(const api::MempoolUpdate&);
 json to_json(const api::MiningState&);
-json to_json(const api::Orders&);
+json to_json(const api::MarketDetail&);
 json to_json(const api::ParsedPrice&);
 json to_json(const api::Peerinfo&);
 json to_json(const api::PeerinfoConnections&);

@@ -275,7 +275,7 @@ public:
 
 }
 
-Result<api::Orders> State::api_list_orders(const api::AssetIdOrHash& h, size_t N) const
+Result<api::MarketDetail> State::api_market_detail(const api::AssetIdOrHash& h, size_t N) const
 {
     auto d { normalize(h) };
     if (!d)
@@ -288,9 +288,13 @@ Result<api::Orders> State::api_list_orders(const api::AssetIdOrHash& h, size_t N
     auto pool { defi::PoolLiquidity_uint64::zero() };
     if (auto dbpool { db.select_pool(assetId) })
         pool = *dbpool;
-    auto res { defi::match_lazy(aggregatedSells, aggregatedBuys, pool) };
+    auto match { defi::match_lazy(aggregatedSells, aggregatedBuys, pool) };
+    spdlog::info("filled.quote: {}, filled.base: {}", match.filled.quote.value(), match.filled.base.value());
+    if (match.toPool) {
+        spdlog::info("res.toPool: {} {}", match.toPool->is_quote(), match.toPool->amount().value());
+    }
     // res.toPool
-    api::Orders orders(d->precision);
+    api::MarketDetail orders(*d, match);
     auto to_api {
         [&](const OrderInfo& order) -> api::Order {
             uint32_t confirmations { 0 };

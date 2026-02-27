@@ -13,6 +13,7 @@
 #include "defi/order_id.hpp"
 #include "defi/token/asset.hpp"
 #include "defi/types.hpp"
+#include "defi/uint64/match_result.hpp"
 #include "defi/uint64/pool.hpp"
 #include "defi/uint64/price.hpp"
 #include "shared_fwd.hpp"
@@ -157,7 +158,7 @@ struct NewOrderData {
     Price_uint64 limit;
     bool buy;
 
-    FundsDecimal amount_decimal() const { return { amount, buy ? assetInfo.precision : Wart::precision }; }
+    FundsDecimal amount_decimal() const { return { amount, buy ? Wart::precision : assetInfo.precision }; }
 };
 
 struct MatchData {
@@ -258,9 +259,14 @@ struct Order {
     Funds_uint64 amount;
     Funds_uint64 filled;
 };
-struct Orders {
-    Orders(TokenPrecision basePrec):basePrec(basePrec){};
-    TokenPrecision basePrec;
+struct MarketDetail {
+    MarketDetail(AssetBasic base, defi::MatchResult_uint64 res)
+        : base(std::move(base))
+        , matchResult(res)
+    {
+    }
+    AssetBasic base;
+    defi::MatchResult_uint64 matchResult;
     std::vector<Order> buys;
     std::vector<Order> sells;
 };
