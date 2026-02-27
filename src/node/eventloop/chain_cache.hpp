@@ -25,7 +25,8 @@ public:
 class StageAndConsensus {
     using Append = chainserver::state_update::Append;
     using Fork = chainserver::state_update::Fork;
-    using RollbackData = chainserver::state_update::SignedSnapshotApply;
+    using SignedSnapshotApply = chainserver::state_update::SignedSnapshotApply;
+    using Rollback = chainserver::state_update::Rollback;
 
 public:
     StageAndConsensus(const ConsensusSlave& s);
@@ -34,7 +35,8 @@ public:
     [[nodiscard]] auto update_stage(Headerchain&&) -> ForkHeight;
     [[nodiscard]] auto update_consensus(Append&&) -> AppendMsg;
     [[nodiscard]] auto update_consensus(Fork&&) -> ForkMsg;
-    [[nodiscard]] auto update_consensus(const RollbackData&) -> wrt::optional<SignedPinRollbackMsg>;
+    [[nodiscard]] auto update_consensus(const SignedSnapshotApply&) -> wrt::optional<SignedPinRollbackMsg>;
+    auto update_consensus(const Rollback&) -> void;
 
     // const lookup functions
     [[nodiscard]] wrt::optional<ChaincacheMatch> lookup(wrt::optional<ChainPin>) const;

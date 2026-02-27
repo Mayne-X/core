@@ -218,7 +218,7 @@ private:
     auto handle_api(chainserver::MempoolConstraintUpdate&&) { return api::MempoolUpdate { .deletedTransactions = state.on_mempool_constraint_update() }; }
     auto handle_api(chainserver::FakeMine&& f) { return fake_mine(f.address()); }
     auto handle_api(chainserver::FakeMineToZero&&) { return fake_mine(Address::zero); }
-    auto handle_api(chainserver::Rollback&&) { return rollback(); }
+    auto handle_api(chainserver::Rollback&&) { return api_rollback(); }
 
     // void handle_event(PutMempool&&);
     void handle_event(LookupTxids&&);
@@ -236,7 +236,7 @@ private:
     void handle_event(DestroySubscriptions&&);
 
     void fake_mine(const Address&);
-    void rollback();
+    void api_rollback();
     void append_mined(const chainserver::MiningAppend&, bool verifyPOW);
     using StateUpdateWithAPIBlocks = chainserver::state_update::StateUpdateWithAPIBlocks;
     void on_chain_changed(StateUpdateWithAPIBlocks&&);

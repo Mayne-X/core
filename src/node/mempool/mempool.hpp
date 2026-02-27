@@ -208,8 +208,9 @@ public:
 
     [[nodiscard]] Updates pop_updates()
     {
-        return std::move(updates);
+        auto out(std::move(updates));
         updates.clear();
+        return out;
     }
     // Error insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& dbCache);
     struct InsertParams {

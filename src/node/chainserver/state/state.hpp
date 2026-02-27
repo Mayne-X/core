@@ -157,6 +157,7 @@ private:
 
 public:
     [[nodiscard]] auto apply_signed_snapshot(SignedSnapshot&& sp) -> wrt::optional<StateUpdateWithAPIBlocks>;
+    [[nodiscard]] auto api_rollback(Height h) -> wrt::optional<StateUpdateWithAPIBlocks>;
     //  stageUpdate;
     [[nodiscard]] auto append_mined_block(const Block&, bool verifyPOW = true) -> StateUpdateWithAPIBlocks;
 
@@ -166,7 +167,7 @@ private:
     api::Transaction api_dispatch_history(const TxHash&, HistoryId hid, history::HistoryVariant&&, NonzeroHeight) const;
 
     // transaction helpers
-    [[nodiscard]] chainserver::RollbackResult rollback(const Height newlength) const;
+    [[nodiscard]] chainserver::RollbackResult rollback(const Height newlength, std::string_view reason) const;
 
     // finalize helpers
     [[nodiscard]] auto commit_fork(RollbackResult&& rr, AppendBlocksResult&&) -> StateUpdate;

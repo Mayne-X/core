@@ -1,5 +1,6 @@
 #include "defi/token/account_token.hpp"
 #include "defi/uint64/lazy_matching.hpp"
+#include "general/format_plural.hpp"
 #include "general/function_traits.hpp"
 #include "general/now.hpp"
 #include "helpers/cache.hpp"
@@ -1308,12 +1309,12 @@ public:
 };
 } // namespace
 
-RollbackResult State::rollback(const Height newlength) const
+RollbackResult State::rollback(const Height newlength, std::string_view reason) const
 {
     assert(newlength < chainlength());
     const Height oldlength { chainlength() };
     auto n { chainlength() - newlength };
-    spdlog::info("Rolling back {} blocks to height {}", n, newlength.value());
+    spdlog::info("Rolling back {} to height {}, reason: {}", format_plural(n, "block"), newlength.value(), reason);
     const NonzeroHeight beginHeight = newlength.add1();
     auto endHeight(chainlength().add1());
 
@@ -1430,8 +1431,7 @@ auto State::apply_signed_snapshot(SignedSnapshot&& ssnew)
     // consider chainstate
     state_update::StateUpdateWithAPIBlocks res {
         .update {
-            .chainstateUpdate = state_update::SignedSnapshotApply {
-                .rollback {}, .signedSnapshot { *signedSnapshot } },
+            .chainstateUpdate = state_update::SignedSnapshotApply { {}, *signedSnapshot },
             .mempoolUpdates {},
         },
         .appendedBlocks {}
@@ -1439,17 +1439,17 @@ auto State::apply_signed_snapshot(SignedSnapshot&& ssnew)
     auto dbTx { db.transaction() };
     if (!signedSnapshot->compatible(chainstate.headers())) {
         assert(signedSnapshot->height() <= chainlength());
-        auto rb { rollback(signedSnapshot->height() - 1) };
+        auto rb { rollback(signedSnapshot->height() - 1, "signed snapshot") };
 
         std::lock_guard l(chainstateMutex);
         auto headers_ptr { blockCache.add_old_chain(chainstate, rb.deletionKey) };
 
         res.update.chainstateUpdate = state_update::SignedSnapshotApply {
-            .rollback { state_update::SignedSnapshotApply::Rollback {
+            { state_update::SignedSnapshotApply::Rollback::Data {
                 .deltaHeaders { chainstate.rollback(rb) },
                 .prevHeaders { std::move(headers_ptr) },
             } },
-            .signedSnapshot { *signedSnapshot }
+            *signedSnapshot,
         };
         res.update.mempoolUpdates = chainstate.pop_mempool_updates();
     } else {
@@ -1458,6 +1458,46 @@ auto State::apply_signed_snapshot(SignedSnapshot&& ssnew)
 
     db.set_consensus_work(chainstate.headers().total_work());
     db.set_signed_snapshot(*signedSnapshot);
+    dbTx.commit();
+    dbcache.clear();
+
+    return res;
+}
+
+auto State::api_rollback(Height h) -> wrt::optional<StateUpdateWithAPIBlocks>
+{
+    dbCacheValidity += 1;
+
+    using namespace state_update;
+
+    // consider chainstate
+    state_update::StateUpdateWithAPIBlocks res {
+        .update {
+            .chainstateUpdate = state_update::Rollback {
+                .rollback {} },
+            .mempoolUpdates {},
+        },
+        .appendedBlocks {}
+    };
+    auto dbTx { db.transaction() };
+    if (h < chainlength()) {
+        auto rb { rollback(h, "API") };
+
+        std::lock_guard l(chainstateMutex);
+        auto headers_ptr { blockCache.add_old_chain(chainstate, rb.deletionKey) };
+
+        res.update.chainstateUpdate = state_update::Rollback {
+            .rollback { state_update::Rollback::Data {
+                .deltaHeaders { chainstate.rollback(rb) },
+                .prevHeaders { std::move(headers_ptr) },
+            } },
+        };
+        res.update.mempoolUpdates = chainstate.pop_mempool_updates();
+    } else {
+        assert(chainstate.pop_mempool_updates().size() == 0);
+    };
+
+    db.set_consensus_work(chainstate.headers().total_work());
     dbTx.commit();
     dbcache.clear();
 

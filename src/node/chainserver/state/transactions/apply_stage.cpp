@@ -65,7 +65,7 @@ void ApplyStageTransaction::consider_rollback(Height shrinkLength)
     assert(!rb);
     assert(shrinkLength <= ccs.chainlength());
     if (shrinkLength < ccs.chainlength()) {
-        rb = ccs.rollback(shrinkLength);
+        rb = ccs.rollback(shrinkLength, "resolve fork");
         chainlength = rb->shrink.length;
     }
     assert(chainlength == shrinkLength);

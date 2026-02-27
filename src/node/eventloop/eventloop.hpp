@@ -400,9 +400,11 @@ private:
     using Append = chainserver::state_update::Append;
     using Fork = chainserver::state_update::Fork;
     using RollbackData = chainserver::state_update::SignedSnapshotApply;
+    using APIRollback = chainserver::state_update::Rollback;
     void update_chain(Append&&);
     void update_chain(Fork&&);
     void update_chain(RollbackData&&);
+    void update_chain(APIRollback&&);
     void coordinate_sync();
 
     // load test

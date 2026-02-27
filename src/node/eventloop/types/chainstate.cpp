@@ -48,8 +48,7 @@ ForkMsg ConsensusSlave::apply(Fork&& fork)
     return res;
 };
 
-
-auto ConsensusSlave::apply(const RollbackData& rd) -> wrt::optional<SignedPinRollbackMsg>
+auto ConsensusSlave::apply(const SignedSnapshotApply& rd) -> wrt::optional<SignedPinRollbackMsg>
 {
     wrt::optional<SignedPinRollbackMsg> res;
 
@@ -57,30 +56,34 @@ auto ConsensusSlave::apply(const RollbackData& rd) -> wrt::optional<SignedPinRol
     signedSnapshot = rd.signedSnapshot;
 
     // rollback
+    apply(*static_cast<const Rollback*>(&rd));
+
+    // set result
+    res = SignedPinRollbackMsg {
+        *signedSnapshot,
+        headerchain->length(),
+        headerchain->total_work(),
+        descriptor_
+    };
+    assert(signedSnapshot->compatible(*headerchain));
+    return res;
+}
+
+void ConsensusSlave::apply(const Rollback& rd)
+{
     if (rd.rollback) {
         auto& rollback { rd.rollback->deltaHeaders };
         assert(descriptor_ + 1 == rollback.descriptor);
         descriptor_ = rollback.descriptor;
-        headerchain->shrink(rollback.shrink.length);
         update_ratelimit_spare(rollback.shrink.length);
+        headerchain->shrink(rollback.shrink.length);
 
         // prevChain
         if (pinGenerator.use_count() > 1) {
             *pinGenerator = std::move(rd.rollback->prevHeaders);
         }
         pinGenerator.reset();
-
-        // set result
-        res = SignedPinRollbackMsg {
-            *signedSnapshot,
-            headerchain->length(),
-            headerchain->total_work(),
-            descriptor_
-        };
     }
-
-    assert(signedSnapshot->compatible(*headerchain));
-    return res;
 }
 
 Headerchain::pin_t ConsensusSlave::get_pin() const

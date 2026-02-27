@@ -60,7 +60,7 @@ ForkMsg StageAndConsensus::update_consensus(Fork&& fork)
     return msg;
 }
 
-auto StageAndConsensus::update_consensus(const RollbackData& rd) -> wrt::optional<SignedPinRollbackMsg>
+auto StageAndConsensus::update_consensus(const SignedSnapshotApply& rd) -> wrt::optional<SignedPinRollbackMsg>
 {
     auto msg { consensus.apply(rd) };
     if (rd.rollback) {
@@ -70,6 +70,17 @@ auto StageAndConsensus::update_consensus(const RollbackData& rd) -> wrt::optiona
         }
     }
     return msg;
+}
+
+void StageAndConsensus::update_consensus(const Rollback& rd)
+{
+    consensus.apply(rd);
+    if (rd.rollback) {
+        auto shrinkLength { rd.rollback->deltaHeaders.shrink.length };
+        if (scForkHeight.forked() && scForkHeight > shrinkLength) {
+            scForkHeight = { shrinkLength.value() + 1, false };
+        }
+    }
 }
 
 wrt::optional<ChaincacheMatch> StageAndConsensus::lookup(wrt::optional<ChainPin> p) const

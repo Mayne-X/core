@@ -396,6 +396,17 @@ void Eventloop::update_chain(Fork&& fork)
     do_requests();
 }
 
+void Eventloop::update_chain(APIRollback&& rd)
+{
+    chains.update_consensus(rd);
+    headerDownload.on_signed_snapshot_update(); // reuse functionality from signed_snapshot update
+    blockDownload.reset(); // block download function must be resetted after rollback
+
+    coordinate_sync();
+    syncdebug_log().info("init blockdownload update_chain (after rollback)");
+    initialize_block_download();
+    do_requests();
+}
 void Eventloop::update_chain(RollbackData&& rd)
 {
     // update consensus

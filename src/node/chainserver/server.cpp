@@ -292,8 +292,16 @@ void ChainServer::fake_mine(const Address& address)
     return append_mined({ std::move(reparsedBlock), "fakemine" }, false);
 }
 
-void ChainServer::rollback()
+void ChainServer::api_rollback()
 {
+    if (state.chainlength() == 0) {
+        spdlog::info("API can't roll back empty chain.");
+        return;
+    }
+    Height h(state.chainlength() - 1);
+    auto res { state.api_rollback(h) };
+    assert(res);
+    on_chain_changed(std::move(*res));
 }
 
 // void ChainServer::handle_event(PutMempool&& e)

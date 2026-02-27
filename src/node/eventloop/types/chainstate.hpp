@@ -6,7 +6,8 @@
 class ConsensusSlave {
     using Append = chainserver::state_update::Append;
     using Fork = chainserver::state_update::Fork;
-    using RollbackData = chainserver::state_update::SignedSnapshotApply;
+    using SignedSnapshotApply = chainserver::state_update::SignedSnapshotApply;
+    using Rollback = chainserver::state_update::Rollback;
 
 public:
     ConsensusSlave(wrt::optional<SignedSnapshot>, Descriptor descriptor, Headerchain headerchain);
@@ -27,7 +28,8 @@ public:
 
     [[nodiscard]] auto apply(Append&& append) -> std::pair<Height, AppendMsg>;
     [[nodiscard]] auto apply(Fork&& fork) -> ForkMsg;
-    [[nodiscard]] auto apply(const RollbackData&) -> wrt::optional<SignedPinRollbackMsg>;
+    [[nodiscard]] auto apply(const SignedSnapshotApply&) -> wrt::optional<SignedPinRollbackMsg>;
+    auto apply(const Rollback&) -> void;
     [[nodiscard]] auto ratelimit_spare() const { return ratelimitSpare; }
 
 private:
