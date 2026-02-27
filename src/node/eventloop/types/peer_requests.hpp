@@ -71,7 +71,7 @@ struct HeaderRequest : public BatchreqMsg, public IsRequest {
     HeaderRequest(std::shared_ptr<Descripted> pdescripted,
         const Pindata& pinnedChain,
         HeaderRange range,  extra_t e)
-        : BatchreqMsg { BatchSelector { pdescripted->descriptor, range.first(), uint16_t(range.length()) } }
+        : BatchreqMsg { HeaderBatchSelector { pdescripted->descriptor, range.first(), uint16_t(range.length()) } }
         , minReturn(range.length())
         , descripted(std::move(pdescripted))
         , extra(e)
@@ -99,14 +99,14 @@ struct HeaderRequest : public BatchreqMsg, public IsRequest {
 
     HeaderRequest(std::shared_ptr<Descripted> pdescripted,
         Batchslot slot, uint16_t minElements, Worksum ws)
-        : BatchreqMsg { BatchSelector { pdescripted->descriptor, slot.lower(), HEADERBATCHSIZE } }
+        : BatchreqMsg { HeaderBatchSelector { pdescripted->descriptor, slot.lower(), HEADERBATCHSIZE } }
         , minReturn(minElements)
         , descripted(std::move(pdescripted))
         , extra(ws)
     {
     }
     HeaderRequest(std::shared_ptr<Descripted> pdescripted, Batchslot slot, HeaderView h)
-        : BatchreqMsg { BatchSelector { pdescripted->descriptor, slot.lower(), HEADERBATCHSIZE } }
+        : BatchreqMsg { HeaderBatchSelector { pdescripted->descriptor, slot.lower(), HEADERBATCHSIZE } }
         , minReturn(HEADERBATCHSIZE)
         , descripted(std::move(pdescripted))
         , extra(Header(h))

@@ -61,7 +61,7 @@ public:
     State(ChainDB& b, BatchRegistry&, wrt::optional<SnapshotSigner> snapshotSigner);
 
     // concurrent methods
-    HeaderBatch get_headers_concurrent(BatchSelector selector) const;
+    HeaderBatch get_headers_concurrent(HeaderBatchSelector selector) const;
     wrt::optional<HeaderView> get_header_concurrent(Descriptor descriptor, Height height) const;
     ConsensusSlave get_chainstate_concurrent();
 

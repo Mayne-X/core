@@ -802,13 +802,13 @@ void State::garbage_collect()
     }
 }
 
-HeaderBatch State::get_headers_concurrent(BatchSelector s) const
+HeaderBatch State::get_headers_concurrent(HeaderBatchSelector s) const
 {
     std::lock_guard l(chainstateMutex);
     if (s.descriptor == chainstate.descriptor()) {
         return chainstate.headers().get_headers(s.header_range());
     } else {
-        return blockCache.get_batch_concurrent(s);
+        return blockCache.get_headerbatch_concurrent(s);
     }
 }
 

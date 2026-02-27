@@ -117,12 +117,12 @@ struct PongMsg : public MsgCombineReply<5, serialization::Vector16<TCPPeeraddr>,
     [[nodiscard]] const serialization::Vector16<TxidWithFee>& txids() const { return get<1>(); }
 };
 
-struct BatchreqMsg : public MsgCombineRequest<6, BatchSelector> {
+struct BatchreqMsg : public MsgCombineRequest<6, HeaderBatchSelector> {
     static constexpr size_t maxSize = 14;
     using Base::Base;
 
     std::string log_str() const;
-    [[nodiscard]] const BatchSelector& selector() const { return get<0>(); }
+    [[nodiscard]] const HeaderBatchSelector& selector() const { return get<0>(); }
 };
 
 struct BatchrepMsg : public MsgCombineReply<7, msg::ReadRest<HeaderBatch>> {

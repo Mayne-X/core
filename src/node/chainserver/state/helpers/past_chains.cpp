@@ -30,7 +30,7 @@ void BlockCache::schedule_discard(DeletionKey dk)
     schedule_gc(DiscardedStageSchedule {}, dk);
 }
 
-HeaderBatch BlockCache::get_batch_concurrent(const BatchSelector& s) const
+HeaderBatch BlockCache::get_headerbatch_concurrent(const HeaderBatchSelector& s) const
 {
     std::unique_lock l(mutex);
     auto iter = chains.find(s.descriptor);

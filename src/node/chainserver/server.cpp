@@ -14,7 +14,7 @@ bool ChainServer::is_busy()
     return switching;
 }
 
-HeaderBatch ChainServer::get_headers(BatchSelector selector)
+HeaderBatch ChainServer::get_headers(HeaderBatchSelector selector)
 {
     return state.get_headers_concurrent(selector);
 }

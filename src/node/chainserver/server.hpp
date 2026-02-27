@@ -55,7 +55,7 @@ class ChainServer : public std::enable_shared_from_this<ChainServer>, public ena
 
 public:
     // can be called concurrently
-    HeaderBatch get_headers(BatchSelector selector);
+    HeaderBatch get_headers(HeaderBatchSelector selector);
     wrt::optional<HeaderView> get_descriptor_header(Descriptor descriptor, Height height);
     ConsensusSlave get_chainstate();
 

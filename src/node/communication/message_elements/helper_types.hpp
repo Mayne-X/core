@@ -100,18 +100,18 @@ struct CurrentAndRequested {
     wrt::optional<Header> current;
 };
 
-struct BatchSelector {
+struct HeaderBatchSelector {
     Descriptor descriptor;
     NonzeroHeight startHeight;
     NonzeroHeight end() const { return startHeight + length; }
     uint16_t length;
     HeaderRange header_range() const { return HeaderRange(startHeight, startHeight + length); };
-    BatchSelector(Descriptor d, NonzeroHeight s, uint16_t l)
+    HeaderBatchSelector(Descriptor d, NonzeroHeight s, uint16_t l)
         : descriptor(d)
         , startHeight(s)
         , length(l) { };
-    BatchSelector(Reader& r);
-    friend Writer& operator<<(Writer&, const BatchSelector&);
+    HeaderBatchSelector(Reader& r);
+    friend Writer& operator<<(Writer&, const HeaderBatchSelector&);
     static constexpr size_t byte_size() { return Descriptor::byte_size() + NonzeroHeight::byte_size() + sizeof(length); }
 };
 

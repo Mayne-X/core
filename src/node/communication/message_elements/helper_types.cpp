@@ -95,13 +95,13 @@ size_t CurrentAndRequested::byte_size() const
     return s;
 }
 
-Writer& operator<<(Writer& w, const BatchSelector& s)
+Writer& operator<<(Writer& w, const HeaderBatchSelector& s)
 {
     return w << s.descriptor
              << s.startHeight
              << s.length;
 }
-BatchSelector::BatchSelector(Reader& r)
+HeaderBatchSelector::HeaderBatchSelector(Reader& r)
     : descriptor(r)
     , startHeight(Height(r).nonzero_throw(EBATCHHEIGHT))
     , length(r)
