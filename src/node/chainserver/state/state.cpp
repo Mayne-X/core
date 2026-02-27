@@ -285,16 +285,18 @@ Result<api::MarketDetail> State::api_market_detail(const api::AssetIdOrHash& h, 
     MergeSortOrderLoader<false> buysDesc(db.quote_order_loader_txhash_descending(assetId), chainstate.mempool().buys_desc(assetId));
     auto aggregatedSells { AggregateOrders(std::move(sellsAsc)) };
     auto aggregatedBuys { AggregateOrders(std::move(buysDesc)) };
-    auto pool { defi::PoolLiquidity_uint64::zero() };
+    const auto pool { [&] -> defi::Pool_uint64 {
     if (auto dbpool { db.select_pool(assetId) })
-        pool = *dbpool;
+        return *dbpool;
+    else
+        return defi::Pool_uint64{0,0,0}; }() };
     auto match { defi::match_lazy(aggregatedSells, aggregatedBuys, pool) };
     spdlog::info("filled.quote: {}, filled.base: {}", match.filled.quote.value(), match.filled.base.value());
     if (match.toPool) {
         spdlog::info("res.toPool: {} {}", match.toPool->is_quote(), match.toPool->amount().value());
     }
-    // res.toPool
-    api::MarketDetail orders(*d, match);
+    api::LiquidityPool p { pool.base, pool.quote.as_wart(), pool.shares_total() };
+    api::MarketDetail orders(*d, p, match);
     auto to_api {
         [&](const OrderInfo& order) -> api::Order {
             uint32_t confirmations { 0 };
@@ -304,7 +306,7 @@ Result<api::MarketDetail> State::api_market_detail(const api::AssetIdOrHash& h, 
             }
             return {
                 .confirmations = confirmations,
-                .txHash{order.txHash},
+                .txHash { order.txHash },
                 .limit { order.limit },
                 .amount { order.amount },
                 .filled { order.filled },

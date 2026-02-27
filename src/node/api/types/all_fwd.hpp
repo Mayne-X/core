@@ -29,6 +29,7 @@ struct PeerinfoConnections;
 struct Raw;
 struct TokenBalanceLookup;
 struct WartBalance;
+struct LiquidityPool;
 struct JanushashNumber;
 template <typename TxType>
 struct Temporal;

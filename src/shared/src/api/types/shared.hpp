@@ -70,6 +70,12 @@ struct WartBalanceLookup {
     WartBalance balance;
 };
 
+struct LiquidityPool {
+    Funds_uint64 base;
+    Wart quote;
+    Funds_uint64 shares;
+};
+
 struct JanushashNumber {
     double d;
 };
@@ -260,12 +266,14 @@ struct Order {
     Funds_uint64 filled;
 };
 struct MarketDetail {
-    MarketDetail(AssetBasic base, defi::MatchResult_uint64 res)
+    MarketDetail(AssetBasic base, LiquidityPool liquidityPool, defi::MatchResult_uint64 res)
         : base(std::move(base))
-        , matchResult(res)
+        , liquidityPool(std::move(liquidityPool))
+        , matchResult(std::move(res))
     {
     }
     AssetBasic base;
+    LiquidityPool liquidityPool;
     defi::MatchResult_uint64 matchResult;
     std::vector<Order> buys;
     std::vector<Order> sells;

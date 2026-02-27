@@ -33,6 +33,7 @@ json to_json(const api::HashrateTimeChart&);
 json to_json(const api::Head&);
 json to_json(const api::HeaderInfo&);
 json to_json(const api::JanushashNumber&);
+json to_json(const api::LiquidityPool&, TokenPrecision basePrecision, bool prec=true);
 json to_json(const api::MempoolEntries&);
 json to_json(const api::MempoolUpdate&);
 json to_json(const api::MiningState&);

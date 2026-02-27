@@ -869,6 +869,7 @@ json to_json(const api::MarketDetail& mdet)
     }());
     return {
         { "baseAsset", to_json(mdet.base) },
+        { "liquidityPool", to_json(mdet.liquidityPool, basePrec, false) },
         { "swapOrders", {
                             { "quoteWart", quote },
                             { "baseAsset", base },
@@ -916,6 +917,15 @@ json to_json(const api::JanushashNumber& jn)
 {
     return {
         { "janushashNumber", jn.d }
+    };
+}
+
+json to_json(const api::LiquidityPool& lp, TokenPrecision basePrecision, bool prec)
+{
+    return {
+        { "baseAsset", to_json(lp.base.to_decimal(basePrecision), prec) },
+        { "quoteWart", to_json(lp.quote) },
+        { "poolShares", to_json(lp.shares.as_wart()) }
     };
 }
 
