@@ -60,7 +60,7 @@ struct HeaderRequest : public BatchreqMsg, public IsRequest {
     uint16_t max_return() { return BatchreqMsg::selector().length; }
     using Pindata = Headerchain::pin_t;
     std::shared_ptr<Descripted> descripted;
-    Batch prefix;
+    HeaderBatch prefix;
     using extra_t = std::variant<Header, Worksum>;
     extra_t extra;
 
@@ -87,7 +87,7 @@ struct HeaderRequest : public BatchreqMsg, public IsRequest {
 
         // assign prefix
         Batchslot bs(range.first());
-        const Batch* b = (*pinnedChain)[bs];
+        const HeaderBatch* b = (*pinnedChain)[bs];
         assert(b);
         auto begin = b->begin();
         auto end = begin + (range.first() - bs.lower());

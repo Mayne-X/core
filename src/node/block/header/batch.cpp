@@ -28,7 +28,7 @@ Headervec::Headervec(const std::vector<HeaderView>& v)
     }
 }
 
-Worksum Batch::worksum(const Height offset, uint32_t maxElements) const
+Worksum HeaderBatch::worksum(const Height offset, uint32_t maxElements) const
 { // OK
     const uint32_t s = std::min((uint32_t)size(), maxElements);
     if (s == 0)
@@ -64,7 +64,7 @@ Worksum Batch::worksum(const Height offset, uint32_t maxElements) const
     return sum;
 }
 
-bool Batch::valid_inner_links()
+bool HeaderBatch::valid_inner_links()
 {
     if (size() <= 1)
         return true;

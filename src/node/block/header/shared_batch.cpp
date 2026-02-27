@@ -74,14 +74,14 @@ HeaderVerifier SharedBatch::verifier() const
     return *this;
 }
 
-SharedBatch BatchRegistry::share(Batch&& headerbatch, const SharedBatch& prev)
+SharedBatch BatchRegistry::share(HeaderBatch&& headerbatch, const SharedBatch& prev)
 {
     assert(headerbatch.complete());
     Worksum totalWork = prev.total_work() + headerbatch.worksum(prev.upper_height());
     return share(std::move(headerbatch), prev, totalWork);
 }
 
-SharedBatch BatchRegistry::share(Batch&& headerbatch, const SharedBatch& prev, Worksum totalWork)
+SharedBatch BatchRegistry::share(HeaderBatch&& headerbatch, const SharedBatch& prev, Worksum totalWork)
 {
     assert(headerbatch.complete());
     Header key(headerbatch.back());

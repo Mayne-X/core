@@ -21,7 +21,7 @@ Chainstate::Chainstate(const ChainDB& db, BatchRegistry& br)
 }
 
 Chainstate::Chainstate(
-    std::tuple<std::vector<Batch>, HistoryHeights, State64Heights> init,
+    std::tuple<std::vector<HeaderBatch>, HistoryHeights, State64Heights> init,
     const ChainDB& db,
     BatchRegistry& br)
     : db(db)

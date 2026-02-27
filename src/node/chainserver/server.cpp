@@ -14,7 +14,7 @@ bool ChainServer::is_busy()
     return switching;
 }
 
-Batch ChainServer::get_headers(BatchSelector selector)
+HeaderBatch ChainServer::get_headers(BatchSelector selector)
 {
     return state.get_headers_concurrent(selector);
 }
@@ -290,6 +290,10 @@ void ChainServer::fake_mine(const Address& address)
     BlockData bd(b.height, b.header, b.body.data);
     auto reparsedBlock { std::move(bd).parse_throw() };
     return append_mined({ std::move(reparsedBlock), "fakemine" }, false);
+}
+
+void ChainServer::rollback()
+{
 }
 
 // void ChainServer::handle_event(PutMempool&& e)

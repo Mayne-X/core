@@ -5,9 +5,9 @@
 namespace chainserver {
 using namespace std::chrono;
 using namespace std::chrono_literals;
-void BlockCache::schedule(std::variant<DiscardedStageSchedule, ChainSchedule> v, DeletionKey dk)
+void BlockCache::schedule_gc(std::variant<DiscardedStageSchedule, ChainSchedule> v, DeletionKey dk)
 {
-    auto discard_at { system_clock::now() + 10min };
+    auto discard_at { steady_clock::now() + 10min };
     assert(gcSchedule.try_emplace(discard_at,
                          DeleteScheduleEntry {
                              .data { std::move(v) },
@@ -21,16 +21,16 @@ std::shared_ptr<Headerchain> BlockCache::add_old_chain(const Chainstate& consens
     std::unique_lock l(mutex);
     auto [iter, inserted] = chains.try_emplace(consensus.descriptor(), headers_ptr);
     assert(inserted);
-    schedule(ChainSchedule { iter }, dk);
+    schedule_gc(ChainSchedule { iter }, dk);
     return headers_ptr;
 }
 
 void BlockCache::schedule_discard(DeletionKey dk)
 {
-    schedule(DiscardedStageSchedule {}, dk);
+    schedule_gc(DiscardedStageSchedule {}, dk);
 }
 
-Batch BlockCache::get_batch_concurrent(const BatchSelector& s) const
+HeaderBatch BlockCache::get_batch_concurrent(const BatchSelector& s) const
 {
     std::unique_lock l(mutex);
     auto iter = chains.find(s.descriptor);
@@ -62,7 +62,7 @@ void BlockCache::garbage_collect(ChainDB& db)
     if (chains.size() == 0)
         return;
 
-    auto now = std::chrono::system_clock::now();
+    auto now = std::chrono::steady_clock::now();
     for (auto iter { gcSchedule.begin() }; iter != gcSchedule.end();) {
         auto& [t, entry] { *iter };
         if (t > now)

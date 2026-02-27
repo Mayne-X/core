@@ -235,18 +235,18 @@ api::HashrateTimeChart Headerchain::hashrate_time_chart(uint32_t min, uint32_t m
     }
 }
 
-Batch Headerchain::get_headers(HeaderRange range) const
+HeaderBatch Headerchain::get_headers(HeaderRange range) const
 {
     auto end { std::min(*range.end(),length().add1()) };
     Height h { range.first() };
 
     if (end <= h)
-        return Batch {};
+        return HeaderBatch {};
 
     std::vector<uint8_t> tmp;
     while (h < end) {
         Batchslot bs(h);
-        const Batch* p = operator[](bs);
+        const HeaderBatch* p = operator[](bs);
         if (!p)
             break;
         uint32_t offset = h - bs.lower();
@@ -264,7 +264,7 @@ Batch Headerchain::get_headers(HeaderRange range) const
         assert(size_t(cpy_end - p->data()) <= p->size() * Header::byte_size());
         std::copy(cpy_begin, cpy_end, std::back_inserter(tmp));
     }
-    return Batch(std::move(tmp));
+    return HeaderBatch(std::move(tmp));
 }
 
 wrt::optional<HeaderView> Headerchain::get_header(Height h) const
@@ -285,8 +285,8 @@ ForkHeight fork_height(const Headerchain& h1, const Headerchain& h2, NonzeroHeig
 {
     Batchslot bs(startHeight);
     auto [f, _] = binary_forksearch(h1.completeBatches, h2.completeBatches, bs.index());
-    const Batch& b1 = (f < h1.completeBatches.size() ? h1.completeBatches[f].getBatch() : h1.incompleteBatch);
-    const Batch& b2 = (f < h2.completeBatches.size() ? h2.completeBatches[f].getBatch() : h2.incompleteBatch);
+    const HeaderBatch& b1 = (f < h1.completeBatches.size() ? h1.completeBatches[f].getBatch() : h1.incompleteBatch);
+    const HeaderBatch& b2 = (f < h2.completeBatches.size() ? h2.completeBatches[f].getBatch() : h2.incompleteBatch);
     auto [forkIndex, forked] = binary_forksearch(b1, b2);
     return { NonzeroHeight(uint32_t(f * HEADERBATCHSIZE + forkIndex + 1)), forked };
 }
@@ -323,7 +323,7 @@ Headerchain::Headerchain(const Headerchain& from, Height subheight)
     for (size_t i = 0; i < I; ++i) {
         completeBatches.push_back(from.completeBatches[i]);
     }
-    const Batch& b = (from.completeBatches.size() == I ? from.incompleteBatch : from.completeBatches[I].getBatch());
+    const HeaderBatch& b = (from.completeBatches.size() == I ? from.incompleteBatch : from.completeBatches[I].getBatch());
     incompleteBatch = b;
     incompleteBatch.shrink(subheight - bs.lower());
     initialize_worksum();

@@ -128,7 +128,7 @@ protected:
     std::vector<uint8_t> bytes;
 };
 
-class Batch : public Headervec {
+class HeaderBatch : public Headervec {
 public:
     using Headervec::Headervec;
     bool complete() const { return size() == HEADERBATCHSIZE; }
@@ -184,7 +184,7 @@ public:
     {
         return { *this, begin };
     }
-    HeaderSpan(Batchslot s, const Batch& b)
+    HeaderSpan(Batchslot s, const HeaderBatch& b)
         : batchOffset(s.offset())
         , batch(b)
     {
@@ -217,7 +217,7 @@ public:
 private:
     const Height batchOffset;
     uint32_t extraOffset { 0 };
-    const Batch& batch;
+    const HeaderBatch& batch;
 };
 
 class Grid : public Headervec {

@@ -802,7 +802,7 @@ void State::garbage_collect()
     }
 }
 
-Batch State::get_headers_concurrent(BatchSelector s) const
+HeaderBatch State::get_headers_concurrent(BatchSelector s) const
 {
     std::lock_guard l(chainstateMutex);
     if (s.descriptor == chainstate.descriptor()) {
@@ -1436,7 +1436,7 @@ auto State::apply_signed_snapshot(SignedSnapshot&& ssnew)
         },
         .appendedBlocks {}
     };
-    auto db_t { db.transaction() };
+    auto dbTx { db.transaction() };
     if (!signedSnapshot->compatible(chainstate.headers())) {
         assert(signedSnapshot->height() <= chainlength());
         auto rb { rollback(signedSnapshot->height() - 1) };
@@ -1458,7 +1458,7 @@ auto State::apply_signed_snapshot(SignedSnapshot&& ssnew)
 
     db.set_consensus_work(chainstate.headers().total_work());
     db.set_signed_snapshot(*signedSnapshot);
-    db_t.commit();
+    dbTx.commit();
     dbcache.clear();
 
     return res;

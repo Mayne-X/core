@@ -516,7 +516,7 @@ void Downloader::process_final(Lead_iter li, std::vector<Offender>& out)
     }
 }
 
-bool Downloader::advance_verifier(const Ver_iter* vi, const Lead_set& leaders, const Batch& b,
+bool Downloader::advance_verifier(const Ver_iter* vi, const Lead_set& leaders, const HeaderBatch& b,
     std::vector<Offender>& out)
 {
 
@@ -531,7 +531,7 @@ bool Downloader::advance_verifier(const Ver_iter* vi, const Lead_set& leaders, c
         return false;
     }
     HeaderVerifier& hv { a.value() };
-    auto sharedBatch { global().batchRegistry->share(Batch { b }, (vi ? (*vi)->second.sb : SharedBatch {})) };
+    auto sharedBatch { global().batchRegistry->share(HeaderBatch { b }, (vi ? (*vi)->second.sb : SharedBatch {})) };
 
     // update maximizer
     Worksum worksum = sharedBatch.total_work();
@@ -619,7 +619,7 @@ void Downloader::verify_queued(Queued_iter qi, const Lead_set& leaders, std::vec
     }
 }
 
-auto Downloader::on_response(Conref cr, HeaderRequest&& req, Batch&& res) -> std::vector<ChainOffender>
+auto Downloader::on_response(Conref cr, HeaderRequest&& req, HeaderBatch&& res) -> std::vector<ChainOffender>
 {
     // assert precondition
     assert(res.size() >= req.minReturn);
@@ -639,7 +639,7 @@ auto Downloader::on_response(Conref cr, HeaderRequest&& req, Batch&& res) -> std
     auto minWorkSnapshot = minWork;
     std::vector<Offender> offenders;
     req.prefix.append(res);
-    Batch& b(req.prefix);
+    HeaderBatch& b(req.prefix);
 
     if (req.is_partial_request()) {
         if (!is_leader(cr))

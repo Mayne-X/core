@@ -111,7 +111,7 @@ protected:
     TxHash insert_tx_internal_throw(TransactionMessage&&, TxHash, const Address& fromAddr, DBCache&);
     void prune_txids();
     void update_free_balances(const FreeBalanceUpdates& updates);
-    Chainstate(std::tuple<std::vector<Batch>, HistoryHeights, State64Heights> init,
+    Chainstate(std::tuple<std::vector<HeaderBatch>, HistoryHeights, State64Heights> init,
         const ChainDB& db, BatchRegistry& br);
 
 private: // private methods

@@ -24,7 +24,7 @@ struct ReqData;
 struct RequestNode {
     wrt::optional<Conref> cr;
     uint64_t originId;
-    Batch batch;
+    HeaderBatch batch;
 
     // methods
     bool filled() const { return batch.size() > 0; }
@@ -62,7 +62,7 @@ inline bool operator<(const Ver_iter& l1, const Ver_iter& l2)
 struct QueueBatchNode {
     wrt::optional<Conref> cr;
     uint64_t originId;
-    Batch batch;
+    HeaderBatch batch;
     Lead_set leaderRefs;
     std::vector<Conref> probeRefs;
     bool has_pending_request() { return cr.has_value(); }
@@ -97,7 +97,7 @@ public:
     const NonzeroSnapshot snapshot;
 
     struct {
-        Batch batch;
+        HeaderBatch batch;
         Worksum claimedWork;
     } finalBatch;
     Batchslot final_slot()
@@ -237,7 +237,7 @@ public:
     void on_request_expire(Conref cr, const HeaderRequest& msg);
     void on_proberep(Conref c, const Proberequest& req, const ProberepMsg&);
     void on_probe_request_expire(Conref cr);
-    [[nodiscard]] std::vector<ChainOffender> on_response(Conref cr, HeaderRequest&&, Batch&&);
+    [[nodiscard]] std::vector<ChainOffender> on_response(Conref cr, HeaderRequest&&, HeaderBatch&&);
     [[nodiscard]] wrt::optional<std::tuple<LeaderInfo, Headerchain>> pop_data();
 
 private:
@@ -255,7 +255,7 @@ private:
     std::vector<ChainOffender> filter_leadermismatch_offenders(std::vector<Offender>);
 
     // verifier related
-    bool advance_verifier(const Ver_iter* vi, const Lead_set&, const Batch& b,
+    bool advance_verifier(const Ver_iter* vi, const Lead_set&, const HeaderBatch& b,
         std::vector<Offender>& out);
     Ver_iter acquire_verifier(SharedBatch&&);
     void release_verifier(Ver_iter);

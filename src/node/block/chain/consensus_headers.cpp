@@ -282,7 +282,7 @@ ExtendableHeaderchain::ExtendableHeaderchain()
 }
 
 ExtendableHeaderchain::ExtendableHeaderchain(
-    std::vector<Batch>&& init,
+    std::vector<HeaderBatch>&& init,
     BatchRegistry& br)
 {
     // p.first

@@ -22,7 +22,7 @@ public:
     Height lower_height() const;
     wrt::optional<Batchslot> slot() const;
     wrt::optional<HeaderView> getHeader(size_t id) const;
-    const Batch& getBatch() const;
+    const HeaderBatch& getBatch() const;
     Worksum total_work() const;
     bool operator==(const SharedBatchView& rhs) const;
 
@@ -67,7 +67,7 @@ public:
     wrt::optional<HeaderView> getHeader(size_t id) const { return view().getHeader(id); }
     [[nodiscard]] wrt::optional<HeaderView> search_header_recursive(NonzeroHeight h) const;
     [[nodiscard]] HeaderView operator[](Height h) const { return getHeader(h - lower_height()).value(); }
-    const Batch& getBatch() const { return view().getBatch(); }
+    const HeaderBatch& getBatch() const { return view().getBatch(); }
     const Worksum total_work() const { return view().total_work(); }
     HeaderVerifier verifier() const;
     const SharedBatch& prev() const;
@@ -87,7 +87,7 @@ private: // private data;
 };
 
 struct Nodedata {
-    Nodedata(BatchRegistry& registry, Batch&& headerbatch,
+    Nodedata(BatchRegistry& registry, HeaderBatch&& headerbatch,
         const Worksum& totalWork, SharedBatch&& parent)
         : registry(registry)
         , batch(std::move(headerbatch))
@@ -108,7 +108,7 @@ struct Nodedata {
     }
     int64_t refcount = 0;
     BatchRegistry& registry;
-    Batch batch;
+    HeaderBatch batch;
     Worksum totalWork;
     SharedBatch prev;
     Batchslot slot;
@@ -139,7 +139,7 @@ inline wrt::optional<Batchslot> SharedBatchView::slot() const
     return {};
 }
 
-inline const Batch& SharedBatchView::getBatch() const
+inline const HeaderBatch& SharedBatchView::getBatch() const
 {
     assert(valid());
     return data.iter->second.batch;
@@ -169,7 +169,7 @@ inline const SharedBatch& SharedBatch::prev() const
 }
 
 struct HeaderSearchRecursive {
-    HeaderSearchRecursive(const SharedBatch& sb, const Batch& b)
+    HeaderSearchRecursive(const SharedBatch& sb, const HeaderBatch& b)
         : psb(&sb)
         , pb(&b)
     {
@@ -189,7 +189,7 @@ struct HeaderSearchRecursive {
 
 private:
     const SharedBatch* psb;
-    const Batch* pb;
+    const HeaderBatch* pb;
 };
 
 class BatchRegistry {
@@ -201,8 +201,8 @@ public:
     {
         assert(headers.size() == 0);
     }
-    [[nodiscard]] SharedBatch share(Batch&& headerbatch, const SharedBatch& prev);
-    [[nodiscard]] SharedBatch share(Batch&& headerbatch, const SharedBatch& prev, Worksum totalWork);
+    [[nodiscard]] SharedBatch share(HeaderBatch&& headerbatch, const SharedBatch& prev);
+    [[nodiscard]] SharedBatch share(HeaderBatch&& headerbatch, const SharedBatch& prev, Worksum totalWork);
     wrt::optional<SharedBatch> find_last(const Grid g, const wrt::optional<SignedSnapshot>&);
     // wrt::optional<SharedBatch> findLast(const std::vector<Batch>& batches, const wrt::optional<SignedSnapshot>&);
 

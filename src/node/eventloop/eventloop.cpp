@@ -1371,7 +1371,7 @@ void Eventloop::handle_msg(Conref cr, BatchreqMsg&& m)
     log_communication("{} handle batchreq [{},{}]", cr.str(), m.selector().startHeight.value(), (m.selector().startHeight + m.selector().length - 1).value());
     auto& s = m.selector();
     // get batch
-    Batch batch = [&]() {
+    HeaderBatch batch = [&]() {
         if (s.descriptor == consensus().descriptor()) {
             return consensus().headers().get_headers(s.header_range());
         } else {

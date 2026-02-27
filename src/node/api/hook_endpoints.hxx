@@ -436,6 +436,7 @@ public:
         GET_PRIV<"/loadtest/header_request/:conn_id">(loadtest_header);
         GET_PRIV<"/loadtest/disable/:conn_id">(loadtest_disable);
         GET_PRIV<"/debug/fakemine">(api_call<FakeMineToZero>);
+        GET_PRIV<"/debug/rollback">(api_call<Rollback>);
         GET_PRIV<"/debug/fakemine/:address">(api_call<FakeMine>);
     }
 };

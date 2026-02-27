@@ -25,7 +25,7 @@
 
 struct CreatorToken;
 struct AccountToken;
-class Batch;
+class HeaderBatch;
 class AssetName;
 class CancelId;
 struct SignedSnapshot;
@@ -180,7 +180,7 @@ public:
     // void setStateBalance(AccountId accountId, Funds balance);
     void insert_consensus(NonzeroHeight height, BlockId blockId, HistoryId historyCursor, StateId64 stateId);
 
-    std::tuple<std::vector<Batch>, HistoryHeights, State64Heights>
+    std::tuple<std::vector<HeaderBatch>, HistoryHeights, State64Heights>
     get_consensus_headers() const;
 
     // Consensus Functions

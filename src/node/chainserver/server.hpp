@@ -22,12 +22,13 @@
     XX(GetGrid, Grid)                                                            \
     XX(FakeMine, void, Address, address)                                         \
     XX(FakeMineToZero, void)                                                     \
+    XX(Rollback, void)                                                           \
     XX(GetTxcache, chainserver::TransactionIds)                                  \
     XX(GetBlock, api::Block, api::HeightOrHash, heightOrHash)                    \
     XX(GetMining, ChainMiningTask, Address, address)                             \
     XX(GetBlockBinary, api::BlockBinary, api::HeightOrHash, heightOrHash)        \
     XX(ListTokens, api::AssetSearchResult)                                       \
-    XX(MarketDetail, api::MarketDetail, api::AssetIdOrHash, asset)                  \
+    XX(MarketDetail, api::MarketDetail, api::AssetIdOrHash, asset)               \
     XX(CompleteToken, api::AssetSearchResult,                                    \
         std::string, namePrefix, std::string, hashPrefix)                        \
     XX(MempoolConstraintUpdate, api::MempoolUpdate)                              \
@@ -54,7 +55,7 @@ class ChainServer : public std::enable_shared_from_this<ChainServer>, public ena
 
 public:
     // can be called concurrently
-    Batch get_headers(BatchSelector selector);
+    HeaderBatch get_headers(BatchSelector selector);
     wrt::optional<HeaderView> get_descriptor_header(Descriptor descriptor, Height height);
     ConsensusSlave get_chainstate();
 
@@ -217,6 +218,7 @@ private:
     auto handle_api(chainserver::MempoolConstraintUpdate&&) { return api::MempoolUpdate { .deletedTransactions = state.on_mempool_constraint_update() }; }
     auto handle_api(chainserver::FakeMine&& f) { return fake_mine(f.address()); }
     auto handle_api(chainserver::FakeMineToZero&&) { return fake_mine(Address::zero); }
+    auto handle_api(chainserver::Rollback&&) { return rollback(); }
 
     // void handle_event(PutMempool&&);
     void handle_event(LookupTxids&&);
@@ -234,6 +236,7 @@ private:
     void handle_event(DestroySubscriptions&&);
 
     void fake_mine(const Address&);
+    void rollback();
     void append_mined(const chainserver::MiningAppend&, bool verifyPOW);
     using StateUpdateWithAPIBlocks = chainserver::state_update::StateUpdateWithAPIBlocks;
     void on_chain_changed(StateUpdateWithAPIBlocks&&);

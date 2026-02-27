@@ -22,7 +22,7 @@ public:
     };
     HeaderVerifier();
     HeaderVerifier(const Headerchain& hc, Height length);
-    HeaderVerifier(const HeaderVerifier&, const Batch&, Height heightOffset);
+    HeaderVerifier(const HeaderVerifier&, const HeaderBatch&, Height heightOffset);
     wrt::expected<HeaderVerifier, ChainError> copy_apply(const wrt::optional<SignedSnapshot>& sp, const HeaderSpan&) const;
     HeaderVerifier(const SharedBatch&);
     // void clear();
@@ -58,7 +58,7 @@ class ExtendableHeaderchain : public Headerchain {
 public:
     // Constructors
     ExtendableHeaderchain();
-    ExtendableHeaderchain(std::vector<Batch>&&, BatchRegistry& br);
+    ExtendableHeaderchain(std::vector<HeaderBatch>&&, BatchRegistry& br);
     ExtendableHeaderchain(const Headerchain&, Height height);
     ExtendableHeaderchain(Headerchain&&);
     ExtendableHeaderchain(const ExtendableHeaderchain&) = default;

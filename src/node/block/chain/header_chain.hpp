@@ -17,7 +17,7 @@ struct ShrinkInfo {
 struct HeaderchainAppend {
     std::vector<SharedBatchView> completeBatches;
     SharedBatch finalPin;
-    Batch incompleteBatch;
+    HeaderBatch incompleteBatch;
 };
 
 struct HeaderchainRollback {
@@ -28,14 +28,14 @@ struct HeaderchainRollback {
 struct HeaderchainFork {
     std::vector<SharedBatchView> completeBatches;
     SharedBatch finalPin;
-    Batch incompleteBatch;
+    HeaderBatch incompleteBatch;
     ShrinkInfo shrink;
     Descriptor descriptor;
 };
 
 class HeaderchainSkeleton {
 public:
-    HeaderchainSkeleton(SharedBatch finalPin, Batch incompleteBatch)
+    HeaderchainSkeleton(SharedBatch finalPin, HeaderBatch incompleteBatch)
         : finalPin(std::move(finalPin))
         , incompleteBatch(std::move(incompleteBatch)) { };
 
@@ -45,12 +45,12 @@ public:
     {
         return { finalPin, incompleteBatch };
     }
-    const Batch& incomplete_batch() { return incompleteBatch; }
+    const HeaderBatch& incomplete_batch() { return incompleteBatch; }
 
 protected:
     HeaderchainSkeleton() { };
     SharedBatch finalPin;
-    Batch incompleteBatch;
+    HeaderBatch incompleteBatch;
 };
 
 class Headerchain;
@@ -103,7 +103,7 @@ public:
     api::HashrateTimeChart hashrate_time_chart(uint32_t min, uint32_t max, uint32_t interval) const;
 
     size_t nonempty_batch_size() const { return completeBatches.size() + (incompleteBatch.size() > 0 ? 1 : 0); }
-    Batch get_headers(HeaderRange) const;
+    HeaderBatch get_headers(HeaderRange) const;
     GridView grid_view() const { return completeBatches; }
     wrt::optional<HeaderView> get_header(Height) const;
     [[nodiscard]] Height length() const
@@ -119,7 +119,7 @@ public:
     Headerchain& operator=(Headerchain&&) = default;
     const HeaderViewNoHash operator[](NonzeroHeight) const;
     Grid grid(Batchslot begin = Batchslot(0)) const;
-    const Batch* operator[](Batchslot bs) const
+    const HeaderBatch* operator[](Batchslot bs) const
     {
         size_t index = bs.index();
         if (index > completeBatches.size())

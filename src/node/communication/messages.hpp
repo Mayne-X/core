@@ -125,13 +125,13 @@ struct BatchreqMsg : public MsgCombineRequest<6, BatchSelector> {
     [[nodiscard]] const BatchSelector& selector() const { return get<0>(); }
 };
 
-struct BatchrepMsg : public MsgCombineReply<7, msg::ReadRest<Batch>> {
+struct BatchrepMsg : public MsgCombineReply<7, msg::ReadRest<HeaderBatch>> {
     static constexpr size_t maxSize = 4 + HEADERBATCHSIZE * 80;
     using Base::Base;
 
     std::string log_str() const;
-    [[nodiscard]] const Batch& batch() const { return get<0>(); }
-    Batch& batch() { return get<0>(); }
+    [[nodiscard]] const HeaderBatch& batch() const { return get<0>(); }
+    HeaderBatch& batch() { return get<0>(); }
 };
 
 struct ProbereqMsg : public MsgCombineRequest<8, Descriptor, NonzeroHeightParser<EPROBEHEIGHT>> {

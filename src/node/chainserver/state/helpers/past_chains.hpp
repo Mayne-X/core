@@ -7,7 +7,7 @@ class BlockCache {
 public:
     [[nodiscard]] std::shared_ptr<Headerchain> add_old_chain(const Chainstate&, DeletionKey); //OK
     void schedule_discard(DeletionKey); 
-    Batch get_batch_concurrent(const BatchSelector& s) const;
+    HeaderBatch get_batch_concurrent(const BatchSelector& s) const;
     wrt::optional<HeaderView> get_header_concurrent(Descriptor descriptor, Height height) const;
     void garbage_collect(ChainDB&);
     std::vector<Hash> get_hashes(const DescriptedBlockRange&) const;
@@ -34,9 +34,9 @@ private:
         std::variant<DiscardedStageSchedule, ChainSchedule> data;
         DeletionKey deletionKey;
     };
-    void schedule(std::variant<DiscardedStageSchedule, ChainSchedule>, DeletionKey);
+    void schedule_gc(std::variant<DiscardedStageSchedule, ChainSchedule>, DeletionKey);
 
-    using tp = std::chrono::system_clock::time_point;
+    using tp = std::chrono::steady_clock::time_point;
     std::map<tp, DeleteScheduleEntry> gcSchedule;
 };
 }

@@ -860,13 +860,13 @@ api::Richlist ChainDB::lookup_richlist(TokenId tokenId, size_t limit) const
     return out;
 }
 
-std::tuple<std::vector<Batch>, HistoryHeights, State64Heights> ChainDB::get_consensus_headers() const
+std::tuple<std::vector<HeaderBatch>, HistoryHeights, State64Heights> ChainDB::get_consensus_headers() const
 {
     uint32_t h = 1;
-    std::vector<Batch> batches;
+    std::vector<HeaderBatch> batches;
     HistoryHeights historyHeights;
     State64Heights accountHeights;
-    Batch b;
+    HeaderBatch b;
     stmtConsensusHeaders.for_each([&](sqlite::Row& r) {
         if (h != r.get<Height>(0)) { // corrupted
             throw std::runtime_error("Database corrupted, block height not consecutive");
