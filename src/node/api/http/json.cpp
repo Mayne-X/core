@@ -546,13 +546,13 @@ json to_json(const api::MempoolEntries& entries)
                 elem["type"] = api::block::TokenTransferData::label;
                 elem["toAddress"] = m.to_addr().to_string();
                 elem["amountU64"] = m.amount().value();
-                elem["assetHash"] = m.asset_hash();
+                elem["assetHash"] = m.asset_hash().hex_string();
                 elem["isLiquidity"] = m.is_liquidity();
                 elem["tokenSpec"] = api::TokenSpec(m.asset_hash(), m.is_liquidity()).to_string();
             },
             [&](const LimitSwapMessage& m) {
                 elem["type"] = api::block::NewOrderData::label;
-                elem["assetHash"] = m.asset_hash();
+                elem["assetHash"] = m.asset_hash().hex_string();
                 elem["buy"] = m.buy();
                 elem["amountRaw"] = m.amount().value();
                 elem["limitRaw"] = m.limit().to_double_raw();
