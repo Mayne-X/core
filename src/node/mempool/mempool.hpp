@@ -207,7 +207,7 @@ public:
     {
         set_allowed_blockversions(nextBlockversions);
     }
-
+    Funds_uint64 locked_balance(AccountId aid, TokenId tid) const;
     [[nodiscard]] Updates pop_updates()
     {
         auto out(std::move(updates));

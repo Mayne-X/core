@@ -63,7 +63,8 @@ struct Account {
 struct WartBalance {
     Wart total { Wart::zero() };
     Wart locked { Wart::zero() };
-    Wart free() const { return diff_assert(total, locked); }
+    Wart mempool { Wart::zero() };
+    Wart free() const { return diff_assert(diff_assert(total, locked), mempool); }
 };
 struct WartBalanceLookup {
     wrt::optional<Account> account;
@@ -370,10 +371,11 @@ struct Token {
 struct FundsBalance {
     FundsDecimal total;
     FundsDecimal locked;
+    FundsDecimal mempool;
     FundsDecimal free() const { return FundsDecimal(diff_assert(total.funds, locked.funds), total.precision); }
     static FundsBalance zero()
     {
-        return { FundsDecimal::zero(), FundsDecimal::zero() };
+        return { FundsDecimal::zero(), FundsDecimal::zero(), FundsDecimal::zero() };
     }
 };
 

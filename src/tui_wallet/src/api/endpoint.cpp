@@ -36,14 +36,13 @@ std::string Endpoint::http_get(const std::string& path) const
 
 nlohmann::json Endpoint::extract_data(const std::string& json) const
 {
-    auto parsed (
+    auto parsed(
         [&]() {
     try {
         return json::parse(json);
     } catch (...) {
         throw std::runtime_error("API response is malformed.");
-    } }()
-    );
+    } }());
     std::string error;
     auto iter = parsed.find("error");
     if (iter != parsed.end() && !iter->is_null()) {
@@ -116,6 +115,7 @@ struct GetBalanceData {
         };
         Bal total;
         Bal locked;
+        Bal mempool;
     } balance;
 };
 }
@@ -123,7 +123,7 @@ api::FundsBalance Endpoint::get_balance(const std::string& account, api::TokenId
 {
     std::string url = "/account/" + account + "/balance/" + token.to_string();
     auto p { parse_get<GetBalanceData>(url) };
-    return { .total { p.balance.total.funds() }, .locked { p.balance.locked.funds() } };
+    return { .total { p.balance.total.funds() }, .locked { p.balance.locked.funds() }, .mempool { p.balance.locked.funds() } };
 }
 
 api::FundsBalance Endpoint::wart_balance(const std::string& account) const

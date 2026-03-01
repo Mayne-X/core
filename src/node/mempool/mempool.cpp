@@ -164,6 +164,13 @@ std::vector<TransactionId> MempoolTransactions::filter_new(const std::vector<Txi
     return out;
 }
 
+Funds_uint64 Mempool::locked_balance(AccountId aid, TokenId tid) const
+{
+    auto iter{lockedBalances.find(AccountToken(aid,tid))};
+    if (iter == lockedBalances.end()) 
+        return Funds_uint64::zero();
+    return iter->second.locked();
+}
 auto Mempool::erase_internal(Txset::const_iter_t iter, balance_iterator wartIter, wrt::optional<balance_iterator> tokenIter) -> EraseResult
 {
 

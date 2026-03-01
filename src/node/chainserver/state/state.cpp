@@ -1582,7 +1582,7 @@ api::WartBalanceLookup State::api_get_wart_balance(api::AccountIdOrAddress accou
 
     return {
         .account { std::move(acc) },
-        .balance { .total { Wart::from_funds(balance.total.funds) }, .locked { Wart::from_funds(balance.locked.funds) } }
+        .balance { .total { Wart::from_funds(balance.total.funds) }, .locked { Wart::from_funds(balance.locked.funds) }, .mempool { Wart::from_funds(balance.mempool.funds) } }
     };
 }
 template <class Factory>
@@ -1794,7 +1794,8 @@ auto State::api_get_token_balance_recursive(AccountId aid, TokenId tid) const ->
     return { .lookupTrace { std::move(trace) },
         .balance {
             .total { FundsDecimal(b.balance.total, *prec) },
-            .locked { FundsDecimal(b.balance.locked, *prec) } } };
+            .locked { FundsDecimal(b.balance.locked, *prec) },
+            .mempool { FundsDecimal(chainstate.mempool().locked_balance(aid, tid), *prec) } } };
 }
 
 Result<AssetDetail> State::normalize(const api::AssetIdOrHash&

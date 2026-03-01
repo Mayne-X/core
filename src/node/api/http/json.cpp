@@ -921,13 +921,14 @@ json to_json(const TCPPeeraddr& a)
 json to_json(const api::WartBalance& b)
 {
     return {
-        { "total", to_json(b.total) }, { "locked", to_json(b.locked) }
+        { "total", to_json(b.total) }, { "locked", to_json(b.locked) },
+        { "mempool", to_json(b.mempool) }
     };
 }
 json to_json(const api::FundsBalance& b)
 {
     return {
-        { "total", to_json(b.total) }, { "locked", to_json(b.locked) }
+        { "total", to_json(b.total) }, { "locked", to_json(b.locked) }, { "mempool", to_json(b.mempool) }
     };
 }
 
