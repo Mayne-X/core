@@ -35,6 +35,7 @@
     XX(GetDBSize, api::DBSize)                                                   \
     XX(GetChainHead, api::ChainHead)                                             \
     XX(GetWartBalance, api::WartBalanceLookup, api::AccountIdOrAddress, account) \
+    XX(GetAccountMempool, api::MempoolEntries, api::AccountIdOrAddress, account) \
     XX(GetAccountOrders, std::vector<api::MarketOrders>,                         \
         api::AccountIdOrAddress, account)                                        \
     XX(GetAccountOrdersAsset, api::MarketOrders,                                 \
@@ -209,6 +210,7 @@ private:
     auto handle_api(chainserver::GetAccountOrdersAsset&& e) { return state.api_account_orders_market(e.account(), e.asset()); }
     auto handle_api(chainserver::GetBlock&& e) { return state.api_get_block(e.heightOrHash()); }
     auto handle_api(chainserver::GetGrid&&) { return state.get_headers().grid(); }
+    auto handle_api(chainserver::GetAccountMempool&& m) { return state.api_get_account_mempool(m.account(), 2000); }
     auto handle_api(chainserver::GetMempool&&) { return state.api_get_mempool(2000); }
     auto handle_api(chainserver::GetDBSize&&) { return api::DBSize { state.api_db_size() }; }
     auto handle_api(chainserver::GetHeader&& e) { return state.api_get_header(e.heightOrHash()); }

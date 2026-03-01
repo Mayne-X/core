@@ -112,6 +112,7 @@ public:
     auto api_get_head() const -> api::ChainHead;
     auto api_get_history(const api::AccountIdOrAddress& a, int64_t beforeId = 0x7fffffffffffffff) const -> wrt::optional<api::AccountHistory>;
     auto api_get_richlist(api::TokenIdOrSpec token, size_t limit) const -> Result<api::RichlistInfo>;
+    auto api_get_account_mempool(api::AccountIdOrAddress, size_t) const -> api::MempoolEntries;
     auto api_get_mempool(size_t) const -> api::MempoolEntries;
     auto api_get_tx(const TxHash& hash) const -> wrt::optional<api::Transaction>;
     auto api_get_transaction_minfee() -> api::TransactionMinfee;

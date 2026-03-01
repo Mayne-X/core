@@ -1826,6 +1826,15 @@ api::ChainHead State::api_get_head() const
     };
 }
 
+auto State::api_get_account_mempool(api::AccountIdOrAddress account, size_t) const -> api::MempoolEntries
+{
+    auto acc { normalize(account).value_or_throw() };
+    api::MempoolEntries out;
+    for (auto& e : chainstate.mempool().account_txs(acc.id))
+        out.entries.push_back({ *static_cast<const TransactionMessage*>(&e), e.txhash });
+    return out;
+}
+
 auto State::api_get_mempool(size_t n) const -> api::MempoolEntries
 {
     std::vector<TxHash> hashes;

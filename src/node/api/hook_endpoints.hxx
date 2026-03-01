@@ -400,6 +400,7 @@ public:
         GET_PUB<"/market/:market">(api_call<MarketDetail>);
         //
         SECTION("Account Endpoints");
+        GET_PUB<"/account/:account/mempool">(api_call<GetAccountMempool>);
         GET_PUB<"/account/:account/open_orders">(api_call<GetAccountOrders>);
         GET_PUB<"/account/:account/open_orders/:asset">(api_call<GetAccountOrdersAsset>);
         GET_PUB<"/account/:account/balance/:token">(api_call<GetTokenBalance>);
