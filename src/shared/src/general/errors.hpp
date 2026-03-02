@@ -182,13 +182,13 @@
     XX(310, EBADLIQUIDITYFLAG, "Cannot parse liquidity flag")                      \
     XX(311, EBADBUYFLAG, "Cannot parse buy flag")                                  \
     XX(312, EBADCANCELHEIGHT, "Cannot parse cancel height")                        \
-    XX(312, ECANCLHNOPINH, "Cancel height must be a pin height (multiple of 32)")  \
-    XX(313, EBADCANCELNONCE, "Cannot parse cancel nonce")                          \
-    XX(314, EBADASSETUNITS, "Cannot parse asset units")                            \
-    XX(315, EBADASSETPRECISION, "Cannot parse asset precision")                    \
-    XX(316, EBADHEADER, "Cannot parse header")                                     \
-    XX(317, EHTTPREQUEST, "HTTP request failed")                                   \
-    XX(318, EINVJSON, "Invalid JSON received")                                     \
+    XX(313, ECANCLHNOPINH, "Cancel height must be a pin height (multiple of 32)")  \
+    XX(314, EBADCANCELNONCE, "Cannot parse cancel nonce")                          \
+    XX(315, EBADASSETUNITS, "Cannot parse asset units")                            \
+    XX(316, EBADASSETPRECISION, "Cannot parse asset precision")                    \
+    XX(317, EBADHEADER, "Cannot parse header")                                     \
+    XX(318, EHTTPREQUEST, "HTTP request failed")                                   \
+    XX(319, EINVJSON, "Invalid JSON received")                                     \
     XX(1000, ESIGTERM, "Received SIGTERM")                                         \
     XX(1001, ESIGHUP, "Received SIGHUP")                                           \
     XX(1002, ESIGINT, "Received SIGINT")                                           \
