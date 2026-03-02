@@ -192,6 +192,7 @@ PinHeight JSONConverter::cancel_height() const
         auto h { Height(ch).pin_height() };
         if (h)
             return *h;
+        throw Error(ECANCLHNOPINH);
     } catch (...) {
     }
     throw Error(EBADCANCELHEIGHT);

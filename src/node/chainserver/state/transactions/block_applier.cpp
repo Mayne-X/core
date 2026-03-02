@@ -1169,7 +1169,7 @@ private:
                         .ownerAccountId { ac.origin.id },
                         .supply { ac.supply() },
                         .groupId { id.token_id() },
-                        .parentId { TokenId { 0 } },
+                        .parentId { },
                         .name { ac.asset_name() },
                         .hash { AssetHash(TxHash(verified.hash)) },
                         .data {}

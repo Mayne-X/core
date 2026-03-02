@@ -164,6 +164,14 @@ struct Binder {
         : stmt(stmt)
     {
     }
+    template<typename T>
+    auto bind(int i, const wrt::optional<T>& a)
+    {
+        if (a)
+            bind(i,*a);
+        else
+            stmt.bind(i); // binds null
+    }
     auto bind(int i, const auto& a)
     {
         bind_param(stmt, i, bind_convert::convert(a));

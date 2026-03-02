@@ -16,7 +16,7 @@ struct AssetData {
     AccountId ownerAccountId;
     FundsDecimal supply;
     TokenId groupId;
-    TokenId parentId;
+    wrt::optional<TokenId> parentId;
     AssetName name;
     AssetHash hash;
     std::vector<uint8_t> data;
