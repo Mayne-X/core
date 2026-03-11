@@ -26,7 +26,7 @@ void TransferPopup::on_create()
 {
     // Parse text fields
     auto nId { try_parse<uint32_t>(editNonceId.get()->content) };
-    auto amt { Funds_uint64::parse(editAmount.get()->content, token.prec()).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
+    auto amt { Funds_uint64::parse(editAmount.get()->content, token.decimals()).and_then([](Funds_uint64 f) { return f.nonzero(); }) };
     auto toAddress { Address::parse(editToAddr.get()->content) };
 
     // Wart itself has no liquidity
@@ -40,7 +40,7 @@ void TransferPopup::on_create()
         .title { "Transfer" },
         .entries {
             { "Token: ", token.to_string() },
-            { "Amount (" + token.pretty_name() + "): ", amt->to_decimal(token.prec()).to_string() },
+            { "Amount (" + token.pretty_name() + "): ", amt->to_decimal(token.decimals()).to_string() },
             { "Destination: ", toAddress->to_string() },
             { "Fee (WART): ", fee.value().to_string() },
             { "NonceId: ", std::to_string(*nId) },
@@ -73,7 +73,7 @@ void TransferPopup::on_create()
 TransferPopup::TransferPopup(GUI& gui, TokenInfo token)
     : GUIComponent(gui)
     , token(std::move(token))
-    , amount(token.prec())
+    , amount(token.decimals())
     , editAmount(ui::LabeledValidated("Amount:  ", amount.validator()))
     , editToAddr(ui::LabeledValidated("Destination: ", validate_address))
     , editFee(ui::LabeledValidated("Fee (WART): ", fee.validator()))
@@ -114,7 +114,7 @@ void CreatePopup::on_create()
         .entries {
             { "Asset Name: ", assetName.value().to_string() },
             { "Total Supply: ", assetSupply.value().to_string() },
-            { "Precision: ", assetSupply.value().precision.to_string() },
+            { "Decimals: ", assetSupply.value().decimals.to_string() },
             { "Fee (WART): ", fee.value().to_string() },
             { "NonceId: ", nonce.value().to_string() },
         } } };
@@ -139,7 +139,7 @@ void CreatePopup::on_create()
 void CreatePopup::on_cancel() { closed = true; }
 Element CreatePopup::OnRender()
 {
-    auto prec { assetSupply.has_value() ? assetSupply.value().precision : TokenPrecision(0) };
+    auto prec { assetSupply.has_value() ? assetSupply.value().decimals : TokenDecimals(0) };
     return vbox(
         { window(text("Create Asset"),
               vbox({ editName->Render(),
@@ -158,7 +158,7 @@ void SwapPopup::on_create()
     auto wartCaption { format_token_caption(api::TokenSpec::WART, "Wart") };
 
     auto nId { try_parse<uint32_t>(editNonceId.get()->content) };
-    auto l { Price_uint64::from_string_adjusted(editLimit.get()->content, asset.precision) };
+    auto l { Price_uint64::from_string_adjusted(editLimit.get()->content, asset.decimals) };
 
     if (!nId || !fee || !amount.has_value() || !l)
         return;
@@ -170,8 +170,8 @@ void SwapPopup::on_create()
                 is_buy() ? wartCaption : assetCaption },
             { "To Token: ",
                 is_buy() ? assetCaption : wartCaption },
-            { "Amount: ", amount.value().to_decimal(asset.precision).to_string() },
-            { "Limit Price: ", std::to_string(l->to_double_adjusted(asset.precision)) },
+            { "Amount: ", amount.value().to_decimal(asset.decimals).to_string() },
+            { "Limit Price: ", std::to_string(l->to_double_adjusted(asset.decimals)) },
             { "Fee (WART): ", fee.value().to_string() } } } };
     auto work {
         [asset = asset, nonceId = NonceId(*nId), isBuy = is_buy(), compactFee = fee.value(), amount = amount.value(), limit = *l] -> NotificationData {
@@ -192,9 +192,9 @@ void SwapPopup::on_create()
 void SwapPopup::on_cancel() { closed = true; }
 Element SwapPopup::OnRender()
 {
-    this->amount.set_prec(is_buy() ? TokenPrecision::WART : asset.precision);
+    this->amount.set_prec(is_buy() ? TokenDecimals::WART : asset.decimals);
     editAmount->validate();
-    editLimit->set_validator(LimitValidator(asset.precision, !is_buy()));
+    editLimit->set_validator(LimitValidator(asset.decimals, !is_buy()));
     editAmount->label = std::string("Amount (") + (is_buy() ? "WART" : asset.name) + "): ";
     editLimit->label = "Limit (" + std::string(is_buy() ? "MAX" : "MIN") + " Price): ";
     return vbox(
@@ -211,7 +211,7 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
     , swap_directions { "BUY " + asset.name + " WITH WART",
         "SELL " + asset.name + " FOR WART" }
     , side_selected(buy ? 0 : 1)
-    , amount(is_buy() ? asset.precision : TokenPrecision::WART)
+    , amount(is_buy() ? asset.decimals : TokenDecimals::WART)
     , editAmount(ui::LabeledValidated("Amount:  ", amount.validator()))
     , editLimit(ui::LabeledValidated("Limit Price:  "))
     , editFee(ui::LabeledValidated("Fee (WART):  ", fee.validator()))
@@ -225,7 +225,7 @@ SwapPopup::SwapPopup(GUI& gui, AssetInfo a, bool buy)
 }
 void FarmPopup::on_create()
 {
-    auto precision { is_deposit() ? asset.precision : TokenPrecision::LIQUIDITY };
+    auto decimals { is_deposit() ? asset.decimals : TokenDecimals::LIQUIDITY };
     auto nId { try_parse<uint32_t>(editNonceId.get()->content) };
 
     if ((is_deposit() && !wart) || !amount || !fee || !nId)
@@ -238,9 +238,9 @@ void FarmPopup::on_create()
     };
     if (is_deposit()) {
         properties.entries.push_back({ "Amount (WART): ", wart.value().to_string() });
-        properties.entries.push_back({ "Amount (" + asset.token(false).pretty_name() + "): ", amount.value().to_decimal(precision).to_string() });
+        properties.entries.push_back({ "Amount (" + asset.token(false).pretty_name() + "): ", amount.value().to_decimal(decimals).to_string() });
     } else {
-        properties.entries.push_back({ "Amount (" + asset.token(true).pretty_name() + "): ", amount.value().to_decimal(precision).to_string() });
+        properties.entries.push_back({ "Amount (" + asset.token(true).pretty_name() + "): ", amount.value().to_decimal(decimals).to_string() });
     }
     properties.entries.push_back({ "Fee (WART): ", fee.value().to_string() });
     properties.entries.push_back({ "NonceId: ", std::to_string(*nId) });
@@ -287,7 +287,7 @@ FarmPopup::FarmPopup(GUI& gui, AssetInfo a, bool deposit)
     , liquidity_actions { "DEPOSIT LIQUIDITY",
         "WITHDRAW LIQUIDITY" }
     , side_selected(deposit ? 0 : 1)
-    , amount(is_deposit() ? a.precision : TokenPrecision::LIQUIDITY)
+    , amount(is_deposit() ? a.decimals : TokenDecimals::LIQUIDITY)
     , editWart(ui::LabeledValidated("Amount (WART): ",
           [this](std::string& wartContent) {
               wart.validate(wartContent);

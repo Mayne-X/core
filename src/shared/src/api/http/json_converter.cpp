@@ -215,18 +215,18 @@ Funds_uint64 JSONConverter::asset_supply_u64() const
     }
     throw Error(EBADASSETUNITS);
 }
-TokenPrecision JSONConverter::asset_precision() const
+TokenDecimals JSONConverter::asset_decimals() const
 {
     try {
-        return TokenPrecision(json.at("precision").get<size_t>());
+        return TokenDecimals(json.at("decimals").get<size_t>());
     } catch (...) {
     }
-    throw Error(EBADASSETPRECISION);
+    throw Error(EBADASSETDECIMALS);
 }
 FundsDecimal JSONConverter::asset_supply() const
 {
     return FundsDecimal(
         asset_supply_u64(),
-        asset_precision());
+        asset_decimals());
 }
 JSONConverter::operator AssetSupplyEl() const { return asset_supply(); }

@@ -13,7 +13,6 @@ struct CancelHeightEl;
 struct PinNonceEl;
 struct CompactFeeEl;
 struct AssetSupplyEl;
-struct AssetPrecisionEl;
 struct AssetNameEl;
 struct SignatureEl;
 struct LimitPriceEl;

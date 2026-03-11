@@ -5,12 +5,12 @@
 #include "general/with_uint64.hpp"
 #include <cassert>
 
-class TokenPrecision { // number of decimal places
+class TokenDecimals { // number of decimal places
 private:
     uint8_t val;
 
     struct Creator { }; // used to prevent construction from outside
-    constexpr TokenPrecision(uint8_t v, Creator)
+    constexpr TokenDecimals(uint8_t v, Creator)
         : val(v)
     {
     }
@@ -20,13 +20,13 @@ private:
 public:
     static constexpr size_t byte_size() { return 1; }
     auto value() const { return val; }
-    constexpr TokenPrecision(size_t v)
-        : TokenPrecision(uint8_t(v), Creator())
+    constexpr TokenDecimals(size_t v)
+        : TokenDecimals(uint8_t(v), Creator())
     {
         if (v > max)
-            throw Error(EBADASSETPRECISION);
+            throw Error(EBADASSETDECIMALS);
     }
-    TokenPrecision(Reader& r);
+    TokenDecimals(Reader& r);
 
     void serialize(RawSerializer auto&& s) const
     {
@@ -36,25 +36,25 @@ public:
     {
         return std::to_string(int(val));
     }
-    static const TokenPrecision zero;
-    static const TokenPrecision WART;
-    static const TokenPrecision LIQUIDITY;
+    static const TokenDecimals zero;
+    static const TokenDecimals WART;
+    static const TokenDecimals LIQUIDITY;
     constexpr auto operator()() const { return val; }
-    static constexpr Result<TokenPrecision> from_number(uint8_t v)
+    static constexpr Result<TokenDecimals> from_number(uint8_t v)
     {
         if (v > max)
-            return Error(ETOKENPRECISION);
-        return TokenPrecision { v, Creator() };
+            return Error(ETOKENDECIMALS);
+        return TokenDecimals { v, Creator() };
     }
-    static constexpr TokenPrecision from_number_throw(uint8_t v)
+    static constexpr TokenDecimals from_number_throw(uint8_t v)
     {
         return from_number(v).value_or_throw();
     }
 };
 
-constexpr const TokenPrecision TokenPrecision::zero { 0 };
-constexpr const TokenPrecision TokenPrecision::WART { 8 };
-constexpr const TokenPrecision TokenPrecision::LIQUIDITY { 8 };
+constexpr const TokenDecimals TokenDecimals::zero { 0 };
+constexpr const TokenDecimals TokenDecimals::WART { 8 };
+constexpr const TokenDecimals TokenDecimals::LIQUIDITY { 8 };
 
 struct ParsedFunds {
     [[nodiscard]] static Result<ParsedFunds> try_parse(std::string_view);
@@ -161,11 +161,11 @@ public:
     Funds_uint64(Reader& r);
     std::string to_string() const = delete;
     auto operator<=>(const Funds_uint64&) const = default;
-    [[nodiscard]] static wrt::optional<Funds_uint64> parse(std::string_view, TokenPrecision);
-    [[nodiscard]] static wrt::optional<Funds_uint64> parse(ParsedFunds, TokenPrecision);
-    static Funds_uint64 parse_throw(std::string_view, TokenPrecision);
+    [[nodiscard]] static wrt::optional<Funds_uint64> parse(std::string_view, TokenDecimals);
+    [[nodiscard]] static wrt::optional<Funds_uint64> parse(ParsedFunds, TokenDecimals);
+    static Funds_uint64 parse_throw(std::string_view, TokenDecimals);
     constexpr uint64_t u64() const { return val; };
-    FundsDecimal to_decimal(TokenPrecision d) const;
+    FundsDecimal to_decimal(TokenDecimals d) const;
     Wart as_wart() const;
     wrt::optional<NonzeroFunds_uint64> nonzero() const;
 };
@@ -188,23 +188,32 @@ public:
 };
 struct FundsDecimal {
     Funds_uint64 funds;
-    TokenPrecision precision;
-    constexpr static size_t byte_size() { return Funds_uint64::byte_size() + TokenPrecision::byte_size(); }
+    TokenDecimals decimals;
+    constexpr static size_t byte_size() { return Funds_uint64::byte_size() + TokenDecimals::byte_size(); }
 
     void serialize(RawSerializer auto&& s) const
     {
-        s << funds << precision;
+        s << funds << decimals;
     }
     FundsDecimal(Reader& r)
         : FundsDecimal { r, r }
     {
     }
-    FundsDecimal(Funds_uint64 funds, TokenPrecision precision)
+    FundsDecimal(Funds_uint64 funds, TokenDecimals decimals)
         : funds(std::move(funds))
-        , precision(std::move(precision))
+        , decimals(std::move(decimals))
     {
     }
     static FundsDecimal zero() { return { 0, 0 }; }
+
+    double to_double() const
+    {
+        double d(funds.value());
+        for (size_t i = 0; i < size_t(decimals.value()); ++i)
+            d *= 0.1;
+        return d;
+    }
+
     std::string to_string() const;
 };
 
@@ -221,7 +230,7 @@ public:
     static Result<AssetSupply> try_parse(std::string_view s);
 };
 
-inline FundsDecimal Funds_uint64::to_decimal(TokenPrecision d) const
+inline FundsDecimal Funds_uint64::to_decimal(TokenDecimals d) const
 {
     return { value(), d };
 }
@@ -239,7 +248,7 @@ struct Supply : public FundsDecimal {
 class Wart : public FundsBase<Wart> {
 public:
     using FundsBase<Wart>::FundsBase;
-    static constexpr TokenPrecision precision { TokenPrecision::WART };
+    static constexpr TokenDecimals decimals { TokenDecimals::WART };
     Wart(Reader& r);
     [[nodiscard]] static constexpr Wart from_funds(Funds_uint64 f)
     {
@@ -254,6 +263,7 @@ public:
     [[nodiscard]] Result<NonzeroWart> nonzero() const;
     [[nodiscard]] NonzeroWart nonzero_throw() const;
     [[nodiscard]] NonzeroWart nonzero_assert() const;
+    double to_double() const { return E8() * 0.00000001; }
     operator Funds_uint64() const
     {
         return Funds_uint64(E8());

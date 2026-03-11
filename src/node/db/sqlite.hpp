@@ -146,7 +146,7 @@ template <typename T>
 requires std::is_convertible_v<T, std::span<const uint8_t>>
 void bind_param(SQLite::Statement& stmt, int i, const T& s)
 {
-    // We don't want the SQLite behavior 
+    // We don't want the SQLite behavior
     // "If the third parameter to sqlite3_bind_blob() is a NULL pointer then the fourth parameter is ignored and the end result is the same as sqlite3_bind_null()."
     // We want zero length blob, not null, so we use ternary operator.
     stmt.bind(i, s.size() == 0 ? (void*)"" : s.data(), s.size());
@@ -164,11 +164,11 @@ struct Binder {
         : stmt(stmt)
     {
     }
-    template<typename T>
+    template <typename T>
     auto bind(int i, const wrt::optional<T>& a)
     {
         if (a)
-            bind(i,*a);
+            bind(i, *a);
         else
             stmt.bind(i); // binds null
     }
@@ -203,6 +203,20 @@ inline uint32_t Statement::run(Types&&... types)
     reset();
     assert(nchanged >= 0);
     return nchanged;
+}
+
+template <typename... Types, typename Lambda>
+void Statement::for_each_continue(Lambda lambda, Types&&... types)
+{
+    bind_multiple(std::forward<Types>(types)...);
+    while (true) {
+        auto r { next_row() };
+        if (!r.has_value())
+            break;
+        if (!lambda(r))
+            break;
+    }
+    reset();
 }
 
 template <typename... Types, typename Lambda>

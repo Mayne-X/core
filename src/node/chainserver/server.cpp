@@ -29,11 +29,14 @@ ConsensusSlave ChainServer::get_chainstate()
     return state.get_chainstate_concurrent();
 }
 
-ChainServer::ChainServer(ChainDB& db, BatchRegistry& br, wrt::optional<SnapshotSigner> snapshotSigner, Token)
+ChainServer::ChainServer(ChainDB& db, MarketDb* tdb, BatchRegistry& br, wrt::optional<SnapshotSigner> snapshotSigner, Token)
     : db(db)
     , batchRegistry(br)
     , state(db, br, snapshotSigner)
 {
+    if (tdb != nullptr) {
+        marketServer.emplace
+    }
     emit_chain_state_event();
 }
 
@@ -116,34 +119,25 @@ void ChainServer::wait_for_shutdown()
         worker.join();
 }
 
-void ChainServer::workerfun()
+void ChainServer::work()
 {
-    // initialization
+    Events tmp;
     while (true) {
         {
-            std::unique_lock<std::mutex> ul(mutex);
-            while (!haswork) {
-                cv.wait(ul);
-            }
+            std::unique_lock l(mutex);
+            cv.wait(l, [&] { return haswork; });
+            swap(tmp, events);
+            haswork = false;
+            if (closing)
+                return;
         }
-        haswork = false;
-        if (closing)
-            break;
         state.garbage_collect();
 
-        { // work
-            decltype(events) tmpq;
-            {
-                std::unique_lock<std::mutex> ul(mutex);
-                std::swap(tmpq, events);
-            }
-            timing = timing_log().session();
-            while (!tmpq.empty()) {
-                dispatch_event(std::move(tmpq.front()));
-                tmpq.pop();
-            }
-            timing.reset();
-        }
+        timing = timing_log().session();
+        for (auto& e : tmp)
+            dispatch_event(std::move(e));
+        timing.reset();
+        tmp.clear();
     }
 }
 

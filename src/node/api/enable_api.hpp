@@ -1,6 +1,6 @@
+#pragma once
 #include "general/logger/timing_logger.hpp"
 #include "general/result.hpp"
-#include "wrt/optional.hpp"
 #include "wrt/variant.hpp"
 
 template <typename T>

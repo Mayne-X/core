@@ -144,7 +144,6 @@ struct CompactFeeEl : public ElementBaseWithAnnotation<"compactFee", CompactUInt
     ANNOTATE(AssetHashEl, AssetHash, asset_hash, "assetHash")                          \
     ANNOTATE(AssetIdEl, AssetId, asset_id, "assetId")                                  \
     ANNOTATE(AssetNameEl, AssetName, asset_name, "assetName")                          \
-    ANNOTATE(AssetPrecisionEl, TokenPrecision, asset_precision, "assetPrecision")      \
     ANNOTATE(AssetSupplyEl, FundsDecimal, supply, "assetSupply")                       \
     ANNOTATE(BaseEl, Funds_uint64, base, "baseAmount")                                 \
     ANNOTATE(CancelHeightEl, PinHeight, cancel_height, "cancelHeight")                 \

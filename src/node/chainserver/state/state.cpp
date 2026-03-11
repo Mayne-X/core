@@ -88,7 +88,7 @@ auto State::api_search_asset(const api::AssetSearchArgs& args) const -> Result<a
 {
     api::AssetSearchResult result(args);
     for (auto& a : db.search_assets(args)) {
-        result.entries.push_back({ .name { a.name.to_string() }, .hash { a.hash }, .height { a.height }, .precision { a.precision } });
+        result.entries.push_back({ .name { a.name.to_string() }, .hash { a.hash }, .height { a.height }, .decimals { a.decimals } });
     };
     return result;
 }
@@ -1716,7 +1716,7 @@ auto State::normalize(api::TokenIdOrSpec token) const
                         .id { id },
                         .spec { asset->hash, nwId->is_liquidity() },
                         .name { asset->name.to_string() },
-                        .assetPrecision { asset->precision },
+                        .assetDecimals { asset->decimals },
                     };
                 return Error(ETOKENNOTFOUND); // asset corresponding to token id does not exist
             } else {
@@ -1732,7 +1732,7 @@ auto State::normalize(api::TokenIdOrSpec token) const
                     .id { tid },
                     .spec { asset->hash, h.isLiquidity },
                     .name { asset->name.to_string() },
-                    .assetPrecision { asset->precision },
+                    .assetDecimals { asset->decimals },
                 };
             } else if (h.assetHash.is_wart()) {
                 return api::Token::WART();
@@ -1778,24 +1778,24 @@ auto State::api_get_token_balance_recursive(AccountId aid, TokenId tid) const ->
     api::AssetLookupTrace trace;
     auto b { db.get_token_balance_recursive(aid, tid, &trace) };
 
-    wrt::optional<TokenPrecision> prec;
+    wrt::optional<TokenDecimals> dec;
     if (auto nw { tid.non_wart() }; nw && !nw->is_liquidity()) {
         if (!trace.fails.empty()) {
-            prec = trace.fails.front().precision;
+            dec = trace.fails.front().decimals;
         } else {
-            prec = db.lookup_asset(nw->asset_id())->precision;
+            dec = db.lookup_asset(nw->asset_id())->decimals;
         }
     } else { // means that token id is that of WART or pool liquidity (has WART
-             // precision by definition)
-        prec = Wart::precision;
+             // decimals by definition)
+        dec = Wart::decimals;
     }
-    if (!prec)
+    if (!dec)
         return { .lookupTrace = {}, .balance { api::FundsBalance::zero() } };
     return { .lookupTrace { std::move(trace) },
         .balance {
-            .total { FundsDecimal(b.balance.total, *prec) },
-            .locked { FundsDecimal(b.balance.locked, *prec) },
-            .mempool { FundsDecimal(chainstate.mempool().locked_balance(aid, tid), *prec) } } };
+            .total { FundsDecimal(b.balance.total, *dec) },
+            .locked { FundsDecimal(b.balance.locked, *dec) },
+            .mempool { FundsDecimal(chainstate.mempool().locked_balance(aid, tid), *dec) } } };
 }
 
 Result<AssetDetail> State::normalize(const api::AssetIdOrHash&

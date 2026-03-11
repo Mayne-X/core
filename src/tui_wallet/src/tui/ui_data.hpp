@@ -10,39 +10,39 @@
 struct TokenInfo {
     std::string assetName;
     api::TokenSpec spec;
-    TokenPrecision assetPrec;
+    TokenDecimals assetDecimals;
     std::string market() const { return assetName + "/WART"; }
     std::string liquidity_name() const { return assetName + "-LIQUIDITY"; }
     std::string to_string() const { return spec.to_string() + " (" + assetName + ")"; }
-    TokenPrecision prec() const { return spec.isLiquidity ? TokenPrecision::LIQUIDITY : assetPrec; };
+    TokenDecimals decimals() const { return spec.isLiquidity ? TokenDecimals::LIQUIDITY : assetDecimals; };
     std::string pretty_name() const { return spec.isLiquidity ? liquidity_name() : assetName; }
-    constexpr TokenInfo(std::string name, api::TokenSpec spec, TokenPrecision precision)
+    constexpr TokenInfo(std::string name, api::TokenSpec spec, TokenDecimals decimals)
         : assetName(std::move(name))
         , spec(std::move(spec))
-        , assetPrec(precision)
+        , assetDecimals(decimals)
     {
     }
     static const TokenInfo DEMO;
     static const TokenInfo WART;
 };
 inline const TokenInfo TokenInfo::DEMO { "DEMO", api::TokenSpec::WART, 8 };
-inline const TokenInfo TokenInfo::WART { "WART", api::TokenSpec::WART, TokenPrecision::WART };
+inline const TokenInfo TokenInfo::WART { "WART", api::TokenSpec::WART, TokenDecimals::WART };
 
 struct AssetInfo {
     std::string name;
     AssetHash hash;
-    TokenPrecision precision;
+    TokenDecimals decimals;
     TokenInfo token(bool isLiquidity)
     {
-        return { name, api::TokenSpec(hash, isLiquidity), precision };
+        return { name, api::TokenSpec(hash, isLiquidity), decimals };
     }
     std::string market() const { return name + "/WART"; }
     std::string liquidity_name() const { return name + "-LIQUIDITY"; }
     std::string to_string() const { return name + " (" + serialize_hex(hash) + ")"; }
-    AssetInfo(std::string name, AssetHash hash, TokenPrecision precision)
+    AssetInfo(std::string name, AssetHash hash, TokenDecimals decimals)
         : name(std::move(name))
         , hash(std::move(hash))
-        , precision(precision)
+        , decimals(decimals)
     {
     }
     static AssetInfo demo()

@@ -54,7 +54,7 @@ bool validate_asset_supply(std::string_view s)
 std::optional<FundsDecimal> parse_asset_supply(std::string_view s)
 {
     if (auto p { ParsedFunds::try_parse(s) }; p.has_value()) {
-        if (auto d { TokenPrecision::from_number(p->decimalPlaces) })
+        if (auto d { TokenDecimals::from_number(p->decimalPlaces) })
             return FundsDecimal(p->v, *d);
     }
     return {};

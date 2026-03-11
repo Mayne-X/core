@@ -44,8 +44,13 @@ public:
         using namespace std::chrono;
         return duration_cast<seconds>((system_clock::now() + (tp - steady_clock::now())).time_since_epoch()).count();
     }
+    Timestamp floor(uint32_t seconds) const{
+        return { (value() / seconds) * seconds };
+    }
     template <uint32_t seconds>
     RoundedTimestamp<seconds> floor() const;
+
+
 
     template <uint32_t seconds>
     RoundedTimestamp<seconds> ceil() const;
@@ -93,7 +98,7 @@ public:
 template <uint32_t seconds>
 RoundedTimestamp<seconds> Timestamp::floor() const
 {
-    return { (value() / seconds) * seconds };
+    return { floor(seconds) };
 }
 template <uint32_t seconds>
 RoundedTimestamp<seconds> Timestamp::ceil() const

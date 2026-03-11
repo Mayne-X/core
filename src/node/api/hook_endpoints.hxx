@@ -45,6 +45,14 @@ struct ParameterParser {
             return *p;
         throw Error(EINV_ARGS);
     }
+    template <typename T>
+    operator wrt::optional<T>()
+    {
+        if (sv.length() == 0) {
+            return {};
+        }
+        return operator T();
+    }
     operator api::HeightOrHash()
     {
         if (sv.length() == 64)
@@ -57,7 +65,7 @@ struct ParameterParser {
             return { Address { *this } };
         return { AccountId { static_cast<uint64_t>(*this) } };
     }
-    operator TokenPrecision()
+    operator TokenDecimals()
     {
         return static_cast<uint64_t>(*this);
     }
@@ -140,7 +148,7 @@ public:
 };
 
 struct UrlArgs : public UrlArgsCount {
-    static constexpr size_t MaxLabels { 4 };
+    static constexpr size_t MaxLabels { 5 };
     using Labels = std::array<std::string_view, MaxLabels>;
     Labels labels;
     std::string_view pattern;
@@ -423,10 +431,14 @@ public:
         // GET_PRIV<t,"/peers/endpoints">( inspect_eventloop, jsonmsg::endpoints);
         // GET_PRIV<t,"/peers/connect_timers">( inspect_eventloop, jsonmsg::connect_timers);
 
+        SECTION("chart Endpoint");
+        GET_PUB<"/chart/candles/:asset/:interval?from=...&to=...&n=...">(api_call<GetCandles>);
+        GET_PUB<"/chart/trades/:asset?from=...&to=...&n=...">(api_call<GetTrades>);
+
         SECTION("Tools Endpoints");
         GET_PUB<"/tools/encode16bit/from_e8/:feeE8">(get_round16bit_e8);
         GET_PUB<"/tools/encode16bit/from_string/:string">(get_round16bit_funds);
-        GET_PUB<"/tools/parse_price/:price/:precision">(parse_price);
+        GET_PUB<"/tools/parse_price/:price/:decimals">(parse_price);
         GET_PUB<"/tools/info">(get_info);
         GET_PRIV<"/tools/wallet/new">(get_wallet_new);
         GET_PUB<"/tools/wallet/from_privkey/:privkey">(get_wallet_from_privkey);

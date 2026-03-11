@@ -226,7 +226,7 @@ json to_json(const ParseAnnotations& arr)
     return j;
 }
 
-json limit_json(Price_uint64 limit, TokenPrecision prec)
+json limit_json(Price_uint64 limit, TokenDecimals prec)
 {
     return {
         { "precExponent10", limit.base10_precision_exponent(prec) },
@@ -252,7 +252,7 @@ json to_json(const api::AssetSearchResult& a)
     for (auto& e : a.entries) {
         matches.push_back({ { "height", e.height },
             { "hash", serialize_hex(e.hash) },
-            { "precision", e.precision.value() },
+            { "decimals", e.decimals.value() },
             { "name", e.name } });
     }
 
@@ -277,7 +277,7 @@ json to_json(const FundsDecimal& fd, bool prec)
         { "u64", fd.funds.value() },
     };
     if (prec) {
-        out["precision"] = fd.precision.value();
+        out["decimals"] = fd.decimals.value();
     }
     return out;
 }
@@ -329,7 +329,7 @@ inline void add(json& j, const api::block::NewOrderData& tx)
 {
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
     j["amount"] = to_json(tx.amount_decimal());
-    j["limit"] = limit_json(tx.limit, tx.assetInfo.precision);
+    j["limit"] = limit_json(tx.limit, tx.assetInfo.decimals);
     j["buy"] = tx.buy;
 }
 
@@ -348,7 +348,7 @@ json tx_to_json(const api::block::Match& tx)
     auto bq_json {
         [&](const auto& bq) -> json {
             return {
-                { "base", to_json(bq.base().to_decimal(tx.assetInfo.precision)) },
+                { "base", to_json(bq.base().to_decimal(tx.assetInfo.decimals)) },
                 { "quote", to_json(bq.quote()) }
             };
         }
@@ -375,9 +375,9 @@ json tx_to_json(const api::block::LiquidityDeposit& tx)
 {
     json j(to_json_signed_info(tx, "address"));
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
-    j["baseDeposited"] = to_json(tx.baseDeposited.to_decimal(tx.assetInfo.precision));
+    j["baseDeposited"] = to_json(tx.baseDeposited.to_decimal(tx.assetInfo.decimals));
     j["quoteDeposited"] = to_json(tx.quoteDeposited);
-    j["sharesReceived"] = (tx.sharesReceived ? to_json(tx.sharesReceived->to_decimal(TokenPrecision::LIQUIDITY)) : json(nullptr));
+    j["sharesReceived"] = (tx.sharesReceived ? to_json(tx.sharesReceived->to_decimal(TokenDecimals::LIQUIDITY)) : json(nullptr));
     return {};
 }
 
@@ -385,8 +385,8 @@ json tx_to_json(const api::block::LiquidityWithdrawal& tx)
 {
     json j(to_json_signed_info(tx, "address"));
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
-    j["sharesRedeemed"] = to_json(tx.sharesRedeemed.to_decimal(TokenPrecision::LIQUIDITY));
-    j["baseReceived"] = (tx.baseReceived ? to_json(tx.baseReceived->to_decimal(tx.assetInfo.precision)) : json(nullptr));
+    j["sharesRedeemed"] = to_json(tx.sharesRedeemed.to_decimal(TokenDecimals::LIQUIDITY));
+    j["baseReceived"] = (tx.baseReceived ? to_json(tx.baseReceived->to_decimal(tx.assetInfo.decimals)) : json(nullptr));
     j["quoteReceived"] = (tx.quoteReceived ? to_json(*tx.quoteReceived) : json(nullptr));
     return {};
 }
@@ -404,7 +404,7 @@ json tx_to_json(const api::block::OrderCancelation& tx)
     j["buy"] = tx.buy;
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
     j["historyId"] = tx.historyId.value();
-    j["remaining"] = to_json(tx.buy ? tx.remaining.to_decimal(Wart::precision) : tx.remaining.to_decimal(tx.assetInfo.precision));
+    j["remaining"] = to_json(tx.buy ? tx.remaining.to_decimal(Wart::decimals) : tx.remaining.to_decimal(tx.assetInfo.decimals));
     return j;
 }
 
@@ -710,7 +710,7 @@ json to_json(const api::AddressCount& ac)
     };
 }
 
-json to_json(const api::Richlist& l, TokenPrecision p)
+json to_json(const api::Richlist& l, TokenDecimals p)
 {
     json a = json::array();
     for (auto& [address, balance] : l.entries) {
@@ -725,7 +725,7 @@ json to_json(const api::RichlistInfo& r)
 {
     return {
         { "token", to_json(r.token) },
-        { "richlist", to_json(r.richlist, r.token.token_precision()) }
+        { "richlist", to_json(r.richlist, r.token.token_decimals()) }
     };
 }
 
@@ -735,7 +735,7 @@ json to_json(const api::Token& t)
         { "id", t.id },
         { "spec", t.spec.to_string() },
         { "name", t.name },
-        { "precision", t.token_precision().value() }
+        { "decimals", t.token_decimals().value() }
     };
 }
 
@@ -837,7 +837,7 @@ json to_json(const api::Peerinfo& pi)
     return elem;
 }
 namespace {
-json order_json(const api::Order& o, TokenPrecision basePrec, bool convertToWart)
+json order_json(const api::Order& o, TokenDecimals basePrec, bool convertToWart)
 {
     // o.txid
     return json {
@@ -855,7 +855,7 @@ json order_json(const api::Order& o, TokenPrecision basePrec, bool convertToWart
 
 json to_json(const api::MarketOrders& orders)
 {
-    auto basePrec { orders.base.precision };
+    auto basePrec { orders.base.decimals };
     auto quote(json::array());
     auto base(json::array());
     for (auto& o : orders.buys)
@@ -873,7 +873,7 @@ json to_json(const api::MarketOrders& orders)
 
 json to_json(const api::MarketDetail& mdet)
 {
-    auto basePrec { mdet.base.precision };
+    auto basePrec { mdet.base.decimals };
     auto quote(json::array());
     auto base(json::array());
     for (auto& o : mdet.buys)
@@ -887,7 +887,7 @@ json to_json(const api::MarketDetail& mdet)
             bool isQuote { match.toPool->is_quote() };
             return json {
                 { "isQuote", isQuote },
-                { "amount", to_json(match.toPool->amount().to_decimal(isQuote ? TokenPrecision::WART : basePrec), false) },
+                { "amount", to_json(match.toPool->amount().to_decimal(isQuote ? TokenDecimals::WART : basePrec), false) },
             };
         }
         return json(nullptr);
@@ -907,9 +907,9 @@ json to_json(const api::ParsedPrice& p)
 {
 
     return {
-        { "assetPrecision", p.prec.value() },
-        { "floor", limit_json(p.floor, p.prec) },
-        { "ceil", limit_json(p.ceil, p.prec) },
+        { "assetDecimals", p.dec.value() },
+        { "floor", limit_json(p.floor, p.dec) },
+        { "ceil", limit_json(p.ceil, p.dec) },
     };
 }
 
@@ -946,10 +946,10 @@ json to_json(const api::JanushashNumber& jn)
     };
 }
 
-json to_json(const api::LiquidityPool& lp, TokenPrecision basePrecision, bool prec)
+json to_json(const api::LiquidityPool& lp, TokenDecimals baseDecimals, bool prec)
 {
     return {
-        { "baseAsset", to_json(lp.base.to_decimal(basePrecision), prec) },
+        { "baseAsset", to_json(lp.base.to_decimal(baseDecimals), prec) },
         { "quoteWart", to_json(lp.quote) },
         { "poolShares", to_json(lp.shares.as_wart()) }
     };
@@ -988,7 +988,7 @@ json to_json(const AssetBasic& t)
         { "hash", serialize_hex(t.hash) },
         { "id", t.id.value() },
         { "name", t.name.to_string() },
-        { "precision", t.precision.value() }
+        { "decimals", t.decimals.value() }
     };
 }
 

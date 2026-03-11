@@ -1,11 +1,12 @@
 #pragma once
 #include "api/callbacks.hpp"
 #include "api/events/subscription_fwd.hpp"
-#include "api/types/height_or_hash.hpp"
+// #include "api/types/height_or_hash.hpp"
 #include "api_types.hpp"
 #include "chainserver/mining_subscription.hpp"
 #include "chainserver/subscription_state.hpp"
-#include "communication/create_transaction.hpp"
+#include "markethistory/server.hpp"
+// #include "communication/create_transaction.hpp"
 #include "communication/stage_operation/request.hpp"
 #include "state/state.hpp"
 #include <condition_variable>
@@ -152,15 +153,15 @@ private:
     struct Token { };
 
 public:
-    ChainServer(ChainDB& b, BatchRegistry&, wrt::optional<SnapshotSigner> snapshotSigner, Token);
-    static auto make_chain_server(ChainDB& b, BatchRegistry& br, wrt::optional<SnapshotSigner> snapshotSigner)
+    ChainServer(ChainDB& b, MarketDb* tdb, BatchRegistry&, wrt::optional<SnapshotSigner> snapshotSigner, Token);
+    static auto make_chain_server(ChainDB& b, MarketDb* tdb, BatchRegistry& br, wrt::optional<SnapshotSigner> snapshotSigner)
     {
-        return std::make_shared<ChainServer>(b, br, snapshotSigner, Token {});
+        return std::make_shared<ChainServer>(b, tdb, br, snapshotSigner, Token {});
     }
     void start()
     {
         assert(!worker.joinable());
-        worker = std::thread(&ChainServer::workerfun, this);
+        worker = std::thread(&ChainServer::work, this);
     }
     ~ChainServer();
 
@@ -192,7 +193,7 @@ public:
 
 private:
     ChainError apply_stage(ChainDBTransaction&& t);
-    void workerfun();
+    void work();
     void dispatch_mining_subscriptions();
 
     TxHash append_gentx(const TransactionCreate&);
@@ -251,6 +252,8 @@ private:
 
     void emit_chain_state_event();
 
+    std::optional<MarketHistoryServer> marketServer;
+
     std::condition_variable cv;
     ChainDB& db;
     BatchRegistry& batchRegistry;
@@ -260,7 +263,8 @@ private:
 
     // mutex protected variables
     std::mutex mutex;
-    std::queue<Event> events;
+    using Events = std::vector<Event>;
+    Events events;
     MiningSubscriptions miningSubscriptions;
     AddressSubscriptionState addressSubscriptions;
     ChainSubscriptionState chainSubscriptions;

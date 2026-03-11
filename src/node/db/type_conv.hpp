@@ -15,6 +15,7 @@
 #include "defi/token/id.hpp"
 #include "defi/uint64/price.hpp"
 #include "general/funds.hpp"
+#include "general/timestamp.hpp"
 #include <cstring>
 #include <limits>
 
@@ -89,7 +90,7 @@ public:
     operator Address() const { return get_array<20>(); }
     operator BodyData() const { return get_vector(); }
     operator Header() const { return get_array<80>(); }
-    operator TokenPrecision() const { return TokenPrecision::from_number_throw(getUInt8()); }
+    operator TokenDecimals() const { return TokenDecimals::from_number_throw(getUInt8()); }
     operator int64_t() const { return getInt64(); }
     operator Funds_uint64() const
     {
@@ -122,6 +123,7 @@ inline auto convert(const View<N>& v) { return v.span(); }
 inline auto convert(const Worksum& ws) { return ws.to_bytes(); }
 inline auto convert(const std::vector<uint8_t>& v) { return std::span(v); }
 inline auto convert(Funds_uint64 f) { return (int64_t)f.value(); }
+inline auto convert(Timestamp ts) { return (int64_t)ts.value(); }
 inline auto convert(Price_uint64 p) { return p.to_uint32(); }
 inline auto convert(AssetName n) { return n.to_string(); }
 inline auto convert(Wart f) { return (int64_t)f.E8(); }

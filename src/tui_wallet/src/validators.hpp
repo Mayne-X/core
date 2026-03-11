@@ -49,13 +49,13 @@ using AssetSupplyValidator = Validator<AssetSupply>;
 
 class FundsValidator {
 private:
-    TokenPrecision prec;
+    TokenDecimals prec;
 
     wrt::optional<Funds_uint64> parsed;
 
 public:
-    void set_prec(TokenPrecision prec) { this->prec = prec; }
-    constexpr FundsValidator(TokenPrecision prec)
+    void set_prec(TokenDecimals prec) { this->prec = prec; }
+    constexpr FundsValidator(TokenDecimals prec)
         : prec(prec)
     {
     }
@@ -83,13 +83,13 @@ public:
 
 class NonzeroFundsValidator {
 private:
-    TokenPrecision prec;
+    TokenDecimals prec;
 
     wrt::optional<NonzeroFunds_uint64> parsed;
 
 public:
-    void set_prec(TokenPrecision prec) { this->prec = prec; }
-    constexpr NonzeroFundsValidator(TokenPrecision prec)
+    void set_prec(TokenDecimals prec) { this->prec = prec; }
+    constexpr NonzeroFundsValidator(TokenDecimals prec)
         : prec(prec)
     {
     }
@@ -117,11 +117,11 @@ public:
 
 class LimitValidator {
 private:
-    TokenPrecision basePrec;
+    TokenDecimals basePrec;
     bool ceil;
 
 public:
-    LimitValidator(TokenPrecision basePrec, bool ceil)
+    LimitValidator(TokenDecimals basePrec, bool ceil)
         : basePrec(basePrec)
         , ceil(ceil)
     {

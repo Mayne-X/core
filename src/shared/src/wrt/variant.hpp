@@ -27,25 +27,25 @@ struct variant : public std::variant<Ts...> {
     {
         return std::move(*this).visit(Overload { std::forward<U>(u)... });
     }
-    auto visit(auto lambda) &
+    constexpr auto visit(auto lambda) &
     {
         return std::visit(lambda, *this);
     }
-    auto visit(auto lambda) const&
+    constexpr auto visit(auto lambda) const&
     {
         return std::visit(lambda, *this);
     }
-    auto visit(auto lambda) &&
+    constexpr auto visit(auto lambda) &&
     {
         return std::visit(lambda, std::move(*this));
     }
     template <typename T>
     [[nodiscard]] bool holds() const { return std::holds_alternative<T>(*this); }
     template <typename T>
-    auto& get() const { return std::get<T>(*this); }
+    constexpr auto& get() const { return std::get<T>(*this); }
 
     template <typename T>
-    auto& get() { return std::get<T>(*this); }
+    constexpr auto& get() { return std::get<T>(*this); }
 };
 
 }

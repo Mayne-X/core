@@ -9,8 +9,8 @@
 #include <cstring>
 #include <limits>
 
-TokenPrecision::TokenPrecision(Reader& r)
-    : TokenPrecision(from_number_throw(r.uint8()))
+TokenDecimals::TokenDecimals(Reader& r)
+    : TokenDecimals(from_number_throw(r.uint8()))
 {
 }
 
@@ -52,7 +52,7 @@ ParsedFunds::ParsedFunds(std::string_view s)
 {
 }
 
-Funds_uint64 Funds_uint64::parse_throw(std::string_view s, TokenPrecision d)
+Funds_uint64 Funds_uint64::parse_throw(std::string_view s, TokenDecimals d)
 {
     if (auto o { Funds_uint64::parse(s, d) }; o.has_value()) {
         return *o;
@@ -62,7 +62,7 @@ Funds_uint64 Funds_uint64::parse_throw(std::string_view s, TokenPrecision d)
 
 std::string FundsDecimal::to_string() const
 {
-    const size_t d { precision() };
+    const size_t d { decimals() };
     auto v { funds.value() };
     if (v == 0)
         return "0";
@@ -98,7 +98,7 @@ AssetSupply::AssetSupply(Reader& r)
 Result<AssetSupply> AssetSupply::from_funds_decimal(FundsDecimal f)
 {
     uint64_t prod = 1;
-    for (size_t i { 0 }; i < size_t(f.precision.value()); ++i) {
+    for (size_t i { 0 }; i < size_t(f.decimals.value()); ++i) {
         prod *= 10;
     }
     if (prod > f.funds.value())
@@ -109,7 +109,7 @@ Result<AssetSupply> AssetSupply::from_funds_decimal(FundsDecimal f)
 Result<AssetSupply> AssetSupply::try_parse(std::string_view s)
 {
     if (auto p { ParsedFunds::try_parse(s) }; p.has_value()) {
-        if (auto prec { TokenPrecision::from_number(p->decimalPlaces) })
+        if (auto prec { TokenDecimals::from_number(p->decimalPlaces) })
             return from_funds_decimal({ Funds_uint64::from_value_throw(p->v), *prec });
     }
     return Error(EINV_SUPPLY);
@@ -120,7 +120,7 @@ Funds_uint64::Funds_uint64(Reader& r)
 {
 }
 
-wrt::optional<Funds_uint64> Funds_uint64::parse(std::string_view s, TokenPrecision digits)
+wrt::optional<Funds_uint64> Funds_uint64::parse(std::string_view s, TokenDecimals digits)
 {
     auto fd { ParsedFunds::try_parse(s) };
     if (!fd)
@@ -128,7 +128,7 @@ wrt::optional<Funds_uint64> Funds_uint64::parse(std::string_view s, TokenPrecisi
     return parse(*fd, digits);
 }
 
-wrt::optional<Funds_uint64> Funds_uint64::parse(ParsedFunds fd, TokenPrecision digits)
+wrt::optional<Funds_uint64> Funds_uint64::parse(ParsedFunds fd, TokenDecimals digits)
 {
     if (fd.decimalPlaces > digits())
         return {};
@@ -161,7 +161,7 @@ Result<Wart> Wart::try_parse(std::string_view s)
 
 Result<Wart> Wart::try_parse(ParsedFunds fd)
 {
-    auto p { Funds_uint64::parse(fd, TokenPrecision::WART) };
+    auto p { Funds_uint64::parse(fd, TokenDecimals::WART) };
     if (p)
         return Wart::from_value(p->value());
     return Error(EINV_WART);
@@ -177,7 +177,7 @@ Wart Wart::parse_throw(std::string_view s)
 
 std::string Wart::to_string() const
 {
-    return FundsDecimal { val, Wart::precision }.to_string();
+    return FundsDecimal { val, Wart::decimals }.to_string();
 }
 
 Wart::Wart(Reader& r)

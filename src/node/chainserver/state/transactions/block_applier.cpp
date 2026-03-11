@@ -1117,7 +1117,7 @@ private:
         }
         auto& info() const { return _info; }
         auto& hash() const { return info().hash; }
-        auto& precision() const { return info().precision; }
+        auto& decimals() const { return info().decimals; }
         auto id() const { return _info.id; }
         auto& name() const { return _info.name; }
         [[nodiscard]] auto& get_pool(const ChainDB& db) const

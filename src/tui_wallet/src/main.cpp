@@ -37,12 +37,12 @@ const auto jsonStr = R"({
   },
   "balance": {
    "locked": {
-    "precision": 8,
+    "decimals": 8,
     "str": "0",
     "u64": 0
    },
    "total": {
-    "precision": 8,
+    "decimals": 8,
     "str": "3.00000000",
     "u64": 300000000
    }
@@ -54,7 +54,7 @@ const auto jsonStr = R"({
   "token": {
    "id": 1,
    "name": "WART",
-   "precision": 8,
+   "decimals": 8,
    "spec": "asset:0000000000000000000000000000000000000000000000000000000000000000"
   }
  }

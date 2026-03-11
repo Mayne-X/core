@@ -1,4 +1,5 @@
 #include "chainserver/db/chain_db.hpp"
+#include "chainserver/markethistory/trades_db.hpp"
 #include "chainserver/server.hpp"
 #include "communication/rxtx_server/rxtx_server.hpp"
 #include "eventloop/eventloop.hpp"
@@ -89,7 +90,8 @@ static void shutdown(Error reason)
 }
 #endif
 
-int run_app(int argc, char** argv)
+namespace {
+int run_node(int argc, char** argv)
 {
     int i = init_config(argc, argv);
     if (i <= 0)
@@ -112,6 +114,10 @@ int run_app(int argc, char** argv)
     PeerServer ps(pdb, config());
 
     ChainDB db(config().data.chaindb);
+    std::unique_ptr<MarketDb> mdb;
+    if (config().data.marketDb) {
+        mdb = std::make_unique<MarketDb>(*config().data.marketDb);
+    }
     auto cs = ChainServer::make_chain_server(db, breg, config().node.snapshotSigner);
 
     rxtx::Server rxtxServer;
@@ -172,9 +178,10 @@ error:
     return i;
 #endif
 }
+}
 
 int main(int argc, char** argv)
 {
     GlobalsSession s; // cleans up in destructor
-    return run_app(argc, argv);
+    return run_node(argc, argv);
 }

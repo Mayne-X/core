@@ -118,7 +118,7 @@ public:
     }
     void apply(const AssetInsert& a)
     {
-        log_db_update("DB Apply AssetInsert name {}, id {}, amount {}, precision {}", a.name.to_string(), a.id.value(), a.supply.funds.value(), a.supply.precision.value());
+        log_db_update("DB Apply AssetInsert name {}, id {}, amount {}, decimals {}", a.name.to_string(), a.id.value(), a.supply.funds.value(), a.supply.decimals.value());
         db.insert_guarded(a);
     }
     auto rollback_data() &&

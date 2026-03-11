@@ -110,8 +110,8 @@ struct GetBalanceData {
     struct {
         struct Bal {
             uint64_t u64;
-            uint8_t precision;
-            FundsDecimal funds() const { return { Funds_uint64(u64), TokenPrecision(precision) }; };
+            uint8_t decimals;
+            FundsDecimal funds() const { return { Funds_uint64(u64), TokenDecimals(decimals) }; };
         };
         Bal total;
         Bal locked;

@@ -2,12 +2,6 @@
 #include "block/body/account_id.hpp"
 #include "block/chain/height.hpp"
 #include "defi/token/asset.hpp"
-// struct AssetBasic {
-//     AssetId id;
-//     AssetHash hash;
-//     AssetName name;
-//     AssetPrecision precision;
-// };
 struct AssetDetailData {
     NonzeroHeight height;
     AccountId ownerAccountId;

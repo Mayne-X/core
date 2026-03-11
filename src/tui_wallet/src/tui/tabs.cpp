@@ -113,14 +113,14 @@ void AssetSelectWindow::on_select_wart()
     gui.selectedAsset = AssetInfo(
         wartName,
         AssetHash::WART,
-        TokenPrecision::WART);
+        TokenDecimals::WART);
 }
 void AssetSelectWindow::on_select(const api_types::TokenListEntry& e)
 {
     gui.selectedAsset = AssetInfo(
         e.name,
         AssetHash::parse_throw(e.hash),
-        TokenPrecision(e.precision));
+        TokenDecimals(e.decimals));
 }
 
 void AssetSelectWindow::process_completions()
@@ -226,7 +226,7 @@ Element AssetSelectedWindow::OnRender()
             initArg {
                 { text("Name "), text(a->name) },
                 { text("Hash "), text(a->hash.hex_string()) },
-                { text("Precision "), text(std::to_string(a->precision.value())) },
+                { text("Decimals "), text(std::to_string(a->decimals.value())) },
                 { text(""), hbox(btnFork->Render()) },
                 { text("Balance "), vbox(render_balance(balance, gui),hbox(btnTransfer->Render(), btnBuy->Render(), btnSell->Render())) },
             };

@@ -38,7 +38,7 @@ public:
     template <typename T>
     operator wrt::optional<T>();
     bool has_value() const { return hasValue; }
-    auto process(auto lambda) const;
+    [[nodiscard]] auto process(auto lambda) const;
 
 private:
     void value_assert() const;
@@ -86,6 +86,9 @@ public:
 
     template <typename... Types, typename Lambda>
     void for_each(Lambda lambda, Types&&... types);
+
+    template <typename... Types, typename Lambda>
+    void for_each_continue(Lambda lambda, Types&&... types);
 
     template <typename... Types, typename Lambda>
     [[nodiscard]] auto all(Lambda lambda, Types&&... types)

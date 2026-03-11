@@ -94,7 +94,7 @@
 //         { "name", asset_name().to_string() },
 //         { "nonceId", nonce_id().value() },
 //         { "pinHeight", pin_height().value() },
-//         { "precision", supply().precision.value() },
+//         { "decimals", supply().decimals.value() },
 //         { "signature65", signature().to_string() },
 //         { "supplyU64", supply().funds.u64() },
 //     }

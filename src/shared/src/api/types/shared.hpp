@@ -155,7 +155,7 @@ struct TokenTransferData {
     bool isLiquidity;
     Address toAddress;
     Funds_uint64 amount;
-    FundsDecimal amount_decimal() const { return { amount, isLiquidity ? TokenPrecision::LIQUIDITY : assetInfo.precision }; }
+    FundsDecimal amount_decimal() const { return { amount, isLiquidity ? TokenDecimals::LIQUIDITY : assetInfo.decimals }; }
 };
 
 struct NewOrderData {
@@ -165,7 +165,7 @@ struct NewOrderData {
     Price_uint64 limit;
     bool buy;
 
-    FundsDecimal amount_decimal() const { return { amount, buy ? Wart::precision : assetInfo.precision }; }
+    FundsDecimal amount_decimal() const { return { amount, buy ? Wart::decimals : assetInfo.decimals }; }
 };
 
 struct MatchData {
@@ -302,7 +302,7 @@ struct AssetSearchResult {
         std::string name;
         AssetHash hash;
         NonzeroHeight height;
-        TokenPrecision precision;
+        TokenDecimals decimals;
     };
     std::vector<Entry> entries;
     AssetSearchArgs args;
@@ -352,10 +352,10 @@ struct Token {
     TokenId id;
     api::TokenSpec spec;
     std::string name;
-    TokenPrecision assetPrecision;
-    TokenPrecision token_precision() const
+    TokenDecimals assetDecimals;
+    TokenDecimals token_decimals() const
     {
-        return spec.isLiquidity ? TokenPrecision::LIQUIDITY : assetPrecision;
+        return spec.isLiquidity ? TokenDecimals::LIQUIDITY : assetDecimals;
     }
     static constexpr Token WART()
     {
@@ -363,7 +363,7 @@ struct Token {
             .id { TokenId::WART },
             .spec { api::TokenSpec::WART },
             .name { "WART" },
-            .assetPrecision { TokenPrecision::WART }
+            .assetDecimals { TokenDecimals::WART }
         };
     }
 };
@@ -372,7 +372,7 @@ struct FundsBalance {
     FundsDecimal total;
     FundsDecimal locked;
     FundsDecimal mempool;
-    FundsDecimal free() const { return FundsDecimal(diff_assert(total.funds, locked.funds), total.precision); }
+    FundsDecimal free() const { return FundsDecimal(diff_assert(total.funds, locked.funds), total.decimals); }
     static FundsBalance zero()
     {
         return { FundsDecimal::zero(), FundsDecimal::zero(), FundsDecimal::zero() };
@@ -422,7 +422,7 @@ struct MempoolUpdate {
 };
 
 struct ParsedPrice {
-    TokenPrecision prec;
+    TokenDecimals dec;
     Price_uint64 floor;
     Price_uint64 ceil;
 };

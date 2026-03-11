@@ -56,6 +56,7 @@ struct ConfigParams {
     } allowedInboundTransports;
     struct Data {
         std::string chaindb;
+        std::optional<std::string> marketDb;
         std::string peersdb;
         std::string rxtxdb;
     } data;

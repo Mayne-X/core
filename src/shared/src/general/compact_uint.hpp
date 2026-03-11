@@ -50,10 +50,7 @@ public:
         assert(v.has_value());
         return *v;
     };
-    struct Parsed {
-
-    };
-    [[nodiscard]] static Result<CompactUInt> try_parse(std::string_view s, bool ceil=false);
+    [[nodiscard]] static Result<CompactUInt> try_parse(std::string_view s, bool ceil = false);
     auto to_string() const { return uncompact().to_string(); }
     // [[nodiscard]] static CompactUInt compact(Wart, bool ceil = false);
     [[nodiscard]] static constexpr CompactUInt compact(Wart f, bool ceil = false)

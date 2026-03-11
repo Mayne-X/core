@@ -149,7 +149,7 @@
     XX(193, EZEROWART, "WART amount cannot be 0")                                  \
     XX(194, EPOOLREDEEM, "Cannot redeem more shares than pool issued")             \
     XX(195, EINVBUY, "Invalid buy value")                                          \
-    XX(196, ETOKENPRECISION, "Invalid token precision")                            \
+    XX(196, ETOKENDECIMALS, "Invalid token decimals")                              \
     XX(197, EINVSIG, "Invalid signature")                                          \
     XX(198, EBATCHSIZE2, "Invalid batch size")                                     \
     XX(199, EBATCHSIZE3, "Invalid batch size")                                     \
@@ -185,10 +185,11 @@
     XX(313, ECANCLHNOPINH, "Cancel height must be a pin height (multiple of 32)")  \
     XX(314, EBADCANCELNONCE, "Cannot parse cancel nonce")                          \
     XX(315, EBADASSETUNITS, "Cannot parse asset units")                            \
-    XX(316, EBADASSETPRECISION, "Cannot parse asset precision")                    \
+    XX(316, EBADASSETDECIMALS, "Cannot parse asset decimals")                      \
     XX(317, EBADHEADER, "Cannot parse header")                                     \
     XX(318, EHTTPREQUEST, "HTTP request failed")                                   \
     XX(319, EINVJSON, "Invalid JSON received")                                     \
+    XX(320, EINVINTERVAL, "Invalid candle interval")                               \
     XX(1000, ESIGTERM, "Received SIGTERM")                                         \
     XX(1001, ESIGHUP, "Received SIGHUP")                                           \
     XX(1002, ESIGINT, "Received SIGINT")                                           \

@@ -171,7 +171,7 @@ ChainDB::Database::Database(const std::string& path)
          "`id` INTEGER DEFAULT NULL, "
          "`hash` TEXT NOT NULL UNIQUE, "
          "`name` TEXT NOT NULL, "
-         "`precision` INTEGER NOT NULL, "
+         "`decimals` INTEGER NOT NULL, "
          "`height` INTEGER NOT NULL, "
          "`owner_account_id` INTEGER NOT NULL, "
          "`total_supply` INTEGER NOT NULL, "
@@ -313,13 +313,13 @@ ChainDB::ChainDB(const std::string& path)
                                           "AND height=?")
     , stmtTokenForkBalanceSelect(db, "SELECT height, balance FROM `" TOKENFORKBALANCES_TABLE "` WHERE account_id=? AND height>=? ORDER BY height ASC LIMIT 1")
 
-    , stmtAssetInsert(db, "INSERT INTO `" ASSETS_TABLE "` (id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id, data) VALUES (?,?,?,?,?,?,?,?,?,?)")
+    , stmtAssetInsert(db, "INSERT INTO `" ASSETS_TABLE "` (id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id, data) VALUES (?,?,?,?,?,?,?,?,?,?)")
     , stmtAssetSelectForkHeight(db, "SELECT height FROM `" ASSETS_TABLE "` WHERE parent_id=? AND height>=? ORDER BY height DESC LIMIT 1")
-    , stmtAssetLookup(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `id`=?")
-    , stmtAssetLookupByNameHash1(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? LIMIT 100")
-    , stmtAssetLookupByNameHash2(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? AND `hash` >= ? LIMIT 100")
-    , stmtAssetLookupByNameHash3(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? AND `hash` >= ? AND `hash` < ? LIMIT 100")
-    , stmtAssetLookupByHash(db, "SELECT id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `hash`=?")
+    , stmtAssetLookup(db, "SELECT id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `id`=?")
+    , stmtAssetLookupByNameHash1(db, "SELECT id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? LIMIT 100")
+    , stmtAssetLookupByNameHash2(db, "SELECT id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? AND `hash` >= ? LIMIT 100")
+    , stmtAssetLookupByNameHash3(db, "SELECT id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `name` LIKE ? AND `hash` >= ? AND `hash` < ? LIMIT 100")
+    , stmtAssetLookupByHash(db, "SELECT id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id FROM `" ASSETS_TABLE "` WHERE `hash`=?")
     , stmtSelectBalanceId(db, "SELECT `account_id`, `token_id`, `total`, `locked` FROM `" BALANCES_TABLE "` WHERE `id`=?")
     , stmtTokenInsertBalance(db, "INSERT INTO `" BALANCES_TABLE "` ( id, `token_id`, `account_id`, `total`, `locked`) VALUES (?,?,?,?,?)")
     , stmtTokenSelectBalance(db, "SELECT `id`, `total`, `locked` FROM `" BALANCES_TABLE "` WHERE `token_id`=? AND `account_id`=?")
@@ -789,7 +789,8 @@ std::vector<std::pair<chain_db::OrderData, TxHash>> ChainDB::lookup_account_orde
                             .filled = o[5],
                             .limit = o[6] },
             TxHash(o[7]) });
-    }, aid, accId);
+    },
+        aid, accId);
     stmtSelectBaseSellOrderAccountAsset.for_each([&](const sqlite::Row& o) {
         out.push_back({ chain_db::OrderData {
                             .id = o[0],
@@ -800,7 +801,8 @@ std::vector<std::pair<chain_db::OrderData, TxHash>> ChainDB::lookup_account_orde
                             .filled = o[5],
                             .limit = o[6] },
             TxHash(o[7]) });
-    }, aid, accId);
+    },
+        aid, accId);
     return out;
 }
 OrderLoaderAscending ChainDB::base_order_loader_ascending(AssetId aid) const
@@ -882,7 +884,7 @@ wrt::optional<std::pair<NonzeroHeight, Funds_uint64>> ChainDB::get_balance_snaps
 
 void ChainDB::insert_unguarded(const AssetData& d)
 {
-    stmtAssetInsert.run(d.id, d.hash, d.name, d.supply.precision.value(), d.height, d.ownerAccountId, d.supply.funds.value(), d.groupId, d.parentId, d.data);
+    stmtAssetInsert.run(d.id, d.hash, d.name, d.supply.decimals.value(), d.height, d.ownerAccountId, d.supply.funds.value(), d.groupId, d.parentId, d.data);
 }
 
 wrt::optional<NonzeroHeight> ChainDB::get_latest_fork_height(TokenId tid, Height h)
@@ -1086,7 +1088,7 @@ std::vector<AssetDetail> ChainDB::search_assets(const api::AssetSearchArgs& args
                 .id = o[0],
                 .hash = o[1],
                 .name = o[2],
-                .precision = o[3],
+                .decimals = o[3],
             },
             {
                 .height = o[4],
@@ -1109,14 +1111,14 @@ std::vector<AssetDetail> ChainDB::search_assets(const api::AssetSearchArgs& args
 
 Result<AssetDetail> ChainDB::lookup_asset(AssetId id) const
 {
-    // , stmtAssetLookup(db, "SELECT (id, hash, name, precision, height, owner_account_id, total_supply, group_id, parent_id) FROM Assets WHERE `id`=?")
+    // , stmtAssetLookup(db, "SELECT (id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id) FROM Assets WHERE `id`=?")
     auto r { stmtAssetLookup.one(id).process([](auto& o) -> AssetDetail {
         return {
             AssetBasic {
                 .id = o[0],
                 .hash = o[1],
                 .name = o[2],
-                .precision = o[3],
+                .decimals = o[3],
             },
             {
                 .height = o[4],
@@ -1140,7 +1142,7 @@ Result<AssetDetail> ChainDB::lookup_asset(const AssetHash& hash) const
                 .id = o[0],
                 .hash = o[1],
                 .name = o[2],
-                .precision = o[3],
+                .decimals = o[3],
             },
             {
                 .height = o[4],
