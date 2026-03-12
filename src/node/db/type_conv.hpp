@@ -123,6 +123,7 @@ inline auto convert(const View<N>& v) { return v.span(); }
 inline auto convert(const Worksum& ws) { return ws.to_bytes(); }
 inline auto convert(const std::vector<uint8_t>& v) { return std::span(v); }
 inline auto convert(Funds_uint64 f) { return (int64_t)f.value(); }
+inline auto convert(double f) { return f; }
 inline auto convert(Timestamp ts) { return (int64_t)ts.value(); }
 inline auto convert(Price_uint64 p) { return p.to_uint32(); }
 inline auto convert(AssetName n) { return n.to_string(); }

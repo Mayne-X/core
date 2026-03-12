@@ -67,6 +67,11 @@ json to_json(const api::IPCounter& ipc);
 json to_json(const api::NodeInfo& info);
 json to_json(const api::AssetLookupTrace&);
 
+json to_json(const api::Candle&);
+json to_json(const api::Trade&);
+json to_json(const api::CandlesVector&);
+json to_json(const api::TradesVector&);
+
 json tx_to_json(const api::block::Reward&);
 json tx_to_json(const api::block::WartTransfer&);
 json tx_to_json(const api::block::TokenTransfer&);

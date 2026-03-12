@@ -17,6 +17,8 @@ struct APICall<R, std::tuple<ReqArgs...>> {
     {
         if constexpr (ChainServer::supports<R>) {
             global().chainServer->api_call(R(args...), std::move(cb));
+        } else if constexpr (MarketHistoryServer::supports<R>) {
+            global().chainServer->api_call(R(args...), std::move(cb));
         } else {
             static_assert(false, "API request type not supported");
         }

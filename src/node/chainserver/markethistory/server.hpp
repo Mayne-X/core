@@ -1,10 +1,7 @@
 #pragma once
-// #include "../api_types.hpp"
-// #include "api/callbacks.hpp"
-// #include "api/events/subscription_fwd.hpp"
-// #include "api/types/height_or_hash.hpp"
 #include "api/enable_api.hpp"
 #include "api/types/input.hpp"
+#include "api/types/opt_param.hpp"
 #include "trades_db.hpp"
 #include "wrt/variant.hpp"
 #include <condition_variable>
@@ -13,34 +10,28 @@
 #include <thread>
 #include <vector>
 
-namespace market_history {
-#define LIST_API_TYPES(XX) \
-    XX(MiningAppend, void)
+using CandlesCallback = std::function<void(Result<api::CandlesVector>)>;
+using TradesCallback = std::function<void(Result<api::TradesVector>)>;
+#define LIST_API_TYPES(XX)                                        \
+    XX(GetCandles, api::CandlesVector, api::AssetIdOrHash, asset, \
+        std::string, interval, OptParam<Timestamp>, from,         \
+        OptParam<Timestamp>, to, OptParam<size_t>, N)             \
+    XX(GetTrades, api::TradesVector, api::AssetIdOrHash, asset,   \
+        OptParam<NonzeroHeight>, from, OptParam<NonzeroHeight>,   \
+        to, OptParam<size_t>, N)
 
-namespace chainserver {
-DEFINE_TYPE_COLLECTION(APITypes, LIST_API_TYPES);
-}
+DEFINE_TYPE_COLLECTION(APIReadTypes, LIST_API_TYPES);
 #undef LIST_API_TYPES
+namespace market_history {
 
 class ReaderThreadpool;
-
-using CandlesCallback = std::function<void(Result<std::vector<Candle>>)>;
-using TradesCallback = std::function<void(Result<std::vector<Candle>>)>;
-struct GetCandles {
-    api::AssetIdOrHash assetHash;
-    std::string interval;
-    std::optional<Timestamp> first;
-    std::optional<Timestamp> last;
-    std::optional<size_t> N;
-    CandlesCallback callback;
-};
 
 struct HasAsset {
     api::AssetIdOrHash asset;
 };
 struct GetTradesBase : HasAsset {
     TradesCallback callback;
-    GetTradesBase(api::AssetIdOrHash asset, CandlesCallback callback)
+    GetTradesBase(api::AssetIdOrHash asset, TradesCallback callback)
         : HasAsset(std::move(asset))
         , callback(std::move(callback))
     {
@@ -48,48 +39,48 @@ struct GetTradesBase : HasAsset {
 };
 
 struct GetTradesFrom : GetTradesBase {
-    NonzeroHeight first;
+    NonzeroHeight from;
     size_t N;
 };
 struct GetTradesTo : GetTradesBase {
-    NonzeroHeight last;
+    NonzeroHeight to;
     size_t N;
 };
 struct GetTradesRange : GetTradesBase {
-    NonzeroHeight first;
-    NonzeroHeight last;
+    NonzeroHeight from;
+    NonzeroHeight to;
 };
 struct GetTradesLatest : GetTradesBase {
     size_t N;
 };
 
 struct GetCandlesBase : HasAsset {
-    CandlesCallback callback;
     Interval interval;
-    GetCandlesBase(api::AssetIdOrHash asset, CandlesCallback callback, Interval interval)
+    CandlesCallback callback;
+    GetCandlesBase(api::AssetIdOrHash asset, Interval interval, CandlesCallback callback)
         : HasAsset(std::move(asset))
-        , callback(std::move(callback))
         , interval(std::move(interval))
+        , callback(std::move(callback))
     {
     }
 };
 struct GetCandlesFrom : public GetCandlesBase {
-    Timestamp first;
+    Timestamp from;
     size_t N;
 };
 struct GetCandlesTo : public GetCandlesBase {
-    Timestamp last;
+    Timestamp to;
     size_t N;
 };
 struct GetCandlesRange : public GetCandlesBase {
-    Timestamp first;
-    Timestamp last;
+    Timestamp from;
+    Timestamp to;
 };
 struct GetCandlesLatest : public GetCandlesBase {
     size_t N;
 };
 
-using ReaderEvent = wrt::variant<
+using ReaderEventInternal = wrt::variant<
     GetTradesRange,
     GetTradesFrom,
     GetTradesTo,
@@ -116,7 +107,7 @@ public:
 
 private:
     void work();
-    void dispatch(ReaderEvent&& event);
+    void dispatch(ReaderEventInternal&& event);
     Result<Asset> normalize(const api::AssetIdOrHash& asset);
     void handle_event(const Asset&, GetCandlesRange&&);
     void handle_event(const Asset&, GetCandlesFrom&&);
@@ -133,13 +124,15 @@ private:
     std::jthread t;
 };
 
-class ReaderThreadpool {
+using ReaderEvent = wrt::variant<GetCandles, GetTrades>;
+
+class ReaderThreadpool : public enable_api_methods<ReaderThreadpool, APIReadTypes> {
     friend class Reader;
 
 public:
     ReaderThreadpool(MarketDb& db, size_t N);
     ReaderThreadpool(const ReaderThreadpool&) = delete; // no copy, address needs to stay constant as we have references in the Readers.
-    void defer(ReaderEvent&& e)
+    void defer(ReaderEventInternal&& e)
     {
         std::lock_guard l(m);
         readerEvents.push_back(std::move(e));
@@ -158,26 +151,33 @@ private:
     std::vector<std::unique_ptr<Reader>> readers;
     std::condition_variable cv;
     std::mutex m;
-    std::list<ReaderEvent> readerEvents;
+    std::list<ReaderEventInternal> readerEvents;
 };
 
 class MarketHistoryServer {
     friend class ReaderThreadpool;
 
-private:
-    // using variant_t = wrt::variant<
 public:
     using Event = wrt::variant<int>;
 
-private:
-    MarketHistoryServer(MarketDb& db);
+    void api_call(GetCandles::Object&& e);
+    void api_call(GetTrades::Object&& e);
     void defer(Event e)
     {
         std::lock_guard l(m);
         events.push_back(std::move(e));
         cv.notify_all();
     }
-    void defer(ReaderEvent e)
+    template <typename T>
+
+    static constexpr bool supports = ReaderThreadpool::supports<T>;
+
+    MarketHistoryServer(MarketDb& db);
+
+private:
+    ReaderEventInternal wrap_event_throw(GetCandles::Object&& e);
+    ReaderEventInternal wrap_event_throw(GetTrades::Object&& e);
+    void defer(ReaderEventInternal e)
     {
         readers.defer(std::move(e));
     }

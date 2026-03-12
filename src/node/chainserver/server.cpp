@@ -29,14 +29,13 @@ ConsensusSlave ChainServer::get_chainstate()
     return state.get_chainstate_concurrent();
 }
 
-ChainServer::ChainServer(ChainDB& db, MarketDb* tdb, BatchRegistry& br, wrt::optional<SnapshotSigner> snapshotSigner, Token)
+ChainServer::ChainServer(ChainDB& db, MarketDb* marketDb, BatchRegistry& br, wrt::optional<SnapshotSigner> snapshotSigner, Token)
     : db(db)
     , batchRegistry(br)
     , state(db, br, snapshotSigner)
 {
-    if (tdb != nullptr) {
-        marketServer.emplace
-    }
+    if (marketDb != nullptr) 
+        marketServer.emplace(*marketDb);
     emit_chain_state_event();
 }
 

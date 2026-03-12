@@ -5,6 +5,7 @@
 #include "api_types.hpp"
 #include "chainserver/mining_subscription.hpp"
 #include "chainserver/subscription_state.hpp"
+#include "general/errors.hpp"
 #include "markethistory/server.hpp"
 // #include "communication/create_transaction.hpp"
 #include "communication/stage_operation/request.hpp"
@@ -133,7 +134,7 @@ private:
     {
         std::unique_lock l(mutex);
         haswork = true;
-        events.emplace(std::forward<T>(e));
+        events.push_back(std::forward<T>(e));
         cv.notify_one();
     }
 
@@ -166,6 +167,17 @@ public:
     ~ChainServer();
 
     bool is_busy();
+
+    template <typename Req>
+    requires(MarketHistoryServer::supports<Req>)
+    void api_call(Req&& req, Req::Callback cb)
+    {
+        if (marketServer) {
+            marketServer->api_call(typename std::remove_cvref_t<Req>::Object(std::forward<Req>(req), std::move(cb)));
+        } else {
+            cb(Error(EAPINOTSUPPORTED));
+        }
+    }
 
     template <typename Req>
     requires(supports<Req>)

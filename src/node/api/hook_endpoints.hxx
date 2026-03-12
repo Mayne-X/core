@@ -1,6 +1,7 @@
 #pragma once
 #include "api/http/json.hpp"
 #include "general/static_string.hpp"
+#include "types/opt_param.hpp"
 #include "tools/try_parse.hpp"
 // #include "general/funds.hpp"
 #include "api/http/parse.hpp"
@@ -45,13 +46,14 @@ struct ParameterParser {
             return *p;
         throw Error(EINV_ARGS);
     }
+
     template <typename T>
-    operator wrt::optional<T>()
+    operator OptParam<T>()
     {
         if (sv.length() == 0) {
-            return {};
+            return OptParam<T>({});
         }
-        return operator T();
+        return OptParam<T>(std::optional<T>(T(*this)));
     }
     operator api::HeightOrHash()
     {
@@ -375,6 +377,7 @@ public:
     void hook_endpoints()
     {
         using namespace chainserver;
+        using namespace market_history;
         SECTION("Transaction Endpoints");
         POST_PUB<"/transaction/add">(parse_transaction_create, api_call<PutMempool>);
         GET_PUB<"/transaction/mempool">(api_call<GetMempool>);

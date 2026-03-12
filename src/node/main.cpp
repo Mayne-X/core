@@ -118,7 +118,7 @@ int run_node(int argc, char** argv)
     if (config().data.marketDb) {
         mdb = std::make_unique<MarketDb>(*config().data.marketDb);
     }
-    auto cs = ChainServer::make_chain_server(db, breg, config().node.snapshotSigner);
+    auto cs = ChainServer::make_chain_server(db, mdb.get(), breg, config().node.snapshotSigner);
 
     rxtx::Server rxtxServer;
 

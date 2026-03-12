@@ -80,6 +80,7 @@ struct enable_api_methods<Host, TypeCollection<Requests...>> {
     template <typename T>
     static constexpr bool supports { (std::is_same_v<T, Requests> || ...) };
 
+protected:
     void dispatch_event(auto&& event)
     {
         visit([&]<typename E>(E&& e) {
@@ -134,5 +135,25 @@ struct enable_api_methods<Host, TypeCollection<Requests...>> {
         auto& name1() const { return get<1>(); }                                      \
         auto& name2() const { return get<2>(); }                                      \
     };
-#define GET_MACRO(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
-#define DEFINE_API(...) GET_MACRO(__VA_ARGS__, DEFINE_API_2, DEFINE_API_2, DEFINE_API_1, DEFINE_API_1, DEFINE_API_0)(__VA_ARGS__)
+#define DEFINE_API_4(structname, restype, type0, name0, type1, name1, type2, name2, type3, name3) \
+    struct structname : public APIRequest<structname, restype, type0, type1, type2, type3> {      \
+        using APIRequest<structname, restype, type0, type1, type2, type3>::APIRequest;            \
+        static constexpr const char name[] = #structname;                                         \
+        auto& name0() const { return get<0>(); }                                                  \
+        auto& name1() const { return get<1>(); }                                                  \
+        auto& name2() const { return get<2>(); }                                                  \
+        auto& name3() const { return get<3>(); }                                                  \
+    };
+#define DEFINE_API_5(structname, restype, type0, name0, type1, name1, type2, name2, type3, name3, type4, name4) \
+    struct structname : public APIRequest<structname, restype, type0, type1, type2, type3, type4> {             \
+        using APIRequest<structname, restype, type0, type1, type2, type3, type4>::APIRequest;                   \
+        static constexpr const char name[] = #structname;                                                       \
+        auto& name0() const { return get<0>(); }                                                                \
+        auto& name1() const { return get<1>(); }                                                                \
+        auto& name2() const { return get<2>(); }                                                                \
+        auto& name3() const { return get<3>(); }                                                                \
+        auto& name4() const { return get<4>(); }                                                                \
+    };
+#define GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, NAME, ...) NAME
+#define DEFINE_API(...) GET_MACRO(__VA_ARGS__, DEFINE_API_5, DEFINE_API_5, DEFINE_API_4, DEFINE_API_4, \
+    DEFINE_API_3, DEFINE_API_3, DEFINE_API_2, DEFINE_API_2, DEFINE_API_1, DEFINE_API_1, DEFINE_API_0)(__VA_ARGS__)

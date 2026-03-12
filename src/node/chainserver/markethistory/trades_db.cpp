@@ -56,74 +56,79 @@ wrt::optional<Asset> MarketReaderDB::get_asset(AssetHash hash) const
 {
     return stmtSelectAssetByHash.one(hash).process(
         [](auto& row) { return Asset {
-                            .id { row[0] },
-                            .hash { row[1] },
-                            .latestHeight { row[2] }
+                            .id = row[0],
+                            .hash = row[1],
+                            .latestHeight = row[2]
                         }; });
 }
-std::vector<Candle> MarketReaderDB::get_trades_range(AssetId, NonzeroHeight from, NonzeroHeight to) const{
 
-}
-std::vector<Candle> MarketReaderDB::get_trades_from(AssetId, NonzeroHeight from, size_t n) const{
-
-}
-std::vector<Candle> MarketReaderDB::get_trades_to(AssetId, NonzeroHeight to, size_t n) const{
-
-}
-std::vector<Candle> MarketReaderDB::get_trades_latest(AssetId, size_t n) const{
-
-}
-
-std::vector<Candle> MarketReaderDB::get_candles_range(AssetId, Interval interval, Timestamp from, Timestamp to) const{
-
-}
-std::vector<Candle> MarketReaderDB::get_candles_from(AssetId, Interval interval, Timestamp from, size_t n) const{
-
-}
-std::vector<Candle> MarketReaderDB::get_candles_to(AssetId, Interval interval, Timestamp to, size_t n) const{
-
-}
-std::vector<Candle> MarketReaderDB::get_candles_latest(AssetId, Interval interval, size_t n) const{
-
-}
-std::vector<Candle> MarketReaderDB::get_candles_range(AssetId assetId, Interval interval, uint64_t beginTime, uint64_t endTime) const
+template <typename... Args>
+inline std::vector<api::Trade> MarketReaderDB::extract_trades(AssetId assetId, std::string_view condition, Args&&... args) const
 {
-    auto tableName { candles_table(assetId, interval) };
-    std::string query { std::format("SELECT timestamp, height, open, high, low, close, base, quote FROM {} WHERE timestamp >= ? and timestamp < ? ORDER BY timestamp ASC", tableName) };
+    auto query = std::format("SELECT height, base, quote FROM {} {}", trades_table(assetId), condition);
     Statement stmt(db, query);
-    return stmt.all([](sqlite::Row&& row) {
-        return Candle {
-            .timestamp { row[0] },
-            .height { row[1] },
-            .open { row[2] },
-            .high { row[3] },
-            .low { row[4] },
-            .close { row[5] },
-            .base { row[6] },
-            .quote { row[7] },
+    return stmt.all([](const sqlite::Row& row) {
+        return api::Trade {
+            .timestamp = Timestamp(0),
+            .height = row[0],
+            .base = row[1],
+            .quote = row[2]
         };
     },
-        beginTime, endTime);
+        std::forward<Args>(args)...);
+}
+TradesVector MarketReaderDB::get_trades_range(AssetId aid, NonzeroHeight from, NonzeroHeight to) const
+{
+    return { .elements = extract_trades(aid, "WHERE height >= ? AND height <=? ORDER BY height ASC", from, to), .reverse = false };
+}
+TradesVector MarketReaderDB::get_trades_from(AssetId aid, NonzeroHeight from, size_t n) const
+{
+    return { .elements = extract_trades(aid, "WHERE height >= ? ORDER BY height ASC LIMIT ?", from, n), .reverse = false };
+}
+TradesVector MarketReaderDB::get_trades_to(AssetId aid, NonzeroHeight to, size_t n) const
+{
+    return { .elements = extract_trades(aid, "WHERE height <= ? ORDER BY height DESC LIMIT ?", to, n), .reverse = true };
+}
+TradesVector MarketReaderDB::get_trades_latest(AssetId aid, size_t n) const
+{
+    return { .elements = extract_trades(aid, "ORDER BY height DESC LIMIT ?", n), .reverse = true };
 }
 
-std::vector<Candle> MarketReaderDB::get_candles_latest(AssetId assetId, Interval interval, size_t n) const
+template <typename... Args>
+inline std::vector<Candle> MarketReaderDB::extract_candles(AssetId assetId, Interval interval, std::string_view condition, Args&&... args) const
 {
-    auto tableName { candles_table(assetId, interval) };
-    std::string query { std::format("SELECT timestamp, height, open, high, low, close, base, quote FROM {} WHERE ORDER BY timestamp DESC LIMIT ?", tableName) };
+    auto query = std::format("SELECT timestamp, height, open, high, low, close, base, quote FROM {} {}", candles_table(assetId, interval), condition);
     Statement stmt(db, query);
-    return stmt.all([](sqlite::Row&& row) {
+    return stmt.all([](const sqlite::Row& row) {
         return Candle {
-            .timestamp { row[0] },
-            .height { row[1] },
-            .open { row[2] },
-            .high { row[3] },
-            .low { row[4] },
-            .close { row[5] },
-            .base { row[6] },
-            .quote { row[7] },
+            .timestamp = row[0],
+            .height = row[1],
+            .open = row[2],
+            .high = row[3],
+            .low = row[4],
+            .close = row[5],
+            .base = row[6],
+            .quote = row[7],
         };
     },
-        n);
+        std::forward<Args>(args)...);
+}
+
+CandlesVector MarketReaderDB::get_candles_range(AssetId aid, Interval interval, Timestamp from, Timestamp to) const
+{
+    return { .elements = extract_candles(aid, interval, "WHERE timestamp >= ? AND timestamp <=? ORDER BY timestamp ASC", from, to), .reverse = false };
+}
+CandlesVector MarketReaderDB::get_candles_from(AssetId aid, Interval interval, Timestamp from, size_t n) const
+{
+    return { .elements = extract_candles(aid, interval, "WHERE timestamp >= ? ORDER BY timestamp ASC LIMIT ?", from, n), .reverse = false };
+}
+CandlesVector MarketReaderDB::get_candles_to(AssetId aid, Interval interval, Timestamp to, size_t n) const
+{
+    return { .elements = extract_candles(aid, interval, "WHERE timestamp <= ? ORDER BY timestamp DESC LIMIT ?", to, n), .reverse = true };
+}
+CandlesVector MarketReaderDB::get_candles_latest(AssetId aid, Interval interval, size_t n) const
+{
+    return { .elements = extract_candles(aid, interval, "ORDER BY timestamp DESC LIMIT ?", n), .reverse = true };
 }
 
 MarketReaderDB MarketReaderDB::clone_reader() const
@@ -209,7 +214,10 @@ auto MarketDB::asset_erase_candles_from(AssetId assetId, NonzeroHeight blockHeig
             auto intervalHeight { Height(row[1]).nonzero() };
             assert(intervalHeight.has_value());
             if (*intervalHeight <= blockHeight) {
-                cb = CandleBegin { .timestamp = row[0], .height = row[1] };
+                cb = CandleBegin {
+                    .height = row[1],
+                    .timestamp = row[0],
+                };
                 return true; // continue;
             }
             return false; // stop the for_each_continue loop.
@@ -275,8 +283,8 @@ void MarketDB::asset_rebuild_candles(AssetId assetId, CandleBegin cb)
         auto outBegin = c->timestamp.floor(outInterval.seconds());
         c.reset();
         Statement stmt(db, std::format("SELECT height, open, high, low, close, base, quote FROM {} WHERE timestamp>=?", candles_table(assetId, inInterval)));
-        stmt.for_each([&](auto& row) {
-            Height height { row[0] };
+        stmt.for_each([&](const sqlite::Row& row) {
+            NonzeroHeight height { row[0] };
             double open { row[1] };
             double high { row[2] };
             double low { row[3] };

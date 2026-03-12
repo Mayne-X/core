@@ -1,6 +1,7 @@
 #pragma once
 #include "api/types/shared_fwd.hpp"
 #include "wrt/variant_fwd.hpp"
+#include "chainserver/markethistory/api_types_fwd.hpp"
 namespace api {
 struct AccountHistory;
 struct AccountIdOrAddress;

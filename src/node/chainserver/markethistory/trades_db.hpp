@@ -1,6 +1,7 @@
 #pragma once
 #include "SQLiteCpp/Database.h"
 #include "SQLiteCpp/Transaction.h"
+#include "api_types.hpp"
 #include "block/chain/height.hpp"
 #include "crypto/hash.hpp"
 #include "db/sqlite_fwd.hpp"
@@ -60,17 +61,17 @@ private:
 };
 
 struct FIVEMIN {
-    constexpr FIVEMIN(){};
+    constexpr FIVEMIN() { };
     static inline constexpr const char* slug = "5min";
     static const uint32_t seconds = 5 * 60;
 };
 struct ONEHOUR {
-    constexpr ONEHOUR(){};
+    constexpr ONEHOUR() { };
     static inline constexpr const char* slug = "1h";
     static const uint32_t seconds = 60 * 60;
 };
 struct ONEDAY {
-    constexpr ONEDAY(){};
+    constexpr ONEDAY() { };
     static inline constexpr const char* slug = "1d";
     static const uint32_t seconds = 24 * 60 * 60;
 };
@@ -108,16 +109,9 @@ struct Interval : public impl::interval_variant<Interval, FIVEMIN, ONEHOUR, ONED
     using interval_variant::interval_variant;
 };
 
-struct Candle {
-    Timestamp timestamp; // begin timestamp
-    Height height;
-    double open;
-    double high;
-    double low;
-    double close;
-    double base;
-    double quote;
-};
+using api::Candle;
+using api::CandlesVector;
+using api::TradesVector;
 
 using Statement = sqlite::Statement;
 class MarketReaderDB {
@@ -125,19 +119,23 @@ public:
     [[nodiscard]] wrt::optional<Asset> get_asset(AssetId) const;
     [[nodiscard]] wrt::optional<Asset> get_asset(AssetHash) const;
 
-    std::vector<Candle> get_trades_range(AssetId, NonzeroHeight from, NonzeroHeight to) const;
-    std::vector<Candle> get_trades_from(AssetId, NonzeroHeight from, size_t n) const;
-    std::vector<Candle> get_trades_to(AssetId, NonzeroHeight to, size_t n) const;
-    std::vector<Candle> get_trades_latest(AssetId, size_t n) const;
+    TradesVector get_trades_range(AssetId, NonzeroHeight from, NonzeroHeight to) const;
+    TradesVector get_trades_from(AssetId, NonzeroHeight from, size_t n) const;
+    TradesVector get_trades_to(AssetId, NonzeroHeight to, size_t n) const;
+    TradesVector get_trades_latest(AssetId, size_t n) const;
 
-    std::vector<Candle> get_candles_range(AssetId, Interval interval, Timestamp from, Timestamp to) const;
-    std::vector<Candle> get_candles_from(AssetId, Interval interval, Timestamp from, size_t n) const;
-    std::vector<Candle> get_candles_to(AssetId, Interval interval, Timestamp to, size_t n) const;
-    std::vector<Candle> get_candles_latest(AssetId, Interval interval, size_t n) const;
+    CandlesVector get_candles_range(AssetId, Interval interval, Timestamp from, Timestamp to) const;
+    CandlesVector get_candles_from(AssetId, Interval interval, Timestamp from, size_t n) const;
+    CandlesVector get_candles_to(AssetId, Interval interval, Timestamp to, size_t n) const;
+    CandlesVector get_candles_latest(AssetId, Interval interval, size_t n) const;
     MarketReaderDB clone_reader() const;
     [[nodiscard]] auto transaction() const { return SQLite::Transaction(db); }
 
 protected:
+    template <typename... Args>
+    [[nodiscard]] std::vector<Candle> extract_candles(AssetId, Interval, std::string_view condition, Args&&... args) const;
+    template <typename... Args>
+    [[nodiscard]] std::vector<api::Trade> extract_trades(AssetId, std::string_view condition, Args&&... args) const;
     MarketReaderDB(SQLite::Database&& db);
     mutable SQLite::Database db;
 
@@ -161,7 +159,6 @@ public:
     void insert_asset(AssetId assetId, AssetHash hash);
 
 private:
-    // assetId parameter shall correspond to height (first assetId from height)
     void delete_assets_from(AssetId assetId, NonzeroHeight height);
 
     // The following function shall delete candles that contain trades started from specified height. The candles are sorted by timestamp (5 minute rounded) and each candle saves the first height with timestamp greater than or equal to the candle begin timestamp. This implies that trades with greater height will be contained in the same or later candle such that we can exploit the timestamp indexing ot the candle table. If we pass the block timestamp we can use the index to scan candles in timestamp order from this timestamp and easily find first candle with height greater than passed height.

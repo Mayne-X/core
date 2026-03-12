@@ -3,8 +3,7 @@
 #include "general/with_uint64.hpp"
 #include <chrono>
 #include "wrt/optional.hpp"
-// #include <compare>
-// #include <cstdint>
+
 template <uint32_t seconds>
 class RoundedTimestamp;
 class Timestamp : public IsUint32 {
@@ -98,7 +97,7 @@ public:
 template <uint32_t seconds>
 RoundedTimestamp<seconds> Timestamp::floor() const
 {
-    return { floor(seconds) };
+    return { floor(seconds).value() };
 }
 template <uint32_t seconds>
 RoundedTimestamp<seconds> Timestamp::ceil() const

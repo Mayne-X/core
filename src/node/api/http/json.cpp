@@ -1,5 +1,5 @@
 #include "json.hpp"
-#include "api/types/shared.hpp"
+#include "api/types/all_impl.hpp"
 #include "block/header/header_impl.hpp"
 #include "block/header/view.hpp"
 #include "chainserver/transaction_ids.hpp"
@@ -1062,10 +1062,49 @@ nlohmann::json to_json(const api::NodeInfo& info)
     };
 }
 
+json to_json(const api::Candle& c)
+{
+    return json::array({
+        c.timestamp.value(),
+        c.height.value(),
+        c.open,
+        c.high,
+        c.low,
+        c.close,
+        c.base,
+        c.quote,
+    });
+}
+
+json to_json(const api::Trade& t)
+{
+    return json::array({
+        t.height.value(),
+        t.timestamp.value(),
+        t.base,
+        t.quote,
+    });
+}
+
 json to_json(const api::AssetLookupTrace& alt)
 {
     return { { "fails", to_json(alt.fails) },
         { "snapshotHeight", to_json(alt.snapshotHeight) } };
+}
+
+json to_json(const api::CandlesVector& v) {
+    json arr(json::array());
+    v.foreach([&](const api::Candle& c){
+        arr.push_back(to_json(c));});
+    return arr;
+}
+
+json to_json(const api::TradesVector& v)
+{
+    json arr(json::array());
+    v.foreach([&](const api::Trade& c){
+        arr.push_back(to_json(c));});
+    return arr;
 }
 
 std::string serialize(const api::Raw& r)

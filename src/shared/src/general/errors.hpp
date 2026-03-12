@@ -190,6 +190,10 @@
     XX(318, EHTTPREQUEST, "HTTP request failed")                                   \
     XX(319, EINVJSON, "Invalid JSON received")                                     \
     XX(320, EINVINTERVAL, "Invalid candle interval")                               \
+    XX(321, EINVARGCOMB, "Invalid argument combination")                           \
+    XX(322, ERANGETOOBIG, "Specified result range too big")                        \
+    XX(323, EINVRANGE, "Specified range invalid")                                  \
+    XX(324, EAPINOTSUPPORTED, "API method not supported")                          \
     XX(1000, ESIGTERM, "Received SIGTERM")                                         \
     XX(1001, ESIGHUP, "Received SIGHUP")                                           \
     XX(1002, ESIGINT, "Received SIGINT")                                           \
