@@ -18,10 +18,10 @@ protected:
 
 public:
     using IsUint32::IsUint32;
-    static Height undef() { return Height { 0 }; }
-    static Height zero() { return Height { 0 }; }
-    bool is_zero() const { return *this == zero(); }
-    Height retarget_floor()
+    [[nodiscard]] static Height undef() { return Height { 0 }; }
+    [[nodiscard]] static Height zero() { return Height { 0 }; }
+    [[nodiscard]] bool is_zero() const { return *this == zero(); }
+    [[nodiscard]] Height retarget_floor() const
     {
         return Height { ::retarget_floor(val) };
     }
@@ -29,11 +29,11 @@ public:
 
     Height& operator=(const Height&) = default;
 
-    NonzeroHeight nonzero_assert() const;
-    NonzeroHeight nonzero_throw(Error) const;
-    wrt::optional<NonzeroHeight> nonzero() const;
-    NonzeroHeight one_if_zero() const;
-    NonzeroHeight add1() const;
+    [[nodiscard]] NonzeroHeight nonzero_assert() const;
+    [[nodiscard]] NonzeroHeight nonzero_throw(Error) const;
+    [[nodiscard]] wrt::optional<NonzeroHeight> nonzero() const;
+    [[nodiscard]] NonzeroHeight one_if_zero() const;
+    [[nodiscard]] NonzeroHeight add1() const;
     // Height& operator--()
     // {
     //     assert(val > 0);
@@ -64,24 +64,24 @@ public:
         return Height(h1.val + r);
     }
 
-    size_t complete_batches() const
+    [[nodiscard]] size_t complete_batches() const
     {
         return val / HEADERBATCHSIZE;
     }
-    size_t incomplete_batch_size() const
+    [[nodiscard]] size_t incomplete_batch_size() const
     {
         return val % HEADERBATCHSIZE;
     }
-    Funds_uint64 reward() const
+    [[nodiscard]]Funds_uint64 reward() const
     {
         int32_t halvings = (val - 1) / HALVINTINTERVAL;
         return Funds_uint64::from_value(GENESISBLOCKREWARD >> halvings).value();
     }
 
-    HeightRange latest(uint32_t n) const;
-    PinHeight pin_begin() const;
-    wrt::optional<PinHeight> pin_height() const;
-    constexpr bool is_pin_height() const;
+    [[nodiscard]] HeightRange latest(uint32_t n) const;
+    [[nodiscard]] PinHeight pin_begin() const;
+    [[nodiscard]] wrt::optional<PinHeight> pin_height() const;
+    [[nodiscard]] constexpr bool is_pin_height() const;
 
     friend bool operator==(const Height& h1, uint32_t h)
     {
@@ -100,11 +100,15 @@ public:
     {
     }
     NonzeroHeight(bool) = delete;
-    HeightRange latest(uint32_t n) const;
+    [[nodiscard]]HeightRange latest(uint32_t n) const;
     constexpr NonzeroHeight(uint32_t v)
         : IsUint32(v)
     {
         assert(v != 0);
+    }
+    [[nodiscard]] Height minus1() const
+    {
+        return Height { val - 1 };
     }
 
     operator Height() const
@@ -112,12 +116,12 @@ public:
         auto v { value() };
         return Height(v);
     }
-    NonzeroHeight retarget_floor() const
+    [[nodiscard]] NonzeroHeight retarget_floor() const
     {
         return NonzeroHeight { ::retarget_floor(val) };
     }
 
-    NonzeroHeight subtract_clamp1(uint32_t v) const
+    [[nodiscard]] NonzeroHeight subtract_clamp1(uint32_t v) const
     {
         NonzeroHeight out { *this };
         if (out.val > v)
@@ -127,14 +131,14 @@ public:
         return out;
     }
 
-    NonzeroHeight(const NonzeroHeight&) = default;
+    [[nodiscard]] NonzeroHeight(const NonzeroHeight&) = default;
 
-    NonzeroHeight& operator=(const NonzeroHeight&) = default;
+    [[nodiscard]] NonzeroHeight& operator=(const NonzeroHeight&) = default;
 
-    PinHeight pin_begin() const;
-    PinFloor pin_floor() const;
+    [[nodiscard]] PinHeight pin_begin() const;
+    [[nodiscard]] PinFloor pin_floor() const;
 
-    bool is_retarget_height() const
+    [[nodiscard]] bool is_retarget_height() const
     {
         return *this == retarget_floor();
     }

@@ -3,6 +3,7 @@
 #include "SQLiteCpp/Transaction.h"
 #include "api_types.hpp"
 #include "block/chain/height.hpp"
+#include "block_info.hpp"
 #include "crypto/hash.hpp"
 #include "db/sqlite_fwd.hpp"
 #include "defi/token/id.hpp"
@@ -17,30 +18,30 @@ struct Asset {
     Height latestHeight;
 };
 
-class TradeAmount {
-protected:
-    double _base;
-    double _quote;
-    TradeAmount(double base, double quote)
-        : _base { base }
-        , _quote { quote }
-    {
-    }
-
-public:
-    double base() const { return _base; }
-    double quote() const { return _quote; }
-    double price() const
-    {
-        return _quote / _base;
-    }
-    [[nodiscard]] static wrt::optional<TradeAmount> create(double base, double quote)
-    {
-        if (base == 0 || quote == 0)
-            return {};
-        return TradeAmount { base, quote };
-    }
-};
+// class TradeAmount {
+// protected:
+//     double _base;
+//     double _quote;
+//     TradeAmount(double base, double quote)
+//         : _base { base }
+//         , _quote { quote }
+//     {
+//     }
+//
+// public:
+//     double base() const { return _base; }
+//     double quote() const { return _quote; }
+//     double price() const
+//     {
+//         return _quote / _base;
+//     }
+//     [[nodiscard]] static wrt::optional<TradeAmount> create(double base, double quote)
+//     {
+//         if (base == 0 || quote == 0)
+//             return {};
+//         return TradeAmount { base, quote };
+//     }
+// };
 
 struct Trade : public TradeAmount {
     NonzeroHeight height;
@@ -52,7 +53,6 @@ struct Trade : public TradeAmount {
         return {};
     }
 
-private:
     Trade(TradeAmount amount, Height height)
         : TradeAmount(amount)
         , height(height)
@@ -153,12 +153,13 @@ class MarketDB : public MarketReaderDB {
 public:
     MarketDB(const std::string& path);
 
-    void insert_trade(const Asset& asset, const Trade&, Timestamp ts);
+    void insert_block(const BlockInfo& blockInfo);
     void rollback(AssetId nextAssetId, NonzeroHeight nextHeight, Timestamp nextTimestamp);
 
-    void insert_asset(AssetId assetId, AssetHash hash);
 
 private:
+    void insert_asset(AssetId assetId, AssetHash hash);
+    void insert_trade(const Asset& asset, const Trade&, Timestamp ts);
     void delete_assets_from(AssetId assetId, NonzeroHeight height);
 
     // The following function shall delete candles that contain trades started from specified height. The candles are sorted by timestamp (5 minute rounded) and each candle saves the first height with timestamp greater than or equal to the candle begin timestamp. This implies that trades with greater height will be contained in the same or later candle such that we can exploit the timestamp indexing ot the candle table. If we pass the block timestamp we can use the index to scan candles in timestamp order from this timestamp and easily find first candle with height greater than passed height.
@@ -180,12 +181,22 @@ private:
     void create_tables(AssetId asset);
     void insert_candle(AssetId, Interval, const Candle&);
 
+    void insert_block_hash(NonzeroHeight height, BlockHash hash);
+    void delete_block_from(NonzeroHeight height);
+    wrt::optional<BlockHash> select_block(NonzeroHeight height);
+
 private:
     mutable Statement stmtSetLatestHeight;
     mutable Statement stmtInsertAsset;
+
+    mutable Statement stmtInsertBlock;
+    mutable Statement stmtDeleteBlockFrom;
+    mutable Statement stmtSelectBlock;
+
     mutable Statement stmtSelectAssetsFrom;
     mutable Statement stmtDeleteAssets;
     mutable Statement stmtSelectAssetIdsByLatestHeight;
+    Height length;
 };
 };
 using MarketDb = market_history::MarketDB;

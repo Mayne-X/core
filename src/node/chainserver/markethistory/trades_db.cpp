@@ -48,7 +48,7 @@ MarketReaderDB::MarketReaderDB(SQLite::Database&& db)
 
 wrt::optional<Asset> MarketReaderDB::get_asset(AssetId id) const
 {
-    return stmtSelectAssetById.one(id.value()).process([](auto& row) {
+    return stmtSelectAssetById.one(id).process([](auto& row) {
         return Asset { .id = row[0], .hash = row[1], .latestHeight = row[2] };
     });
 }
@@ -160,19 +160,19 @@ void MarketDB::aggregate_into_candles(AssetId assetId, Interval interval, const 
         insert_candle(assetId, interval, c);
     }
 }
-// template <Interval interval>
-// void MarketDB::remove_from_latest_candle(AssetId assetId, const Trade t)
-// {
-//     auto c { get_latest_candle(assetId, interval) };
-//     assert(c);
-//     assert(c->base >= t.base());
-//     assert(c->quote >= t.quote());
-//     c->base -= t.base();
-//     c->quote -= t.quote();
-//     assert((c->base == 0) == (c->quote == 0));
-//     if (c->base == 0) { // remove whole candle
-//     }
-// }
+
+void MarketDB::insert_block(const BlockInfo& blockInfo)
+{
+    insert_block_hash(blockInfo.height, blockInfo.hash);
+    for (auto& asset : blockInfo.newAssets) {
+        insert_asset(asset.id, asset.hash);
+    }
+    for (auto& t : blockInfo.trades) {
+        auto asset { get_asset(t.assetId) };
+        assert(asset.has_value());
+        insert_trade(*asset, { t, blockInfo.height }, blockInfo.timestamp);
+    }
+}
 
 void MarketDB::insert_trade(const Asset& asset, const Trade& tr, Timestamp ts)
 {
@@ -183,8 +183,12 @@ void MarketDB::insert_trade(const Asset& asset, const Trade& tr, Timestamp ts)
     aggregate_into_candles(asset.id, ONEDAY(), tr, ts);
     stmtSetLatestHeight.run(tr.height, asset.id);
 }
+
 void MarketDB::rollback(AssetId nextAssetId, NonzeroHeight nextHeight, Timestamp nextTimestamp)
 {
+    if (nextHeight > length)
+        return;
+
     // assets which were inserted starting from nextAssetId can be deleted directly
     delete_assets_from(nextAssetId, nextHeight);
 
@@ -195,6 +199,8 @@ void MarketDB::rollback(AssetId nextAssetId, NonzeroHeight nextHeight, Timestamp
             asset_rollback(id, nextHeight, nextTimestamp);
         },
         nextHeight);
+    delete_block_from(nextHeight);
+    length = nextHeight.minus1();
 }
 
 void MarketDB::erase_interval_candles_from_height(AssetId assetId, Interval interval, Timestamp from)
@@ -374,9 +380,18 @@ MarketDB::MarketDB(const std::string& path)
     : MarketReaderDB(create_database(path))
     , stmtSetLatestHeight(db, "UPDATE Assets SET LatestHeight = ? WHERE id = ?")
     , stmtInsertAsset(db, "INSERT INTO Assets (id, hash, latestHeight) VALUES (?, ?, 0)")
+    , stmtInsertBlock(db, "INSERT INTO Blocks (height, hash) VALUES(?,?)")
+    , stmtDeleteBlockFrom(db, "DELETE FROM BLOCKS WHERE height >= ?")
+    , stmtSelectBlock(db, "SELECT hash FROM Blocks WHERE height = ?")
     , stmtSelectAssetsFrom(db, "SELECT id, latestHeight FROM Assets WHERE id >= ? ORDER BY id ASC")
     , stmtDeleteAssets(db, "DELETE FROM Assets WHERE id >= ?")
     , stmtSelectAssetIdsByLatestHeight(db, "SELECT id FROM ASSETS WHERE latestHeight >=?")
+    , length([&] {
+        sqlite::Statement stmt(db, "SELECT height FROM Blocks ORDER BY height DESC LIMIT 1");
+        return stmt.one()
+            .process([](auto& r) { return Height(r[0]); })
+            .value_or(Height(0));
+    }())
 {
 }
 
@@ -401,6 +416,22 @@ void MarketDB::asset_drop_tables(AssetId aid)
     drop_candles(ONEHOUR());
     drop_candles(ONEDAY());
     drop_table(trades_table(aid));
+}
+
+void MarketDB::insert_block_hash(NonzeroHeight height, BlockHash hash)
+{
+    stmtInsertBlock.run(height, hash);
+}
+
+void MarketDB::delete_block_from(NonzeroHeight height)
+{
+    stmtInsertBlock.run(height);
+}
+wrt::optional<BlockHash> MarketDB::select_block(NonzeroHeight height)
+{
+    return stmtInsertBlock.one(height).process([](const sqlite::Row& row) {
+        return BlockHash(row[0]);
+    });
 }
 
 void MarketDB::delete_assets_from(AssetId assetId, NonzeroHeight fromHeight)

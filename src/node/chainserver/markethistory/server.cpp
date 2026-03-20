@@ -173,6 +173,7 @@ void MarketHistoryServer::api_call(GetCandles::Object&& ev)
         ev.callback(e);
     }
 }
+
 void MarketHistoryServer::api_call(GetTrades::Object&& ev)
 {
     try {
