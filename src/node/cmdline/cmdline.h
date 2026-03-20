@@ -63,6 +63,7 @@ struct gengetopt_args_info
   char * rxtx_db_arg;	/**< @brief specify rxtx database file (logging bytes transmitted).  */
   char * rxtx_db_orig;	/**< @brief specify rxtx database file (logging bytes transmitted) original value given at command line.  */
   const char *rxtx_db_help; /**< @brief specify rxtx database file (logging bytes transmitted) help description.  */
+  const char *enable_trades_historydb_help; /**< @brief Enable trades database file (only for public trades history API) help description.  */
   int ws_port_arg;	/**< @brief Websocket port.  */
   char * ws_port_orig;	/**< @brief Websocket port original value given at command line.  */
   const char *ws_port_help; /**< @brief Websocket port help description.  */
@@ -105,6 +106,7 @@ struct gengetopt_args_info
   unsigned int chain_db_given ;	/**< @brief Whether chain-db was given.  */
   unsigned int peers_db_given ;	/**< @brief Whether peers-db was given.  */
   unsigned int rxtx_db_given ;	/**< @brief Whether rxtx-db was given.  */
+  unsigned int enable_trades_historydb_given ;	/**< @brief Whether enable-trades-historydb was given.  */
   unsigned int ws_port_given ;	/**< @brief Whether ws-port was given.  */
   unsigned int ws_tls_cert_given ;	/**< @brief Whether ws-tls-cert was given.  */
   unsigned int ws_tls_key_given ;	/**< @brief Whether ws-tls-key was given.  */

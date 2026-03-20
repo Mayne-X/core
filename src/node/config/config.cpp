@@ -301,7 +301,6 @@ void fill_arg(
         [](U& u) { return u; });
 }
 
-// fill_arg(peers.connect, ai.connect_given, ai.connect_arg, parse_endpoints);
 template <typename T>
 void fill(
     T& dst,
@@ -405,6 +404,9 @@ void ConfigParams::process_args(const gengetopt_args_info& ai)
     node.isolated = ai.isolated_given;
     node.disableTxsMining = ai.disable_tx_mining_given;
     node.enableWebRTC = ai.enable_webrtc_given;
+    if (!ai.enable_trades_historydb_given) {
+        data.tradesHistoryDb.reset();
+    }
 
     if (ai.temporary_given)
         data.chaindb = "";
@@ -568,6 +570,10 @@ int ConfigParams::init(const gengetopt_args_info& ai)
             + (is_testnet() ? "testnet_peers.db3" : "peers_v2.db3");
         data.rxtxdb = warthogDir
             + (is_testnet() ? "testnet_rxtx.db3" : "rxtx.db3");
+        data.chaindb = warthogDir
+            + (is_testnet() ? "testnet_chain_defi.db3" : "chain_defi.db3");
+        data.tradesHistoryDb = warthogDir
+            + (is_testnet() ? "testnet_trades_history.db3" : "trades_history.db3");
         jsonrpc.bind = TCPPeeraddr(is_testnet() ? "127.0.0.1:3100" : "127.0.0.1:3000");
         node.bind = TCPPeeraddr(is_testnet() ? "0.0.0.0:9286" : "0.0.0.0:9186");
 
@@ -621,12 +627,7 @@ void ConfigParams::prepare_warthog_dir(const std::string& warthogDir, bool log)
         }
     }
 }
-void ConfigParams::assign_defaults()
-{
-    // data.peersdb
-    //         defaultDataDir
-    // + (is_testnet() ? "testnet3_chain.db3" : "chain.db3"),
-}
+
 std::string ConfigParams::dump()
 {
     toml::table tbl;

@@ -56,7 +56,7 @@ struct ConfigParams {
     } allowedInboundTransports;
     struct Data {
         std::string chaindb;
-        std::optional<std::string> marketDb;
+        std::optional<std::string> tradesHistoryDb;
         std::string peersdb;
         std::string rxtxdb;
     } data;
@@ -94,7 +94,6 @@ struct ConfigParams {
 private:
     ConfigParams() { };
     void prepare_warthog_dir(const std::string&, bool log);
-    void assign_defaults();
     int init(const gengetopt_args_info&);
     void process_args(const gengetopt_args_info& ai);
     wrt::optional<int> process_config_file(const gengetopt_args_info& ai, bool silent);

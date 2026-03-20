@@ -4,8 +4,8 @@ namespace market_history {
 
 void Reader::work()
 {
-    std::unique_lock l(parent.m);
     while (true) {
+        std::unique_lock l(parent.m);
         parent.cv.wait(l, [&] {
             return parent._shutdown || !parent.readerEvents.empty();
         });

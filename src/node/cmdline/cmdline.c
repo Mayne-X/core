@@ -34,50 +34,52 @@ const char *gengetopt_args_info_versiontext = "";
 const char *gengetopt_args_info_description = "";
 
 const char *gengetopt_args_info_detailed_help[] = {
-  "  -h, --help                 Print help and exit",
-  "      --detailed-help        Print help, including all details and hidden\n                               options, and exit",
-  "  -V, --version              Print version and exit",
+  "  -h, --help                    Print help and exit",
+  "      --detailed-help           Print help, including all details and hidden\n                                  options, and exit",
+  "  -V, --version                 Print version and exit",
   "\nNode options:",
-  "  -b, --bind=IP:PORT         Socket to listen on, defaults to \"0.0.0.0:9186\"\n                               for main net and \"0.0.0.0:9286\" for test net",
-  "  -C, --connect=IP:PORT,...  Specify peer list",
+  "  -b, --bind=IP:PORT            Socket to listen on, defaults to\n                                  \"0.0.0.0:9186\" for main net and\n                                  \"0.0.0.0:9286\" for test net",
+  "  -C, --connect=IP:PORT,...     Specify peer list",
   "  This option overrides the peers list, specify comma separated entries of\n  format 'IP:PORT'",
-  "      --isolated             Do not allow peers (for testing purposes, do not\n                               use in production)",
+  "      --isolated                Do not allow peers (for testing purposes, do\n                                  not use in production)",
   "  This option isolates the node such that it does not connect to other peers\n  and does not accept incoming connections from other peers. This option is for\n  debugging and testing purposes only, do not use in production, mined blocks\n  will not be included in main net",
-  "      --temporary            Use temporary database (for testing purposes, do\n                               not use in production)",
+  "      --temporary               Use temporary database (for testing purposes,\n                                  do not use in production)",
   "  This option starts the node with a temporary empty chain database.",
-  "      --testnet              Enable testnet",
-  "      --disable-tx-mining    Don't mine transactions (in case of bugs)",
-  "      --enable-webrtc        Enable WebRTC connectivity",
-  "      --minfee=STRING        Set minimal transaction fee accepted by this node,\n                               defaults to 0.01",
+  "      --testnet                 Enable testnet",
+  "      --disable-tx-mining       Don't mine transactions (in case of bugs)",
+  "      --enable-webrtc           Enable WebRTC connectivity",
+  "      --minfee=STRING           Set minimal transaction fee accepted by this\n                                  node, defaults to 0.01",
   "\nData file options:",
-  "      --chain-db=STRING      specify chain data file",
+  "      --chain-db=STRING         specify chain data file",
   "  Defaults to ~/.warthog/chain.db3 in Linux, %LOCALAPPDATA%/Warthog/chain.db3\n  on Windows.",
-  "      --peers-db=STRING      specify data file",
+  "      --peers-db=STRING         specify data file",
   "  Defaults to ~/.warthog/peers.db3 in Linux, %LOCALAPPDATA%/Warthog/peers.db3\n  on Windows",
-  "      --rxtx-db=STRING       specify rxtx database file (logging bytes\n                               transmitted)",
+  "      --rxtx-db=STRING          specify rxtx database file (logging bytes\n                                  transmitted)",
   "  Defaults to ~/.warthog/rxtx.db3 in Linux, %LOCALAPPDATA%/Warthog/rxtx.db3 on\n  Windows",
+  "      --enable-trades-historydb Enable trades database file (only for public\n                                  trades history API)",
+  "  If enabled, located at ~/.warthog/trades_history.db3 in Linux,\n  %LOCALAPPDATA%/Warthog/trades_history.db3 on Windows",
   "\nWebsocket server options:",
-  "      --ws-port=INT          Websocket port",
+  "      --ws-port=INT             Websocket port",
   "  Public websocket nodes support communication over websocket",
-  "      --ws-tls-cert=STRING   TLS certificate file for public websocket endpoint",
+  "      --ws-tls-cert=STRING      TLS certificate file for public websocket\n                                  endpoint",
   "  Defaults to 'ws.cert'",
-  "      --ws-tls-key=STRING    TLS private key file for public websocket endpoint",
+  "      --ws-tls-key=STRING       TLS private key file for public websocket\n                                  endpoint",
   "  Defaults to 'ws.key'",
-  "      --ws-x-forwarded-for   Honor 'X-Forwarded-For' header to determine peer\n                               IP. Intended use for reverse-proxies.",
+  "      --ws-x-forwarded-for      Honor 'X-Forwarded-For' header to determine\n                                  peer IP. Intended use for reverse-proxies.",
   "  By default the node uses the connection's peer IP for limits and bans.\n  However, when behind a reverse proxy the real peer's IP must be determined\n  using 'X-Forwarded-For' header.",
-  "      --ws-bind-localhost    Bind to loopback interface. Intended use for\n                               reverse-proxies.",
+  "      --ws-bind-localhost       Bind to loopback interface. Intended use for\n                                  reverse-proxies.",
   "  Only websocket connections from localhost are accepted. This is to hide the\n  node when websocket TLS encryption is done by a reverse proxy like nginx.\n  This should not be used when the node is started within a docker container\n  with forwarded ports.",
   "\nLogging options:",
-  "  -d, --debug                Enable debug messages",
+  "  -d, --debug                   Enable debug messages",
   "\nJSON RPC endpoint options:",
-  "  -r, --rpc=IP:PORT          JSON RPC endpoint socket, defaults to\n                               \"127.0.0.1:3000\" for main net and\n                               \"127.0.0.1:3100\" for test net",
-  "      --publicrpc=IP:PORT    Public JSON RPC endpoint socket, disabled by\n                               default",
-  "      --stratum=IP:PORT      Solo mining stratum",
-  "      --enable-public        Shorthand for --publicrpc=0.0.0.0:3001",
+  "  -r, --rpc=IP:PORT             JSON RPC endpoint socket, defaults to\n                                  \"127.0.0.1:3000\" for main net and\n                                  \"127.0.0.1:3100\" for test net",
+  "      --publicrpc=IP:PORT       Public JSON RPC endpoint socket, disabled by\n                                  default",
+  "      --stratum=IP:PORT         Solo mining stratum",
+  "      --enable-public           Shorthand for --publicrpc=0.0.0.0:3001",
   "\nConfiguration file options:",
-  "  -c, --config=FILENAME      Configuration file, default is \"config.toml\", in\n                               testnet \"testnet3_chain.db3\"",
-  "  -t, --test                 test the configuration file (check for correct\n                               syntax)",
-  "      --dump-config          dump the current configuration to stdout",
+  "  -c, --config=FILENAME         Configuration file, default is \"config.toml\",\n                                  in testnet \"testnet3_chain.db3\"",
+  "  -t, --test                    test the configuration file (check for correct\n                                  syntax)",
+  "      --dump-config             dump the current configuration to stdout",
   "  This option can be useful to generate a configuration file template",
     0
 };
@@ -102,27 +104,28 @@ init_help_array(void)
   gengetopt_args_info_help[14] = gengetopt_args_info_detailed_help[18];
   gengetopt_args_info_help[15] = gengetopt_args_info_detailed_help[20];
   gengetopt_args_info_help[16] = gengetopt_args_info_detailed_help[22];
-  gengetopt_args_info_help[17] = gengetopt_args_info_detailed_help[23];
+  gengetopt_args_info_help[17] = gengetopt_args_info_detailed_help[24];
   gengetopt_args_info_help[18] = gengetopt_args_info_detailed_help[25];
   gengetopt_args_info_help[19] = gengetopt_args_info_detailed_help[27];
   gengetopt_args_info_help[20] = gengetopt_args_info_detailed_help[29];
   gengetopt_args_info_help[21] = gengetopt_args_info_detailed_help[31];
   gengetopt_args_info_help[22] = gengetopt_args_info_detailed_help[33];
-  gengetopt_args_info_help[23] = gengetopt_args_info_detailed_help[34];
-  gengetopt_args_info_help[24] = gengetopt_args_info_detailed_help[35];
-  gengetopt_args_info_help[25] = gengetopt_args_info_detailed_help[36];
-  gengetopt_args_info_help[26] = gengetopt_args_info_detailed_help[37];
-  gengetopt_args_info_help[27] = gengetopt_args_info_detailed_help[38];
-  gengetopt_args_info_help[28] = gengetopt_args_info_detailed_help[39];
-  gengetopt_args_info_help[29] = gengetopt_args_info_detailed_help[40];
-  gengetopt_args_info_help[30] = gengetopt_args_info_detailed_help[41];
-  gengetopt_args_info_help[31] = gengetopt_args_info_detailed_help[42];
-  gengetopt_args_info_help[32] = gengetopt_args_info_detailed_help[43];
-  gengetopt_args_info_help[33] = 0; 
+  gengetopt_args_info_help[23] = gengetopt_args_info_detailed_help[35];
+  gengetopt_args_info_help[24] = gengetopt_args_info_detailed_help[36];
+  gengetopt_args_info_help[25] = gengetopt_args_info_detailed_help[37];
+  gengetopt_args_info_help[26] = gengetopt_args_info_detailed_help[38];
+  gengetopt_args_info_help[27] = gengetopt_args_info_detailed_help[39];
+  gengetopt_args_info_help[28] = gengetopt_args_info_detailed_help[40];
+  gengetopt_args_info_help[29] = gengetopt_args_info_detailed_help[41];
+  gengetopt_args_info_help[30] = gengetopt_args_info_detailed_help[42];
+  gengetopt_args_info_help[31] = gengetopt_args_info_detailed_help[43];
+  gengetopt_args_info_help[32] = gengetopt_args_info_detailed_help[44];
+  gengetopt_args_info_help[33] = gengetopt_args_info_detailed_help[45];
+  gengetopt_args_info_help[34] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[34];
+const char *gengetopt_args_info_help[35];
 
 typedef enum {ARG_NO
   , ARG_STRING
@@ -159,6 +162,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->chain_db_given = 0 ;
   args_info->peers_db_given = 0 ;
   args_info->rxtx_db_given = 0 ;
+  args_info->enable_trades_historydb_given = 0 ;
   args_info->ws_port_given = 0 ;
   args_info->ws_tls_cert_given = 0 ;
   args_info->ws_tls_key_given = 0 ;
@@ -225,19 +229,20 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->chain_db_help = gengetopt_args_info_detailed_help[16] ;
   args_info->peers_db_help = gengetopt_args_info_detailed_help[18] ;
   args_info->rxtx_db_help = gengetopt_args_info_detailed_help[20] ;
-  args_info->ws_port_help = gengetopt_args_info_detailed_help[23] ;
-  args_info->ws_tls_cert_help = gengetopt_args_info_detailed_help[25] ;
-  args_info->ws_tls_key_help = gengetopt_args_info_detailed_help[27] ;
-  args_info->ws_x_forwarded_for_help = gengetopt_args_info_detailed_help[29] ;
-  args_info->ws_bind_localhost_help = gengetopt_args_info_detailed_help[31] ;
-  args_info->debug_help = gengetopt_args_info_detailed_help[34] ;
-  args_info->rpc_help = gengetopt_args_info_detailed_help[36] ;
-  args_info->publicrpc_help = gengetopt_args_info_detailed_help[37] ;
-  args_info->stratum_help = gengetopt_args_info_detailed_help[38] ;
-  args_info->enable_public_help = gengetopt_args_info_detailed_help[39] ;
-  args_info->config_help = gengetopt_args_info_detailed_help[41] ;
-  args_info->test_help = gengetopt_args_info_detailed_help[42] ;
-  args_info->dump_config_help = gengetopt_args_info_detailed_help[43] ;
+  args_info->enable_trades_historydb_help = gengetopt_args_info_detailed_help[22] ;
+  args_info->ws_port_help = gengetopt_args_info_detailed_help[25] ;
+  args_info->ws_tls_cert_help = gengetopt_args_info_detailed_help[27] ;
+  args_info->ws_tls_key_help = gengetopt_args_info_detailed_help[29] ;
+  args_info->ws_x_forwarded_for_help = gengetopt_args_info_detailed_help[31] ;
+  args_info->ws_bind_localhost_help = gengetopt_args_info_detailed_help[33] ;
+  args_info->debug_help = gengetopt_args_info_detailed_help[36] ;
+  args_info->rpc_help = gengetopt_args_info_detailed_help[38] ;
+  args_info->publicrpc_help = gengetopt_args_info_detailed_help[39] ;
+  args_info->stratum_help = gengetopt_args_info_detailed_help[40] ;
+  args_info->enable_public_help = gengetopt_args_info_detailed_help[41] ;
+  args_info->config_help = gengetopt_args_info_detailed_help[43] ;
+  args_info->test_help = gengetopt_args_info_detailed_help[44] ;
+  args_info->dump_config_help = gengetopt_args_info_detailed_help[45] ;
   
 }
 
@@ -419,6 +424,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "peers-db", args_info->peers_db_orig, 0);
   if (args_info->rxtx_db_given)
     write_into_file(outfile, "rxtx-db", args_info->rxtx_db_orig, 0);
+  if (args_info->enable_trades_historydb_given)
+    write_into_file(outfile, "enable-trades-historydb", 0, 0 );
   if (args_info->ws_port_given)
     write_into_file(outfile, "ws-port", args_info->ws_port_orig, 0);
   if (args_info->ws_tls_cert_given)
@@ -715,6 +722,7 @@ cmdline_parser_internal (
         { "chain-db",	1, NULL, 0 },
         { "peers-db",	1, NULL, 0 },
         { "rxtx-db",	1, NULL, 0 },
+        { "enable-trades-historydb",	0, NULL, 0 },
         { "ws-port",	1, NULL, 0 },
         { "ws-tls-cert",	1, NULL, 0 },
         { "ws-tls-key",	1, NULL, 0 },
@@ -949,6 +957,20 @@ cmdline_parser_internal (
                 &(local_args_info.rxtx_db_given), optarg, 0, 0, ARG_STRING,
                 check_ambiguity, override, 0, 0,
                 "rxtx-db", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Enable trades database file (only for public trades history API).  */
+          else if (strcmp (long_options[option_index].name, "enable-trades-historydb") == 0)
+          {
+          
+          
+            if (update_arg( 0 , 
+                 0 , &(args_info->enable_trades_historydb_given),
+                &(local_args_info.enable_trades_historydb_given), optarg, 0, 0, ARG_NO,
+                check_ambiguity, override, 0, 0,
+                "enable-trades-historydb", '-',
                 additional_error))
               goto failure;
           

@@ -13,7 +13,7 @@ SQLite::Database create_database(const std::string& path)
         "PRAGMA journal_mode = WAL;"
         "CREATE TABLE IF NOT EXISTS `Assets` (`id` INTEGER NOT NULL, `hash` INTEGER UNIQUE, `latestHeight` INTEGER NOT NULL, PRIMARY KEY(`id`));"
         "CREATE TABLE IF NOT EXISTS `Blocks` (`height` INTEGER, `hash` INTEGER UNIQUE, PRIMARY KEY(`height`));"
-        "CREATE INDEX `latestHeightIndex` ON `Assets` ( `latestHeight`);");
+        "CREATE INDEX IF NOT EXISTS `latestHeightIndex` ON `Assets` ( `latestHeight`);");
     return out;
 }
 
@@ -39,10 +39,10 @@ void candle_add_trade(Candle& c, const TradeAmount& ta)
 }
 }
 
-MarketReaderDB::MarketReaderDB(SQLite::Database&& db)
-    : db(std::move(db))
-    , stmtSelectAssetById(db, "SELET id, hash, latestHeight FROM Assets WHERE id = ?")
-    , stmtSelectAssetByHash(db, "SELET id, hash, latestHeight FROM Assets WHERE hash = ?")
+MarketReaderDB::MarketReaderDB(SQLite::Database&& dbtmp)
+    : db(std::move(dbtmp))
+    , stmtSelectAssetById(db, "SELECT id, hash, latestHeight FROM Assets WHERE id = ?")
+    , stmtSelectAssetByHash(db, "SELECT id, hash, latestHeight FROM Assets WHERE hash = ?")
 {
 }
 
