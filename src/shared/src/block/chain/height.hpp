@@ -254,7 +254,7 @@ inline HeightRange NonzeroHeight::latest(uint32_t n) const
 
 inline NonzeroHeight Height::add1() const
 {
-    return val + 1;
+    return NonzeroHeight(val + 1);
 }
 
 class PrevHeight : public Height {

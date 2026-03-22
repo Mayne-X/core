@@ -1,4 +1,6 @@
 #include "server.hpp"
+#include "../server.hpp"
+#include <numeric>
 
 namespace market_history {
 
@@ -9,12 +11,15 @@ void Reader::work()
         parent.cv.wait(l, [&] {
             return parent._shutdown || !parent.readerEvents.empty();
         });
+        if (parent._shutdown)
+            break;
         // take one event at a time
         auto event { parent.readerEvents.front() };
         parent.readerEvents.pop_front();
         l.unlock();
         dispatch(std::move(event));
     }
+    spdlog::debug("Shutting down Reader");
 }
 
 Result<Asset> Reader::normalize(const api::AssetIdOrHash& asset)
@@ -183,9 +188,143 @@ void MarketHistoryServer::api_call(GetTrades::Object&& ev)
     }
 }
 
-MarketHistoryServer::MarketHistoryServer(MarketDb& db)
-    : db(db)
-    , readers(db, 1)
+void MarketHistoryServer::work()
 {
+    spdlog::debug("Starting MarketHistoryServer");
+    while (true) {
+        std::unique_lock l(m);
+        cv.wait(l, [&] { return _shutdown || !events.empty(); });
+        if (_shutdown)
+            break;
+        decltype(events) tmp(std::move(events));
+        events.clear();
+        l.unlock();
+        for (auto& e : tmp)
+            std::move(e).visit([&](auto&& e) { handle_event(std::move(e)); });
+    }
+    spdlog::debug("Shutting down MarketHistoryServer");
+}
+
+MarketHistoryServer::MarketHistoryServer(InitData data)
+    : db(data.db)
+    , chainServer(data.chainServer)
+    , consensusCopy(std::move(data.consensusCopy))
+    , consensusDescriptor(std::move(data.consensusDescriptor))
+    , readers(db, data.readerCount)
+{
+    try_initial_rollback();
+    worker = std::thread(&MarketHistoryServer::work, this);
+}
+
+void MarketHistoryServer::try_initial_rollback()
+{
+    auto l { std::min(db.chain_length(), consensusCopy.length()) };
+    if (!l.is_zero()) {
+        auto lower { Height(0) };
+        auto upper = l + 1;
+        // To boost bisection for long chains we try to go back only
+        // 100 blocks in first step to hope for matching headers at
+        // that position. This is likely to match and then skips
+        // lengthy lookup at earlier heights.
+        auto h { (l.value() > 100 ? (l - 100) : Height(1)) };
+        while (h != lower) {
+            spdlog::info("Testing market history db at height {}", h.value());
+            auto hash { db.get_block_hash(h.nonzero_assert()) };
+            assert(hash); // should be present in db because tmp < upper
+            if (*hash == consensusCopy.hash_at(h)) // matching headers
+                lower = h;
+            else
+                upper = h;
+            h = Height(std::midpoint(lower.value(), upper.value()));
+        }
+        assert(upper == lower.add1());
+        // at this point `lower` is the length of identical blocks
+        l = lower;
+    }
+    if (auto h { l.nonzero() }) {
+        if (db.chain_length() != *h) {
+            scheduledRollbackHeight = *h;
+            chainServer.get_rollback_bounds(*h, consensusDescriptor, [&, desc = this->consensusDescriptor](RollbackBounds&& rb) {
+                defer(BoundsReply {
+                    .rollbackBounds { std::move(rb) },
+                    .descriptor { desc } });
+            });
+            return;
+        }
+    } else { // joint length l == 0
+        db.clear(); // complete rollback, i.e. delete all history from database
+    }
+    // we can start requesting blocks to sync with consensus chain
+    scheduledRollbackHeight.reset();
+    try_request_block();
+}
+void MarketHistoryServer::transaction_rollback(const RollbackBounds& nextBounds)
+{
+    auto transaction { db.transaction() };
+    db.rollback(nextBounds); // roll back if necessary
+    transaction.commit();
+}
+
+void MarketHistoryServer::handle_event(OnChainReplace&& e)
+{
+    assert(e.descriptor > consensusDescriptor);
+    consensusDescriptor = e.descriptor;
+    if (scheduledRollbackHeight) {
+        // We are in the initial rollback phase.
+        // Since consensus forked we will try
+        // adjust rollback preparation and
+        // possibly request rollback bounds again.
+        try_initial_rollback();
+    } else {
+        transaction_rollback(e.rollbackBounds);
+        try_request_block();
+    }
+}
+void MarketHistoryServer::handle_event(OnChainAppend&& e)
+{
+    if (scheduledRollbackHeight)
+        return; // ignore if we not yet following consensus chain
+    if (db.chain_length().add1() != e.block.height) {
+        // chain should be behind consensus otherwise there
+        // is a bug
+        assert(db.chain_length() <= e.block.height);
+        return;
+    }
+    db.append_block(e.block);
+}
+
+void MarketHistoryServer::handle_event(BlockReply&& e)
+{
+    // we don't request blocks (so we can't receive this event)
+    // before we have completed initial rollback
+    assert(scheduledRollbackHeight.has_value() == false);
+
+    if (e.descriptor == consensusDescriptor) {
+        assert(e.blockInfo.height == db.chain_length().add1());
+        db.append_block(e.blockInfo);
+        try_request_block();
+    }
+}
+void MarketHistoryServer::handle_event(BoundsReply&& e)
+{
+    // we don't expect this event after initial rollback
+    assert(scheduledRollbackHeight.has_value());
+
+    if (e.descriptor == consensusDescriptor) {
+        db.rollback(e.rollbackBounds);
+        scheduledRollbackHeight.reset();
+        try_request_block();
+    }
+}
+void MarketHistoryServer::try_request_block()
+{
+    // request next block to catch up if necessary
+    if (db.chain_length() < consensusCopy.length()) {
+        chainServer.get_block_market_history(db.chain_length().add1(), consensusDescriptor, [&, desc = this->consensusDescriptor](BlockInfo&& bi) {
+            defer(BlockReply {
+                .blockInfo { std::move(bi) },
+                .descriptor { desc } });
+        });
+    }
 }
 }

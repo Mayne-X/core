@@ -10,6 +10,7 @@
 #include "general/writer_fwd.hpp"
 #include "merkle_write_hooker.hpp"
 #include <cstdint>
+#include <utility>
 
 namespace block {
 namespace body {
@@ -117,7 +118,7 @@ public:
     }
     bool try_push_back(elem_t e, BlockVersion v)
     {
-        if (elem_t::allows_blockversion(v)){
+        if (elem_t::allows_blockversion(v)) {
             vector.push_back(std::move(e));
             return true;
         }
@@ -143,6 +144,8 @@ struct TransactionEntries : public VectorValidateBlockversion<Tag<tag, VectorEnt
 template <StaticString tag, typename UInt, typename Elem>
 struct TransactionVector : public VectorValidateBlockversion<Tag<tag, SizeVector<UInt, Elem>>> {
     using VectorValidateBlockversion<Tag<tag, SizeVector<UInt, Elem>>>::VectorValidateBlockversion;
+    auto begin() const { return this->entries().begin(); }
+    auto end() const { return this->entries().end(); }
 };
 
 template <typename T>
@@ -389,13 +392,13 @@ struct TokenSections : public Tag<"tokenSections", SizeVector<uint16_t, Tag<"tok
 
 struct Cancelations : public TransactionVector<"cancelations", uint16_t, body::Cancelation> {
     using TransactionVector::TransactionVector;
-    auto& cancelations() const { return entries(); }
+    auto& cancelations() const { return *this; }
     auto& cancelations() { return *this; }
 };
 
 struct AssetCreations : TransactionVector<"assetCreations", uint16_t, body::AssetCreation> {
     using TransactionVector::TransactionVector;
-    auto& asset_creations() const { return entries(); }
+    auto& asset_creations() const { return *this; }
     auto& asset_creations() { return *this; }
 };
 

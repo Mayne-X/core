@@ -78,7 +78,7 @@ struct Chainstate {
     Descriptor descriptor() const { return dsc; }
     const auto& txids() const { return chainTxIds; }
     const auto& mempool() const { return _mempool; }
-    [[nodiscard]] inline auto history_offset(NonzeroHeight height) const
+    [[nodiscard]] inline auto history_lower_bound(NonzeroHeight height) const
     {
         if (height.value() == 1)
             return HistoryId::smallest();
@@ -87,6 +87,11 @@ struct Chainstate {
     NonzeroHeight history_height(HistoryId historyIndex) const
     {
         return historyOffsets.height(historyIndex);
+    }
+    StateId64 state_lower_bound(NonzeroHeight height) const{
+        if (height.value() == 1)
+            return StateId64(0);
+        return stateOffsets.at(height);
     }
     [[nodiscard]] StateHeight state_height(AssetId id) const
     {

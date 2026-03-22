@@ -34,8 +34,14 @@ ChainServer::ChainServer(ChainDB& db, MarketDb* marketDb, BatchRegistry& br, wrt
     , batchRegistry(br)
     , state(db, br, snapshotSigner)
 {
-    if (marketDb != nullptr) 
-        marketServer.emplace(*marketDb);
+
+    if (marketDb != nullptr)
+        marketServer.emplace(market_history::MarketHistoryServer::InitData {
+            .db = *marketDb,
+            .chainServer = *this,
+            .consensusCopy = state.get_headers(),
+            .consensusDescriptor = state.get_descriptor(),
+            .readerCount = 1 });
     emit_chain_state_event();
 }
 
@@ -89,6 +95,16 @@ void ChainServer::destroy_subscriptions(subscription_data_ptr p)
 void ChainServer::async_get_blocks(DescriptedBlockRange range, getBlocksCb&& callback)
 {
     defer(GetBlocks { range, std::move(callback) });
+}
+
+void ChainServer::get_rollback_bounds(NonzeroHeight h, Descriptor d, GetRollbackBounds::callback_t cb)
+{
+    defer(GetRollbackBounds { h, d, std::move(cb) });
+}
+
+void ChainServer::get_block_market_history(NonzeroHeight h, Descriptor d, GetBlockMarketHistory::callback_t cb)
+{
+    defer(GetBlockMarketHistory { h, d, std::move(cb) });
 }
 
 void ChainServer::async_stage_request(stage_operation::Operation r)
@@ -251,6 +267,29 @@ void ChainServer::handle_event(GetBlocks&& e)
 {
     auto t { timing->time("GetBlocks") };
     e.callback(state.get_body_data(e.range));
+}
+
+void ChainServer::handle_event(GetRollbackBounds&& e)
+{
+    spdlog::info("Handle GetRollbackBounds");
+    auto d { state.get_descriptor() };
+    if (e.descriptor != d)
+        return; // ignore;
+    // the descriptor is equal so we know that
+    // the following assert succeeds
+    auto rb { state.get_rollback_bounds(e.height) };
+    assert(rb);
+    e.callback(*rb);
+}
+void ChainServer::handle_event(GetBlockMarketHistory&& e)
+{
+    spdlog::info("Handle GetBlockMarketHistory {}", e.height.value());
+    auto d { state.get_descriptor() };
+    if (e.descriptor != d)
+        return; // ignore;
+    auto h { state.get_block_market_history(e.height) };
+    assert(h);
+    e.callback(*h);
 }
 
 void ChainServer::handle_event(stage_operation::StageSetOperation&& r)

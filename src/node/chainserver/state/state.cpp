@@ -105,6 +105,58 @@ wrt::optional<NonzeroHeight> State::consensus_height(const Hash& hash) const
     return h;
 }
 
+auto State::get_rollback_bounds(NonzeroHeight h) const -> wrt::optional<market_history::RollbackBounds>
+{
+    auto h1 { h + 1 };
+    if (h > chainlength())
+        return {};
+    auto nextAssetId { [&] {
+        if (h == chainlength())
+            return AssetId(db.next_id64());
+        return AssetId(chainstate.state_lower_bound(h1));
+    }() };
+    ;
+    return market_history::RollbackBounds {
+        .assetIdDeleteFrom { nextAssetId },
+        .length { h },
+        .timestamp { get_headers()[h].timestamp() },
+    };
+}
+
+auto State::get_block_market_history(NonzeroHeight h) const -> wrt::optional<market_history::BlockInfo>
+{
+    auto id { db.consensus_block_id(h) };
+    if (!id)
+        return {};
+    auto b { api_get_block(h) };
+    assert(b);
+
+    // BlockInfo(NonzeroHeight height, BlockHash hash, Timestamp timestamp)
+    market_history::BlockInfo bi(b->height, b->header.hash(), b->header.timestamp());
+    for (auto& ac : b->actions.assetCreations) {
+        assert(ac.assetId.has_value()); // this block comes from database so it must be filled (unlike pending block)
+        bi.insert_new_asset(ac.assetId.value(), AssetHash(ac.txhash));
+    }
+
+    for (auto& m : b->actions.matches) {
+        double baseTotal { 0.0 };
+        double quoteTotal { 0.0 };
+        for (auto& e : m.buySwaps) {
+            quoteTotal += e.quote().to_double();
+            baseTotal += e.base().to_decimal(m.assetInfo.decimals).to_double();
+        }
+        for (auto& e : m.sellSwaps) {
+            quoteTotal += e.quote().to_double();
+            baseTotal += e.base().to_decimal(m.assetInfo.decimals).to_double();
+        }
+        auto ta { market_history::TradeAmount::create(baseTotal, quoteTotal) };
+        if (ta) {
+            bi.push_trade(m.assetInfo.id, *ta);
+        }
+    }
+    return bi;
+}
+
 wrt::optional<Hash> State::get_hash(Height h) const
 {
     return chainstate.headers().get_hash(h);
@@ -449,8 +501,8 @@ wrt::optional<api::Block> State::api_get_block(Height zh) const
         return {};
     auto h { zh.nonzero_assert() };
     auto pinFloor { h.pin_floor() };
-    auto lower = chainstate.history_offset(h);
-    auto upper = (h == chainlength() ? HistoryId { 0 } : chainstate.history_offset(h + 1));
+    auto lower = chainstate.history_lower_bound(h);
+    auto upper = (h == chainlength() ? HistoryId { 0 } : chainstate.history_lower_bound(h + 1));
     auto header = chainstate.headers()[h];
 
     auto entries { db.lookup_history_range(lower, upper) };
@@ -728,7 +780,7 @@ auto State::api_get_latest_blocks(size_t N) const -> api::TransactionsByBlocks
     auto l { chainlength().value() };
     auto hLower { l > N ? Height(l + 1 - N).nonzero_assert()
                         : Height { 1 }.nonzero_assert() };
-    HistoryId lower { chainstate.history_offset(hLower) };
+    HistoryId lower { chainstate.history_lower_bound(hLower) };
     return api_get_transaction_range(lower, upper);
 }
 
@@ -737,7 +789,7 @@ auto State::api_get_miner(NonzeroHeight h) const
 {
     if (chainlength() < h)
         return {};
-    auto offset { chainstate.history_offset(h) };
+    auto offset { chainstate.history_lower_bound(h) };
     auto parsed { db.fetch_existing<history::Entry>(offset).data };
 
     assert(std::holds_alternative<history::RewardData>(parsed));
@@ -778,7 +830,7 @@ auto State::api_get_transaction_range(HistoryId lower, HistoryId upper) const
             auto pinFloor { h.pin_floor() };
             auto header { chainstate.headers()[h] };
             auto b { api::Block(header, h, chainlength() - h + 1, {}) };
-            auto beginId { chainstate.history_offset(h) };
+            auto beginId { chainstate.history_lower_bound(h) };
             return std::tuple { pinFloor, beginId, b };
         };
         auto tmp { update_tmp(upper - 1) };
@@ -1331,7 +1383,7 @@ RollbackResult State::rollback(const Height newlength, std::string_view reason) 
     assert(ids.size() == endHeight - beginHeight);
     assert(ids.size() > 0);
 
-    auto historyOffset { chainstate.history_offset(beginHeight) };
+    auto historyOffset { chainstate.history_lower_bound(beginHeight) };
     RollbackSession rs(db, beginHeight, historyOffset, ids[0]);
 
     for (size_t i = 0; i < ids.size(); ++i) {
@@ -1882,7 +1934,7 @@ auto State::api_get_history(const api::AccountIdOrAddress& a,
             auto header = chainstate.headers()[height];
             bool b = height == chainlength();
             nextHistoryOffset = (b ? HistoryId { std::numeric_limits<uint64_t>::max() }
-                                   : chainstate.history_offset(height + 1));
+                                   : chainstate.history_lower_bound(height + 1));
             blocks_reversed.push_back(api::Block(
                 header, height, 1 + (chainlength() - height), std::move(actions)));
             actions = {};

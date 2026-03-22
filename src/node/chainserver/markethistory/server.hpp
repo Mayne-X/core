@@ -1,7 +1,10 @@
 #pragma once
+#include "../server_fwd.hpp"
 #include "api/enable_api.hpp"
 #include "api/types/input.hpp"
 #include "api/types/opt_param.hpp"
+#include "block/chain/fork_range.hpp"
+#include "block/chain/header_chain.hpp"
 #include "trades_db.hpp"
 #include "wrt/variant.hpp"
 #include <condition_variable>
@@ -95,14 +98,11 @@ public:
         : db(std::move(db))
         , parent(parent)
     {
-        t = std::jthread([&] { work(); });
+        worker = std::jthread([&] { work(); });
     }
     ~Reader()
     {
-        shutdown();
-    }
-    void shutdown()
-    {
+        worker.join();
     }
 
 private:
@@ -121,7 +121,7 @@ private:
 private:
     MarketReaderDB db;
     ReaderThreadpool& parent;
-    std::jthread t;
+    std::jthread worker;
 };
 
 using ReaderEvent = wrt::variant<GetCandles, GetTrades>;
@@ -132,6 +132,10 @@ class ReaderThreadpool : public enable_api_methods<ReaderThreadpool, APIReadType
 public:
     ReaderThreadpool(MarketDb& db, size_t N);
     ReaderThreadpool(const ReaderThreadpool&) = delete; // no copy, address needs to stay constant as we have references in the Readers.
+    ~ReaderThreadpool()
+    {
+        shutdown();
+    }
     void defer(ReaderEventInternal&& e)
     {
         std::lock_guard l(m);
@@ -157,8 +161,29 @@ private:
 class MarketHistoryServer {
     friend class ReaderThreadpool;
 
+    struct OnChainAppend {
+        BlockInfo block;
+    };
+    struct BlockReply {
+        BlockInfo blockInfo;
+        Descriptor descriptor;
+    };
+    struct BoundsReply {
+        RollbackBounds rollbackBounds; // needed for initial db rollback
+        Descriptor descriptor;
+    };
+    struct OnChainReplace {
+        Headerchain headerchain;
+        Descriptor descriptor;
+        RollbackBounds rollbackBounds; // needed for db rollback
+    };
+
 public:
-    using Event = wrt::variant<int>;
+    using Event = wrt::variant<
+        OnChainAppend,
+        BlockReply,
+        BoundsReply,
+        OnChainReplace>;
 
     void api_call(GetCandles::Object&& e);
     void api_call(GetTrades::Object&& e);
@@ -172,21 +197,56 @@ public:
 
     static constexpr bool supports = ReaderThreadpool::supports<T>;
 
-    MarketHistoryServer(MarketDb& db);
+    struct InitData {
+        MarketDb& db;
+        ChainServer& chainServer;
+        Headerchain consensusCopy;
+        Descriptor consensusDescriptor;
+        size_t readerCount { 1 };
+    };
+    MarketHistoryServer(InitData data);
+    ~MarketHistoryServer()
+    {
+        shutdown();
+        readers.shutdown();
+        worker.join();
+    }
 
 private:
+    void work();
+    void shutdown()
+    {
+        std::lock_guard l(m);
+        _shutdown = true;
+        cv.notify_all();
+    }
     ReaderEventInternal wrap_event_throw(GetCandles::Object&& e);
     ReaderEventInternal wrap_event_throw(GetTrades::Object&& e);
     void defer(ReaderEventInternal e)
     {
         readers.defer(std::move(e));
     }
-    void handle_event(int) { };
+    void handle_event(OnChainAppend&&);
+    void handle_event(BlockReply&&);
+    void handle_event(BoundsReply&&);
+    void handle_event(OnChainReplace&&);
+    void transaction_rollback(const RollbackBounds& nextBounds);
+    void try_request_block();
+    void try_initial_rollback();
 
 private:
     MarketDb& db;
+    wrt::optional<NonzeroHeight> scheduledRollbackHeight; // has value if we are still initializing
+    ChainServer& chainServer;
+    Headerchain consensusCopy;
+    Descriptor consensusDescriptor;
+
+    ForkRange fr; // fork range with respect to consensus chain, this server shall always catch up to consensus chain.
+    bool pendingRequest { false }; // whether a request to the chainserver is pending
+    std::thread worker;
     std::condition_variable cv;
     std::mutex m;
+    bool _shutdown { false };
     std::shared_mutex sqliteLock;
     std::vector<Event> events;
 

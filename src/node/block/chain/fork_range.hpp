@@ -78,11 +78,11 @@ public:
     Change match(const Headerchain&, NonzeroHeight, HeaderView); // throws, returns change
 
     // getters
-    NonzeroHeight upper() const { return u; }
-    NonzeroHeight lower() const { return l; }
-    bool converged() const { return l == u; }
-    bool forked() const { return u != upper_open; }
-    uint32_t width() const
+    [[nodiscard]] NonzeroHeight upper() const { return u; }
+    [[nodiscard]] NonzeroHeight lower() const { return l; }
+    [[nodiscard]] bool converged() const { return l == u; }
+    [[nodiscard]] bool forked() const { return u != upper_open; }
+    [[nodiscard]] uint32_t width() const
     {
         assert(u >= l);
         if (u == upper_open) {

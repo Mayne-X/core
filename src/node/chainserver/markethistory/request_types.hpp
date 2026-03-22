@@ -2,6 +2,7 @@
 #include "block/chain/height.hpp"
 #include "crypto/hash.hpp"
 #include "defi/token/id.hpp"
+#include "general/descriptor.hpp"
 #include "general/timestamp.hpp"
 namespace market_history {
 class TradeAmount {
@@ -42,10 +43,10 @@ struct BlockInfo {
     {
         trades.push_back({ amount, assetId });
     }
-    // void insert_new_asset(AssetId id, AssetHash hash)
-    // {
-    //     newAssets.push_back({ id, hash });
-    // }
+    void insert_new_asset(AssetId id, AssetHash hash)
+    {
+        newAssets.push_back({ id, hash });
+    }
 
     // protected:
     struct NewAsset {
@@ -57,6 +58,13 @@ struct BlockInfo {
         AssetId assetId;
     };
     std::vector<Trade> trades;
+};
+
+// Info needed for database rollback
+struct RollbackBounds {
+    AssetId assetIdDeleteFrom; // assetId from which we must delete
+    Height length; // height at new length
+    Timestamp timestamp; // timestamp at new length
 };
 
 }

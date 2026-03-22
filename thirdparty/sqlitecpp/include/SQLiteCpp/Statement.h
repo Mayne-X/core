@@ -490,7 +490,7 @@ public:
      *
      * @throw SQLite::Exception in case of error, or if row of results are returned !
      */
-    int exec();
+    int64_t exec();
 
     ////////////////////////////////////////////////////////////////////////////
 

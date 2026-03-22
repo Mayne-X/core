@@ -5,6 +5,7 @@
 #include "block/chain/height_header_work.hpp"
 #include "block/chain/range.hpp"
 #include "chainserver/state/helpers/cache.hpp"
+#include "../markethistory/request_types.hpp"
 #include "communication/messages.hpp"
 #include "communication/mining_task.hpp"
 #include "communication/stage_operation/result.hpp"
@@ -98,11 +99,14 @@ public:
     }
 
     // general getters
-    auto get_header(Height h) const -> wrt::optional<api::HeaderInfo>;
-    auto get_headers() const { return chainstate.headers(); }
-    auto get_hash(Height h) const -> wrt::optional<Hash>;
-    auto get_body_data(DescriptedBlockRange) const -> std::vector<BodyData>;
-    auto get_mempool_tx(TransactionId) const -> wrt::optional<TransactionMessage>;
+    [[nodiscard]] auto get_header(Height h) const -> wrt::optional<api::HeaderInfo>;
+    [[nodiscard]] auto get_rollback_bounds(NonzeroHeight h) const -> wrt::optional<market_history::RollbackBounds>;
+    [[nodiscard]] auto get_block_market_history(NonzeroHeight h) const -> wrt::optional<market_history::BlockInfo>;
+    [[nodiscard]] auto get_headers() const { return chainstate.headers(); }
+    [[nodiscard]] auto get_descriptor() const { return chainstate.descriptor(); }
+    [[nodiscard]] auto get_hash(Height h) const -> wrt::optional<Hash>;
+    [[nodiscard]] auto get_body_data(DescriptedBlockRange) const -> std::vector<BodyData>;
+    [[nodiscard]] auto get_mempool_tx(TransactionId) const -> wrt::optional<TransactionMessage>;
 
     // api getters
     api::WartBalanceLookup api_get_wart_balance(api::AccountIdOrAddress a) const;

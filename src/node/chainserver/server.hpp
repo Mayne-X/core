@@ -1,6 +1,7 @@
 #pragma once
 #include "api/callbacks.hpp"
 #include "api/events/subscription_fwd.hpp"
+#include "server_fwd.hpp"
 // #include "api/types/height_or_hash.hpp"
 #include "api_types.hpp"
 #include "chainserver/mining_subscription.hpp"
@@ -89,6 +90,20 @@ public:
         DescriptedBlockRange range;
         getBlocksCb callback;
     };
+    struct GetRollbackBounds {
+        using callback_t = std::function<void(market_history::RollbackBounds)>;
+
+        NonzeroHeight height;
+        Descriptor descriptor;
+        callback_t callback;
+    };
+    struct GetBlockMarketHistory {
+        using callback_t = std::function<void(market_history::BlockInfo)>;
+
+        NonzeroHeight height;
+        Descriptor descriptor;
+        callback_t callback;
+    };
     struct PutMempoolBatch {
         std::vector<TransactionMessage> txs;
     };
@@ -119,6 +134,8 @@ public:
         SubscribeMining,
         UnsubscribeMining,
         GetBlocks,
+        GetRollbackBounds,
+        GetBlockMarketHistory,
         stage_operation::StageAddOperation,
         stage_operation::StageSetOperation,
         PutMempoolBatch,
@@ -201,6 +218,9 @@ public:
     void async_set_signed_checkpoint(SignedSnapshot);
     void async_get_blocks(DescriptedBlockRange, getBlocksCb&&);
 
+    void get_rollback_bounds(NonzeroHeight, Descriptor, GetRollbackBounds::callback_t);
+    void get_block_market_history(NonzeroHeight, Descriptor, GetBlockMarketHistory::callback_t cb);
+
     void async_stage_request(stage_operation::Operation);
 
 private:
@@ -247,6 +267,8 @@ private:
     void handle_event(SubscribeMining&&);
     void handle_event(UnsubscribeMining&&);
     void handle_event(GetBlocks&&);
+    void handle_event(GetRollbackBounds&&);
+    void handle_event(GetBlockMarketHistory&&);
     void handle_event(stage_operation::StageSetOperation&&);
     void handle_event(stage_operation::StageAddOperation&&);
     void handle_event(PutMempoolBatch&&);

@@ -168,7 +168,7 @@ bool Statement::executeStep()
 }
 
 // Execute a one-step query with no expected result
-int Statement::exec()
+int64_t Statement::exec()
 {
     const int ret = tryExecuteStep();
     if (SQLITE_DONE != ret) // the statement has finished executing successfully
@@ -188,7 +188,7 @@ int Statement::exec()
     }
 
     // Return the number of rows modified by those SQL statements (INSERT, UPDATE or DELETE)
-    return sqlite3_changes(mStmtPtr);
+    return sqlite3_changes64(mStmtPtr);
 }
 
 int Statement::tryExecuteStep() noexcept

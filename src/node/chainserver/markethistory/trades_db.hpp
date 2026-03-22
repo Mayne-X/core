@@ -3,7 +3,7 @@
 #include "SQLiteCpp/Transaction.h"
 #include "api_types.hpp"
 #include "block/chain/height.hpp"
-#include "block_info.hpp"
+#include "request_types.hpp"
 #include "crypto/hash.hpp"
 #include "db/sqlite_fwd.hpp"
 #include "defi/token/id.hpp"
@@ -116,6 +116,7 @@ using api::TradesVector;
 using Statement = sqlite::Statement;
 class MarketReaderDB {
 public:
+    [[nodiscard]] Height chain_length() const;
     [[nodiscard]] wrt::optional<Asset> get_asset(AssetId) const;
     [[nodiscard]] wrt::optional<Asset> get_asset(AssetHash) const;
 
@@ -128,6 +129,8 @@ public:
     CandlesVector get_candles_from(AssetId, Interval interval, Timestamp from, size_t n) const;
     CandlesVector get_candles_to(AssetId, Interval interval, Timestamp to, size_t n) const;
     CandlesVector get_candles_latest(AssetId, Interval interval, size_t n) const;
+
+    [[nodiscard]] wrt::optional<BlockHash> get_block_hash(NonzeroHeight height) const;
     MarketReaderDB clone_reader() const;
     [[nodiscard]] auto transaction() const { return SQLite::Transaction(db); }
 
@@ -142,7 +145,10 @@ protected:
 private:
     mutable Statement stmtSelectAssetById;
     mutable Statement stmtSelectAssetByHash;
+    mutable Statement stmtSelectMaxHeight;
+    mutable Statement stmtSelectBlock;
 };
+
 
 class MarketDB : public MarketReaderDB {
     struct CandleBegin {
@@ -153,24 +159,28 @@ class MarketDB : public MarketReaderDB {
 public:
     MarketDB(const std::string& path);
 
-    void insert_block(const BlockInfo& blockInfo);
-    void rollback(AssetId nextAssetId, NonzeroHeight nextHeight, Timestamp nextTimestamp);
-
+    void append_block(const BlockInfo& blockInfo);
+    void clear();
+    void rollback(const RollbackBounds&);
+    Height chain_length()
+    {
+        return length;
+    }
 
 private:
     void insert_asset(AssetId assetId, AssetHash hash);
     void insert_trade(const Asset& asset, const Trade&, Timestamp ts);
     void delete_assets_from(AssetId assetId, NonzeroHeight height);
 
-    // The following function shall delete candles that contain trades started from specified height. The candles are sorted by timestamp (5 minute rounded) and each candle saves the first height with timestamp greater than or equal to the candle begin timestamp. This implies that trades with greater height will be contained in the same or later candle such that we can exploit the timestamp indexing ot the candle table. If we pass the block timestamp we can use the index to scan candles in timestamp order from this timestamp and easily find first candle with height greater than passed height.
     void asset_rollback(AssetId assetId, NonzeroHeight blockHeight, Timestamp blockTime);
 
     // after rollback, candles need to be rebuilt because we don't
     // know if we have removed the trades that defined candle high and low.
     void asset_rebuild_candles(AssetId, CandleBegin);
 
+    // The following function shall delete candles that contain trades started from specified height. The candles are sorted by timestamp (5 minute rounded) and each candle saves the first height with timestamp greater than or equal to the candle begin timestamp. This implies that trades with greater height will be contained in the same or later candle such that we can exploit the timestamp indexing ot the candle table. If we pass the block timestamp of the same or some earlier height we can use the index to scan candles in timestamp order from this timestamp and easily find first candle containing the passed height.
     [[nodiscard]] CandleBegin asset_erase_candles_from(AssetId, NonzeroHeight blockHeight, Timestamp blockTimestamp);
-    void erase_trades_from_height(AssetId, NonzeroHeight from);
+    size_t erase_trades_from_height(AssetId, NonzeroHeight from);
     void erase_interval_candles_from_height(AssetId, Interval interval, Timestamp from);
     void asset_drop_tables(AssetId assetId);
 
@@ -181,20 +191,19 @@ private:
     void create_tables(AssetId asset);
     void insert_candle(AssetId, Interval, const Candle&);
 
-    void insert_block_hash(NonzeroHeight height, BlockHash hash);
+    void insert_block(NonzeroHeight height, BlockHash hash, Timestamp);
     void delete_block_from(NonzeroHeight height);
     wrt::optional<BlockHash> select_block(NonzeroHeight height);
 
 private:
-    mutable Statement stmtSetLatestHeight;
-    mutable Statement stmtInsertAsset;
+    Statement stmtSetLatestHeight;
+    Statement stmtInsertAsset;
 
-    mutable Statement stmtInsertBlock;
-    mutable Statement stmtDeleteBlockFrom;
-    mutable Statement stmtSelectBlock;
+    Statement stmtInsertBlock;
+    Statement stmtDeleteBlockFrom;
 
     mutable Statement stmtSelectAssetsFrom;
-    mutable Statement stmtDeleteAssets;
+    Statement stmtDeleteAssets;
     mutable Statement stmtSelectAssetIdsByLatestHeight;
     Height length;
 };

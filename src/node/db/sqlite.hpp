@@ -196,7 +196,7 @@ void Statement::recursive_bind(T&& t, Types&&... types)
     recursive_bind<i + 1>(std::forward<Types>(types)...);
 }
 template <typename... Types>
-inline uint32_t Statement::run(Types&&... types)
+inline uint64_t Statement::run(Types&&... types)
 {
     bind_multiple(std::forward<Types>(types)...);
     auto nchanged = exec();
@@ -206,7 +206,7 @@ inline uint32_t Statement::run(Types&&... types)
 }
 
 template <typename... Types, typename Lambda>
-void Statement::for_each_continue(Lambda lambda, Types&&... types)
+void Statement::for_each_while(Lambda lambda, Types&&... types)
 {
     bind_multiple(std::forward<Types>(types)...);
     while (true) {

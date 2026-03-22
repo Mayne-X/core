@@ -63,7 +63,7 @@ public:
         return *this;
     }
     template <typename... Types>
-    uint32_t run(Types&&... types);
+    uint64_t run(Types&&... types);
     Row next_row() { return *this; }
 
     // private:
@@ -88,7 +88,7 @@ public:
     void for_each(Lambda lambda, Types&&... types);
 
     template <typename... Types, typename Lambda>
-    void for_each_continue(Lambda lambda, Types&&... types);
+    void for_each_while(Lambda lambda, Types&&... types);
 
     template <typename... Types, typename Lambda>
     [[nodiscard]] auto all(Lambda lambda, Types&&... types)
