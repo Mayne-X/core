@@ -403,8 +403,6 @@ public:
         GET_PUB<"/chain/txcache">(api_call<GetTxcache>);
         GET_PUB<"/chain/hashrate/:window">(get_hashrate_n);
         GET_PRIV<"/chain/signed_snapshot">(get_signed_snapshot);
-        GET_PRIV<"/chain/hashrate/chart/block/:from/:to/:window">(get_hashrate_block_chart);
-        GET_PRIV<"/chain/hashrate/chart/time/:from/:to/:interval">(get_hashrate_time_chart);
         POST_PRIV<"/chain/append">(parse_block_worker, put_chain_append);
 
         SECTION("Asset Endpoints");
@@ -442,6 +440,8 @@ public:
         SECTION("Chart Endpoint");
         GET_PUB<"/chart/candles/:asset/:interval?from=...&to=...&n=...">(api_call<GetCandles>);
         GET_PUB<"/chart/trades/:asset?from=...&to=...&n=...">(api_call<GetTrades>);
+        GET_PRIV<"/chart/hashrate/block/:from/:to/:window">(get_hashrate_block_chart);
+        GET_PRIV<"/chart/hashrate/time/:from/:to/:interval">(get_hashrate_time_chart);
 
         SECTION("Tools Endpoints");
         GET_PUB<"/tools/encode16bit/from_e8/:feeE8">(get_round16bit_e8);
