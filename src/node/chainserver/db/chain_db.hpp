@@ -518,7 +518,7 @@ private:
     Statement stmtHistoryLinkInsert;
     Statement stmtHistoryInsert;
     Statement stmtHistoryDeleteFrom;
-    mutable Statement stmtHistoryLookup;
+    mutable Statement stmtHistoryLookupByHash;
     mutable Statement stmtHistoryLookupRange;
     Statement stmtAccountHistoryInsert;
     Statement stmtAccountHistoryDeleteFrom;

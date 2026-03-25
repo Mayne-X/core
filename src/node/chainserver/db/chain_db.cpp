@@ -372,7 +372,7 @@ ChainDB::ChainDB(const std::string& path)
     , stmtHistoryInsert(db, "INSERT INTO `" HISTORY_TABLE "` (`id`,`hash`, `data`"
                             ") VALUES (?,?,?)")
     , stmtHistoryDeleteFrom(db, "DELETE FROM `" HISTORY_TABLE "` WHERE `id`>=?")
-    , stmtHistoryLookup(db,
+    , stmtHistoryLookupByHash(db,
           "SELECT `id`, `data` FROM `" HISTORY_TABLE "` WHERE `hash`=?")
     , stmtHistoryLookupRange(db, "SELECT `id`, `hash`, `data` FROM `" HISTORY_TABLE "` WHERE `id`>=? AND `id`<?")
     , stmtAccountHistoryInsert(db, "INSERT OR IGNORE INTO `" ACCOUNTHISTORY_TABLE "` "
@@ -1031,7 +1031,7 @@ void ChainDB::delete_history_from(NonzeroHeight h)
 
 wrt::optional<std::pair<history::HistoryVariant, HistoryId>> ChainDB::lookup_history(const HashView hash) const
 {
-    return stmtHistoryLookup.one(hash).process([](auto& o) {
+    return stmtHistoryLookupByHash.one(hash).process([](auto& o) {
         return std::pair<history::HistoryVariant, HistoryId> {
             ReadExhaustive(std::vector<uint8_t>(o[1])), o[0]
         };
