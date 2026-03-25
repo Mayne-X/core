@@ -437,7 +437,7 @@ public:
         // GET_PRIV<t,"/peers/endpoints">( inspect_eventloop, jsonmsg::endpoints);
         // GET_PRIV<t,"/peers/connect_timers">( inspect_eventloop, jsonmsg::connect_timers);
 
-        SECTION("Chart Endpoint");
+        SECTION("Chart Endpoints");
         GET_PUB<"/chart/candles/:asset/:interval?from=...&to=...&n=...">(api_call<GetCandles>);
         GET_PUB<"/chart/trades/:asset?from=...&to=...&n=...">(api_call<GetTrades>);
         GET_PRIV<"/chart/hashrate/block/:from/:to/:window">(get_hashrate_block_chart);
