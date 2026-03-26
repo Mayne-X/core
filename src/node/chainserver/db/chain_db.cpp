@@ -299,8 +299,8 @@ ChainDB::ChainDB(const std::string& path)
     // , stmtSelectBaseSellOrderAccountAsset(db, "SELECT o.id, account_id, pin_height, nonce_id, totalBase, filledBase, limitPrice, hash FROM `" SELLORDERS_TABLE "` `o` JOIN `" HISTORY_TABLE "` `h` ON h.id = o.id WHERE asset_id = ? AND account_id=?")
     , stmtSelectBaseSellByTxid(db, "SELECT id, asset_id, totalBase, filledBase, limitPrice FROM `" SELLORDERS_TABLE "` WHERE account_id = ? AND pin_height = ? AND nonce_id = ?")
     , stmtSelectQuoteBuyByTxid(db, "SELECT id, asset_id, totalQuote, filledQuote, limitPrice FROM `" BUYORDERS_TABLE "` WHERE account_id = ? AND pin_height = ? AND nonce_id = ?")
-    , stmtSelectBaseSellByOrderId(db, "SELECT hash, account_id, pin_height, nonce_id, asset_id, totalBase, filledBase, limitPrice FROM `" SELLORDERS_TABLE "` JOIN `" HISTORY_TABLE "` ON `" SELLORDERS_TABLE "`.id = `" HISTORY_TABLE "`.id WHERE `" SELLORDERS_TABLE "`.id = ?")
-    , stmtSelectQuoteBuyByOrderId(db, "SELECT account_id, pin_height, nonce_id, asset_id, totalQuote, filledQuote, limitPrice FROM `" BUYORDERS_TABLE "` JOIN `" HISTORY_TABLE "` ON `" BUYORDERS_TABLE "`.id = `" BUYORDERS_TABLE "`.id WHERE `" BUYORDERS_TABLE "`.id = ?")
+    , stmtSelectBaseSellById(db, "SELECT account_id, pin_height, nonce_id, asset_id, totalBase, filledBase, limitPrice FROM `" SELLORDERS_TABLE "` WHERE id = ?")
+    , stmtSelectQuoteBuyById(db, "SELECT account_id, pin_height, nonce_id, asset_id, totalQuote, filledQuote, limitPrice FROM `" BUYORDERS_TABLE "` WHERE id = ?")
     , stmtInsertCanceled(db, "INSERT INTO `" CANCELED_TABLE "` (id, account_id, pin_height, nonce_id) VALUES (?,?,?,?)")
     , stmtDeleteCanceled(db, "DELETE FROM `" CANCELED_TABLE "` WHERE id = ?")
     , stmtInsertPool(db, "INSERT INTO `" POOLS_TABLE "` (asset_id, liquidity_wart, liquidity_token, pool_shares) VALUES (?,?,?,?)")
@@ -715,7 +715,37 @@ void ChainDB::delete_order(const chain_db::OrderDelete& od)
         stmtDeleteBaseSellOrder.run(od.id);
 }
 
-wrt::optional<chain_db::OrderData> ChainDB::select_order(TransactionId id) const
+wrt::optional<chain_db::OrderData> ChainDB::select_open_order(HistoryId id) const
+{
+    using ret_t = chain_db::OrderData;
+    auto res { stmtSelectBaseSellById.one(id).process([&](const sqlite::Row& r) -> ret_t {
+        return {
+            .id = id,
+            .buy = false,
+            .txid { r[0], r[1], r[2] },
+            .aid = r[3],
+            .total = r[4],
+            .filled = r[5],
+            .limit = r[6]
+        };
+    }) };
+    if (!res) {
+        res = stmtSelectQuoteBuyById.one(id).process([&](const sqlite::Row& r) -> ret_t {
+            return {
+                .id = id,
+                .buy = true,
+                .txid { AccountId(r[0]), PinHeight(r[1]), NonceId(r[2]) },
+                .aid = r[3],
+                .total = r[4],
+                .filled = r[5],
+                .limit = r[6]
+            };
+        });
+    }
+    return res;
+}
+
+wrt::optional<chain_db::OrderData> ChainDB::select_open_order(TransactionId id) const
 {
     using ret_t = chain_db::OrderData;
 
@@ -743,36 +773,6 @@ wrt::optional<chain_db::OrderData> ChainDB::select_order(TransactionId id) const
                 .filled = o[3],
                 .limit = o[4]
             };
-        });
-    }
-    return res;
-}
-
-wrt::optional<std::pair<Hash, chain_db::OrderData>> ChainDB::select_order(HistoryId id) const
-{
-    using ret_t = std::pair<Hash, chain_db::OrderData>;
-    wrt::optional<ret_t> res {
-        stmtSelectBaseSellByOrderId.one(id).process([&](const sqlite::Row& o) {
-            return ret_t { o[0],
-                { .id = id,
-                    .buy = false,
-                    .txid { AccountId(o[1]), PinHeight(o[2]), NonceId(o[3]) },
-                    .aid = o[4],
-                    .total = o[5],
-                    .filled = o[6],
-                    .limit = o[7] } };
-        })
-    };
-    if (!res) {
-        res = stmtSelectQuoteBuyByOrderId.one(id).process([&](auto o) {
-            return ret_t { o[0],
-                { .id = id,
-                    .buy = true,
-                    .txid { AccountId(o[1]), PinHeight(o[2]), NonceId(o[3]) },
-                    .aid = o[4],
-                    .total = o[5],
-                    .filled = o[6],
-                    .limit = o[7] } };
         });
     }
     return res;

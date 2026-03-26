@@ -11,7 +11,7 @@ namespace jsonmsg {
 using namespace nlohmann;
 
 json to_json(Wart);
-json to_json(const FundsDecimal&, bool prec = true);
+json to_json(const FundsDecimal&, bool printDecimals = true);
 json to_json(const Grid&);
 json to_json(const Hash&);
 json to_json(const PeerDB::BanEntry&);
@@ -75,11 +75,13 @@ json to_json(const api::Trade&);
 json to_json(const api::CandlesVector&);
 json to_json(const api::TradesVector&);
 
+template<typename T>
+json tx_to_json(const api::Temporal<T>&);
 json tx_to_json(const api::block::Reward&);
 json tx_to_json(const api::block::WartTransfer&);
 json tx_to_json(const api::block::TokenTransfer&);
 json tx_to_json(const api::block::AssetCreation&);
-json tx_to_json(const api::block::NewOrder&);
+json tx_to_json(const api::block::NewOrder& tx);
 json tx_to_json(const api::block::Match&);
 json tx_to_json(const api::block::LiquidityDeposit&);
 json tx_to_json(const api::block::LiquidityWithdrawal&);

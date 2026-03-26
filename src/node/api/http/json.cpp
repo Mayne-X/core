@@ -88,13 +88,6 @@ std::string format_utc(uint32_t timestamp)
     out.resize(len);
     return out;
 }
-void json_add_temporal(json& j, const api::TemporalInfo& tx)
-{
-    j["confirmations"] = tx.confirmations;
-    j["blockHeight"] = tx.height.value();
-    j["utc"] = format_utc(tx.timestamp);
-    j["timestamp"] = tx.timestamp;
-}
 
 json to_json_history_base(const api::block::HistoryDataBase& hb)
 {
@@ -197,7 +190,7 @@ json header_json(const Header& header, NonzeroHeight height)
             a.push_back(tx_to_json(e));
         return a;
     } };
-    j["wartTransfers"] = gen_arr(actions.wartTransfers); // WART transfers
+    j["wartTransfers"] = gen_arr(actions.wartTransfers);
     j["tokenTransfers"] = gen_arr(actions.tokenTransfers);
     j["newOrders"] = gen_arr(actions.newOrders);
     j["matches"] = gen_arr(actions.matches);
@@ -276,23 +269,16 @@ json to_json(Wart w)
         { "E8", w.E8() }
     };
 }
-json to_json(const FundsDecimal& fd, bool prec)
+json to_json(const FundsDecimal& fd, bool printDecimals)
 {
     json out {
         { "str", fd.to_string() },
         { "u64", fd.funds.value() },
     };
-    if (prec) {
+    if (printDecimals) {
         out["decimals"] = fd.decimals.value();
     }
     return out;
-}
-namespace {
-json transaction_type(const char* label, json& j)
-{
-    return { { "transaction", j }, { "type", label } };
-}
-
 }
 
 json tx_to_json(const api::block::WartTransfer& tx)
@@ -331,18 +317,13 @@ json tx_to_json(const api::block::AssetCreation& tx)
     return j;
 }
 
-inline void add(json& j, const api::block::NewOrderData& tx)
+json tx_to_json(const api::block::NewOrder& tx)
 {
+    json j(to_json_signed_info(tx, "address"));
     j["baseAsset"] = jsonmsg::to_json(tx.assetInfo);
     j["amount"] = to_json(tx.amount_decimal());
     j["limit"] = limit_json(tx.limit, tx.assetInfo.decimals);
     j["buy"] = tx.buy;
-}
-
-json tx_to_json(const api::block::NewOrder& tx)
-{
-    json j(to_json_signed_info(tx, "address"));
-    add(j, *static_cast<const api::block::NewOrderData*>(&tx));
     return j;
 }
 
@@ -591,12 +572,22 @@ json to_json(const api::MempoolEntries& entries)
     return j;
 }
 
+template <typename T>
+json tx_to_json(const api::Temporal<T>& tx)
+{
+    auto j(tx_to_json(tx.tx));
+    j["confirmations"] = tx.confirmations;
+    j["blockHeight"] = tx.height.value();
+    j["utc"] = format_utc(tx.timestamp);
+    j["timestamp"] = tx.timestamp;
+    j["type"] = tx.tx.label;
+    return j;
+}
+
 json to_json(const api::Transaction& tx)
 {
     return std::visit([&](const auto& e) {
-        json j(tx_to_json(e));
-        json_add_temporal(j, e);
-        return transaction_type(e.label, j);
+        return tx_to_json(e);
     },
         tx);
 }

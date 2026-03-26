@@ -229,8 +229,8 @@ public:
     void insert(const chain_db::OrderData&);
     void update_order_fillstate(const chain_db::OrderFillstate&);
     void delete_order(const chain_db::OrderDelete&);
-    [[nodiscard]] wrt::optional<chain_db::OrderData> select_order(TransactionId) const;
-    [[nodiscard]] wrt::optional<std::pair<Hash,chain_db::OrderData>> select_order(HistoryId) const;
+    [[nodiscard]] wrt::optional<chain_db::OrderData> select_open_order(TransactionId) const;
+    [[nodiscard]] wrt::optional<chain_db::OrderData> select_open_order(HistoryId) const;
 
     [[nodiscard]] std::vector<std::pair<chain_db::OrderData,TxHash>> lookup_account_orders(AccountId) const;
     [[nodiscard]] std::vector<std::pair<chain_db::OrderData, TxHash>> lookup_account_orders_market(AccountId, AssetId) const;
@@ -456,8 +456,8 @@ private:
 
     mutable Statement stmtSelectBaseSellByTxid;
     mutable Statement stmtSelectQuoteBuyByTxid;
-    mutable Statement stmtSelectBaseSellByOrderId;
-    mutable Statement stmtSelectQuoteBuyByOrderId;
+    mutable Statement stmtSelectBaseSellById;
+    mutable Statement stmtSelectQuoteBuyById;
 
     // Canceled statements
     Statement stmtInsertCanceled;

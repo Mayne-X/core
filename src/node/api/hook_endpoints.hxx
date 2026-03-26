@@ -385,7 +385,7 @@ public:
         SECTION("Transaction Endpoints");
         POST_PUB<"/transaction/add">(parse_transaction_create, api_call<PutMempool>);
         GET_PUB<"/transaction/mempool">(api_call<GetMempool>);
-        GET_PUB<"/transaction/lookup/:txid">(api_call<LookupTxHash>);
+        GET_PUB<"/transaction/lookup/:txid">(api_call<LookupTxByHash>);
         GET_PUB<"/transaction/latest">(get_latest_transactions);
         GET_PUB<"/transaction/minfee">(get_transaction_minfee);
 
@@ -411,7 +411,6 @@ public:
 
         SECTION("Market Endpoints");
         GET_PUB<"/market/:market">(api_call<MarketDetail>);
-        GET_PUB<"/market/:market/order/:historyId">(api_call<OrderDetail>);
         //
         SECTION("Account Endpoints");
         GET_PUB<"/account/:account/mempool">(api_call<GetAccountMempool>);

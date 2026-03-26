@@ -90,10 +90,10 @@ auto State::api_get_asset(const api::AssetIdOrHash& a) const -> wrt::optional<ap
     if (!asset.has_value())
         return {};
     return api::Asset {
-        .name {asset->name.to_string()},
-        .hash {asset->hash},
-        .height {asset->height},
-        .decimals {asset->decimals},
+        .name { asset->name.to_string() },
+        .hash { asset->hash },
+        .height { asset->height },
+        .decimals { asset->decimals },
     };
 }
 auto State::api_search_asset(const api::AssetSearchArgs& args) const -> Result<api::AssetSearchResult>
@@ -388,33 +388,6 @@ Result<api::MarketDetail> State::api_market_detail(const api::AssetIdOrHash& h, 
         orders.sells.push_back(to_api(order));
     return orders;
 };
-
-Result<api::OrderDetail> State::api_get_order(HistoryId id) const
-{
-    if (auto opt { db.select_order(id) }) {
-        auto& [hash, o] = *opt;
-        auto height { chainstate.history_height(id) };
-        auto confirmations { chainlength() - height + 1 };
-        auto assetId { o.aid };
-        auto asset { db.lookup_asset(assetId) };
-        assert(asset.has_value());
-        return api::OrderDetail {
-            .order = {
-                .confirmations = confirmations,
-                .height { height },
-                .historyId { id },
-                .txHash { hash },
-                .txid { o.txid },
-                .limit { o.limit },
-                .amount { o.total },
-                .filled { o.filled },
-            },
-            .base = std::move(*asset),
-            .buy = o.buy
-        };
-    }
-    return Error(ENOTFOUND);
-}
 
 Result<api::Block> State::api_get_block(const api::HeightOrHash& hh) const
 {

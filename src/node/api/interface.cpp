@@ -13,7 +13,7 @@
 
 void lookup_tx(const TxHash& hash, TxCb f)
 {
-    api_call<chainserver::LookupTxHash>(hash, std::move(f));
+    api_call<chainserver::LookupTxByHash>(hash, std::move(f));
 }
 
 void get_latest_transactions(LatestTxsCb f)

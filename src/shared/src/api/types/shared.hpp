@@ -331,7 +331,8 @@ struct TemporalInfo {
 };
 
 template <typename TxType>
-struct Temporal : public TemporalInfo, public TxType {
+struct Temporal : public TemporalInfo {
+     TxType tx;
 };
 
 struct AddressCount {

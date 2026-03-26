@@ -1215,7 +1215,7 @@ private:
                 throw Error(ECANCELSELF);
             api.cancelations.push_back({ make_signed_info(verified, hid), { cancelTxid } });
             txset.emplace(cancelTxid);
-            auto o { db.select_order(cancelTxid) };
+            auto o { db.select_open_order(cancelTxid) };
             if (o) { // transaction is removed from the database
                 ignoreOrderIds.insert(o->id);
                 balanceChecker.unlock_balance(c.origin.id, o->spend_token_id(), o->remaining());

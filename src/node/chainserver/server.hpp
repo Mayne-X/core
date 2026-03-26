@@ -18,7 +18,7 @@
     XX(MiningAppend, void, Block, block, std::string, worker)                    \
     XX(PutMempool, TxHash, TransactionCreate, message)                           \
     XX(LatestTxs, api::TransactionsByBlocks)                                     \
-    XX(LookupTxHash, api::Transaction, TxHash, hash)                             \
+    XX(LookupTxByHash, api::Transaction, TxHash, hash)                             \
     XX(GetHeader, api::HeaderInfo, api::HeightOrHash, heightOrHash)              \
     XX(GetTransactionMinfee, api::TransactionMinfee)                             \
     XX(GetGrid, Grid)                                                            \
@@ -30,7 +30,6 @@
     XX(GetMining, ChainMiningTask, Address, address)                             \
     XX(GetBlockBinary, api::BlockBinary, api::HeightOrHash, heightOrHash)        \
     XX(MarketDetail, api::MarketDetail, api::AssetIdOrHash, asset)               \
-    XX(OrderDetail, api::OrderDetail, HistoryId, history_id)                     \
     XX(LookupAsset, api::Asset, api::AssetIdOrHash, asset)                       \
     XX(CompleteAsset, api::AssetSearchResult,                                    \
         std::string, namePrefix, std::string, hashPrefix)                        \
@@ -234,7 +233,7 @@ private:
     auto handle_api(chainserver::PutMempool&&) -> TxHash;
     auto handle_api(chainserver::MiningAppend&& e) { return append_mined(e, true); };
     auto handle_api(chainserver::LatestTxs&&) { return state.api_get_latest_txs(); }
-    auto handle_api(chainserver::LookupTxHash&& e) { return state.api_get_tx(e.hash()); }
+    auto handle_api(chainserver::LookupTxByHash&& e) { return state.api_get_tx(e.hash()); }
     auto handle_api(chainserver::GetTransactionMinfee&&) { return state.api_get_transaction_minfee(); }
     auto handle_api(chainserver::GetRichlist&& e) { return state.api_get_richlist(e.token(), 100); }
     auto handle_api(chainserver::GetTokenBalance&& e) { return state.api_get_token_balance_recursive(e.account(), e.token()); }
@@ -251,7 +250,6 @@ private:
     auto handle_api(chainserver::LookupAsset&& e) { return state.api_get_asset(e.asset()); }
     auto handle_api(chainserver::CompleteAsset&& e) { return state.api_search_asset({ .namePrefix = e.namePrefix(), .hashPrefix = e.hashPrefix() }); }
     auto handle_api(chainserver::MarketDetail&& o) { return state.api_market_detail(o.asset()); }
-    auto handle_api(chainserver::OrderDetail&& o) { return state.api_get_order(o.history_id()); }
     auto handle_api(chainserver::GetMining&& e) { return state.mining_task(e.address()); }
     auto handle_api(chainserver::GetTxcache&&) { return state.api_tx_cache(); }
     auto handle_api(chainserver::GetAccountHistory&& e) { return state.api_get_history(e.address(), e.beforeId()); }
