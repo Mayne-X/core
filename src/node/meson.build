@@ -108,14 +108,15 @@ src= [
 
 
 deps = [json_dep, libdatachannel_dep, sqlite3_dep, spdlog_dep]
+include_common = [include_trezorcrypto,include_wh,include_secp256k1,include_sqlitecpp, include_tl]
 if get_option('emscripten')
   src = [src, src_browser]
-  include_thirdparty=[include_trezorcrypto,include_wh,include_secp256k1,include_sqlitecpp,include_tomlplusplus, include_tl]
+  include_thirdparty=[include_common, include_tomlplusplus]
   lib_thirdparty=[libsecp256k1]
 else
   src = [src, src_libuv]
   deps =  [deps, sqlite3_dep,  libuv_dep, uvw_dep, libwebsockets_dep, libmbedtls_dep, spdlog_dep]
-  include_thirdparty=[include_trezorcrypto,include_wh,include_secp256k1,include_sqlitecpp, include_usockets,include_uwebsockets,include_tomlplusplus, include_tl]
+  include_thirdparty=[include_common,include_usockets,include_uwebsockets,include_tomlplusplus]
   lib_thirdparty=[libsecp256k1, libusockets]
 endif
 
