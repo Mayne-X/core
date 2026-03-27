@@ -575,7 +575,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
 
     return std::move(tx).visit_overload(
         [&](WartTransferMessage&& wtm) -> api::TransactionDetails {
-            return api::MaybeMinedWartTransfer { {},0,
+            return api::MaybeMinedWartTransfer { {}, 0,
                 { txHash,
                     {
                         .toAddress = wtm.to_addr(),
@@ -586,7 +586,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
         [&](TokenTransferMessage&& ttm) -> api::TransactionDetails {
             // ttm.byte_size
             return api::TransactionDetails { api::MaybeMinedTokenTransfer {
-                {},0,
+                {}, 0,
                 { txHash,
                     {
                         .assetInfo { get_asset(ttm.asset_hash()) },
@@ -597,7 +597,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
                     make_signed_info(ttm) } } };
         },
         [&](LimitSwapMessage&& o) -> api::TransactionDetails {
-            return api::MaybeMinedNewOrder { {},0,
+            return api::MaybeMinedNewOrder { {}, 0,
                 { txHash,
                     {
                         .assetInfo { get_asset(o.asset_hash()) },
@@ -609,13 +609,13 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
         },
         [&](CancelationMessage&& a) -> api::TransactionDetails {
             return api::MaybeMinedCancelation {
-                {},0,
+                {}, 0,
                 { txHash, { .cancelTxid { a.cancel_txid() } }, make_signed_info(a) }
             };
         },
         [&](LiquidityDepositMessage&& ld) -> api::TransactionDetails {
             return api::MaybeMinedLiquidityDeposit {
-                {},0,
+                {}, 0,
                 { txHash,
                     {
                         .assetInfo { get_asset(ld.asset_hash()) },
@@ -628,7 +628,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
         },
         [&](LiquidityWithdrawalMessage&& lw) -> api::TransactionDetails {
             return api::MaybeMinedLiquidityWithdrawal {
-                {},0,
+                {}, 0,
                 { txHash,
                     {
                         .assetInfo { get_asset(lw.asset_hash()) },
@@ -640,7 +640,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
             };
         },
         [&](AssetCreationMessage&& rm) -> api::TransactionDetails {
-            return api::MaybeMinedAssetCreation { {},0,
+            return api::MaybeMinedAssetCreation { {}, 0,
                 { txHash,
                     {
                         .name { rm.asset_name() },
