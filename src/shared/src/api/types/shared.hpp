@@ -342,12 +342,14 @@ struct TransactionMinedData {
 template <typename Transaction>
 struct MaybeMined {
     wrt::optional<TransactionMinedData> mined;
+    uint32_t confirmations;
     Transaction transaction;
 };
 
 template <typename TxType>
 struct Mined {
     TransactionMinedData mined;
+    uint32_t confirmations;
     TxType transaction;
 };
 

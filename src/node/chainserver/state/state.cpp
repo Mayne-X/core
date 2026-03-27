@@ -575,7 +575,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
 
     return std::move(tx).visit_overload(
         [&](WartTransferMessage&& wtm) -> api::TransactionDetails {
-            return api::MaybeMinedWartTransfer { {},
+            return api::MaybeMinedWartTransfer { {},0,
                 { txHash,
                     {
                         .toAddress = wtm.to_addr(),
@@ -586,7 +586,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
         [&](TokenTransferMessage&& ttm) -> api::TransactionDetails {
             // ttm.byte_size
             return api::TransactionDetails { api::MaybeMinedTokenTransfer {
-                {},
+                {},0,
                 { txHash,
                     {
                         .assetInfo { get_asset(ttm.asset_hash()) },
@@ -597,7 +597,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
                     make_signed_info(ttm) } } };
         },
         [&](LimitSwapMessage&& o) -> api::TransactionDetails {
-            return api::MaybeMinedNewOrder { {},
+            return api::MaybeMinedNewOrder { {},0,
                 { txHash,
                     {
                         .assetInfo { get_asset(o.asset_hash()) },
@@ -609,13 +609,13 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
         },
         [&](CancelationMessage&& a) -> api::TransactionDetails {
             return api::MaybeMinedCancelation {
-                {},
+                {},0,
                 { txHash, { .cancelTxid { a.cancel_txid() } }, make_signed_info(a) }
             };
         },
         [&](LiquidityDepositMessage&& ld) -> api::TransactionDetails {
             return api::MaybeMinedLiquidityDeposit {
-                {},
+                {},0,
                 { txHash,
                     {
                         .assetInfo { get_asset(ld.asset_hash()) },
@@ -628,7 +628,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
         },
         [&](LiquidityWithdrawalMessage&& lw) -> api::TransactionDetails {
             return api::MaybeMinedLiquidityWithdrawal {
-                {},
+                {},0,
                 { txHash,
                     {
                         .assetInfo { get_asset(lw.asset_hash()) },
@@ -640,7 +640,7 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
             };
         },
         [&](AssetCreationMessage&& rm) -> api::TransactionDetails {
-            return api::MaybeMinedAssetCreation { {},
+            return api::MaybeMinedAssetCreation { {},0,
                 { txHash,
                     {
                         .name { rm.asset_name() },
@@ -657,6 +657,7 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
     NonzeroHeight h { chainstate.history_height(hid) };
     auto fetch_addr { [&](AccountId aid) { return dbcache.existing_address(aid); } };
     // TransactionMetaData(TxHash txhash, uint32_t confirmations, HistoryId hid, Height height, uint32_t timestamp)
+    auto confirmations { (chainlength() + 1) - h };
     api::TransactionMinedData minedData {
         .hid { hid },
         .block {
@@ -675,7 +676,7 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
         [&](history::WartTransferData&& wtm) -> api::TransactionDetails {
             // wtm.
             return api::MaybeMinedWartTransfer {
-                minedData,
+                minedData, confirmations,
                 { txHash,
                     {
                         .toAddress = fetch_addr(wtm.to_id()),
@@ -687,7 +688,7 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
         [&](history::TokenTransferData&& ttm) -> api::TransactionDetails {
             auto& a { dbcache.existing_asset(ttm.token_id().asset_id()) };
             return api::MaybeMinedTokenTransfer {
-                minedData,
+                minedData, confirmations,
                 { txHash,
                     {
                         .assetInfo { a },
@@ -700,7 +701,7 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
         },
         [&](history::OrderData&& o) -> api::TransactionDetails {
             auto& a { dbcache.existing_asset(o.asset_id()) };
-            return api::MaybeMinedNewOrder { minedData,
+            return api::MaybeMinedNewOrder { minedData, confirmations,
                 { txHash,
                     {
                         .assetInfo { a },
@@ -712,14 +713,14 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
         },
         [&](history::CancelationData&& c) -> api::TransactionDetails {
             return api::MaybeMinedCancelation {
-                minedData,
+                minedData, confirmations,
                 { txHash, { .cancelTxid { c.cancel_txid() } }, make_signed_info(c) }
             };
         },
         [&](history::OrderCancelationData&& c) -> api::TransactionDetails {
             auto& a { dbcache.existing_asset(c.asset_id()) };
             return api::MaybeMinedOrderCancelation {
-                minedData,
+                minedData, confirmations,
                 { txHash,
                     api::block::OrderCancelationData { .cancelTxid { c.cancel_txid() },
                         .buy = c.buy(),
@@ -731,7 +732,7 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
         [&](history::LiquidityDeposit&& ld) -> api::TransactionDetails {
             auto& a { dbcache.existing_asset(ld.asset_id()) };
             return api::MaybeMinedLiquidityDeposit {
-                minedData,
+                minedData, confirmations,
                 { txHash,
                     { .assetInfo { a },
                         .baseDeposited { ld.base() },
@@ -743,7 +744,7 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
         [&](history::LiquidityWithdraw&& lw) -> api::TransactionDetails {
             auto& a { dbcache.existing_asset(lw.asset_id()) };
             return api::MaybeMinedLiquidityWithdrawal {
-                minedData,
+                minedData, confirmations,
                 { txHash,
                     { .assetInfo { a },
                         .sharesRedeemed { lw.shares() },
@@ -754,13 +755,13 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
         },
         [&](history::RewardData&& rm) -> api::TransactionDetails {
             return api::MinedReward {
-                minedData,
+                minedData, confirmations,
                 { txHash,
                     { .toAddress { fetch_addr(rm.to_id()) }, .amount { rm.wart() } } }
             };
         },
         [&](history::AssetCreationData&& rm) -> api::TransactionDetails {
-            return api::MaybeMinedAssetCreation { minedData,
+            return api::MaybeMinedAssetCreation { minedData, confirmations,
                 { txHash,
                     {
                         .name { rm.asset_name() },
@@ -771,7 +772,7 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
         },
         [&](history::MatchData&& rm) -> api::TransactionDetails {
             auto& a { dbcache.existing_asset(rm.asset_id()) };
-            return api::MinedMatch { minedData,
+            return api::MinedMatch { minedData, confirmations,
                 { txHash,
                     {
                         .assetInfo { a },

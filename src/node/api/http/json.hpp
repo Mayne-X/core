@@ -110,6 +110,7 @@ json to_json(const api::Mined<TxType>& tx)
 {
     return {
         { "mined", to_json(tx.mined) },
+        { "confirmations", tx.confirmations },
         { "transaction", to_json(tx.transaction) }
     };
 }
@@ -119,6 +120,7 @@ json to_json(const api::MaybeMined<TxType>& tx)
 {
     return {
         { "mined", to_json(tx.mined) },
+        { "confirmations", tx.confirmations },
         { "transaction", to_json(tx.transaction) }
     };
 }
