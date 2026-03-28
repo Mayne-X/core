@@ -464,10 +464,6 @@ struct Wallet {
     PrivKey pk;
 };
 
-struct Raw {
-    std::string s;
-};
-
 struct IPCounter {
     std::vector<std::pair<IP, size_t>> vector;
 };

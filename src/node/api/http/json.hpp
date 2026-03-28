@@ -2,6 +2,7 @@
 #include "api/events/subscription.hpp"
 #include "api/interface.hpp"
 #include "general/errors.hpp"
+#include "glaze/glaze.hpp"
 #include "nlohmann/json.hpp"
 struct Head;
 class Hash;
@@ -11,6 +12,7 @@ namespace jsonmsg {
 using namespace nlohmann;
 
 json to_json(Wart);
+
 json to_json(const FundsDecimal&, bool printDecimals = true);
 json to_json(const Grid&);
 json to_json(const Hash&);
@@ -73,7 +75,7 @@ json to_json(const api::Candle&);
 json to_json(const api::Trade&);
 json to_json(const api::CandlesVector&);
 json to_json(const api::TradesVector&);
-json to_json(const api::block::TransactionSignedData &);
+json to_json(const api::block::TransactionSignedData&);
 json to_json(const api::block::RewardData&);
 json to_json(const api::block::WartTransferData&);
 json to_json(const api::block::TokenTransferData&);
@@ -85,7 +87,8 @@ json to_json(const api::block::LiquidityWithdrawalData&);
 json to_json(const api::block::CancelationData&);
 json to_json(const api::block::OrderCancelationData& tx);
 json to_json(const api::TransactionMinedData&);
-inline json to_json(const Height& h){return h.value();}
+inline json to_json(const Height& h) { return h.value(); }
+inline json to_json(json j) { return j; }
 
 template <typename T>
 inline json to_json(const wrt::optional<T>& v)
@@ -98,10 +101,11 @@ inline json to_json(const wrt::optional<T>& v)
 }
 
 template <typename T>
-json to_json(const api::block::IsTransaction<T>& tx){
+json to_json(const api::block::IsTransaction<T>& tx)
+{
     return {
-        {"hash", serialize_hex(tx.hash)},
-        {"data", to_json(tx.data)}
+        { "hash", serialize_hex(tx.hash) },
+        { "data", to_json(tx.data) }
     };
 }
 
@@ -126,20 +130,19 @@ json to_json(const api::MaybeMined<TxType>& tx)
 }
 
 template <typename T>
-json to_json(const api::block::IsSignedTransaction<T>& tx){
+json to_json(const api::block::IsSignedTransaction<T>& tx)
+{
     auto j(to_json(*static_cast<const api::block::IsTransaction<T>*>(&tx)));
     j["signingData"] = to_json(tx.signedData);
     return j;
 }
 
-template<typename T>
-json to_json(const api::block::WithHistoryId<T>& wh){
-    return {{"transaction",to_json(wh.transaction)},
-        {"historyId",wh.historyId.value()}
-    };
+template <typename T>
+json to_json(const api::block::WithHistoryId<T>& wh)
+{
+    return { { "transaction", to_json(wh.transaction) },
+        { "historyId", wh.historyId.value() } };
 }
-
-inline json to_json(const json& j) { return j; }
 
 template <typename T>
 inline json to_json(const std::vector<T>& e, const auto& map)
@@ -151,24 +154,35 @@ inline json to_json(const std::vector<T>& e, const auto& map)
     return j;
 }
 
-
 template <typename T>
 inline json to_json(const std::vector<T>& e)
 {
     return to_json(e, std::identity());
 }
 
-inline std::string status(Error e)
+inline std::string serialize_error(const Error& e)
 {
-    nlohmann::json j;
-    j["code"] = e.code;
-    if (e.is_error()) {
-        j["error"] = e.strerror();
-    } else {
-        j["error"] = nullptr;
-    }
-    return j.dump(1);
+    struct ErrorStruct {
+        int code;
+        std::optional<std::string> error;
+    };
+    ErrorStruct out {
+        e.code,
+        e.is_error() ? std::optional<std::string> { e.strerror() } : std::nullopt
+    };
+    return glz::write_json(out).value();
 }
+// inline std::string serialize_error(Error e)
+// {
+//     nlohmann::json j;
+//     j["code"] = e.code;
+//     if (e.is_error()) {
+//         j["error"] = e.strerror();
+//     } else {
+//         j["error"] = nullptr;
+//     }
+//     return j.dump(1);
+// }
 
 template <typename T>
 inline json success_json(T&& t)
@@ -185,26 +199,17 @@ inline json to_json(Error e)
     }
 }
 
-inline std::string serialize(const Result<json>& e)
-{
-    if (!e.has_value())
-        return status(e.error());
-    return success_json(*e).dump(1);
-}
-
 template <typename T>
 std::string serialize(const Result<T>& e)
 {
     if (!e.has_value())
-        return status(e.error());
-    return success_json(to_json(*e)).dump(1);
+        return serialize_error(e.error());
+    if constexpr (std::is_same_v<T,void>) {
+        return success_json(nullptr).dump(1);
+    }else{
+        return success_json(to_json(*e)).dump(1);
+    }
 }
-
-inline std::string serialize(const tl::unexpected<Error> e)
-{
-    return status(e.value());
-}
-std::string serialize(const api::Raw& r);
 
 template <typename T>
 inline std::string serialize(T&& e)
@@ -215,22 +220,6 @@ inline std::string serialize(T&& e)
     }.dump(1);
 }
 
-// inline std::string serialize(const std::vector<PeerDB::BanEntry>& banned)
-// {
-//     nlohmann::json j = nlohmann::json::array();
-//     for (auto& item : banned) {
-//         nlohmann::json elem;
-//         elem["ip"] = item.ip.to_string().c_str();
-//         elem["expires"] = item.banuntil;
-//         elem["reason"] = item.offense.err_name();
-//         j.push_back(elem);
-//     }
-//     return j.dump(1);
-// }
-
-// std::string serialize(const std::vector<api::Peerinfo>& banned);
-
 std::string endpoints(const Eventloop&);
-// std::string connect_timers(const Eventloop&);
 std::string header_download(const Eventloop&);
 }

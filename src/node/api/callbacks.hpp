@@ -40,7 +40,7 @@ using SyncedCb = std::function<void(bool)>;
 using MempoolTxsCb = std::function<void(std::vector<wrt::optional<TransactionMessage>>&)>;
 using SampledPeersCb = std::function<void(const std::vector<TCPPeeraddr>&)>;
 using TransmissionCb = std::function<void(const api::TransmissionTimeseries&)>;
-using ErrorCb = std::function<void(const Error&)>;
+using ErrorCb = std::function<void(const Result<void>&)>;
 using ConnectedConnectionCb = std::function<void(const api::PeerinfoConnections&)>;
 
 using WartBalanceCb = ResultCb<api::WartBalance>;

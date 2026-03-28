@@ -264,7 +264,7 @@ public:
                     }(std::make_index_sequence<ARGC - 1>());
                     t.insert_pending(res);
                 } catch (Error e) {
-                    t.reply_json(res, jsonmsg::serialize(tl::make_unexpected(e)));
+                    t.reply_json(res, jsonmsg::serialize_error(e));
                 }
             });
     }
@@ -294,7 +294,7 @@ public:
                     }(std::make_index_sequence<ARGC - 1>());
                     t.insert_pending(res);
                 } catch (Error e) {
-                    t.reply_json(res, jsonmsg::serialize(tl::make_unexpected(e)));
+                    t.reply_json(res, jsonmsg::serialize_error(e));
                 }
             });
     }
@@ -356,7 +356,7 @@ public:
                                         t.async_reply(res, jsonmsg::serialize(data));
                                     });
                             } catch (Error e) {
-                                auto ser = jsonmsg::serialize(tl::make_unexpected(e));
+                                auto ser = jsonmsg::serialize_error(e);
                                 t.async_reply(res, ser);
                             }
                         }

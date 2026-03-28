@@ -1117,11 +1117,6 @@ json to_json(const api::TransactionMinedData& mined)
     };
 }
 
-std::string serialize(const api::Raw& r)
-{
-    return r.s;
-}
-
 // std::string endpoints(const Eventloop& e)
 // {
 //     auto [verified, failed, unverified, pending] = Inspector::endoints(e);

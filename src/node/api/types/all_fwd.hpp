@@ -27,7 +27,6 @@ struct MiningState;
 struct Peerinfo;
 struct ParsedPrice;
 struct PeerinfoConnections;
-struct Raw;
 struct TokenBalanceLookup;
 struct WartBalance;
 struct LiquidityPool;

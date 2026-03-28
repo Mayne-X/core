@@ -254,8 +254,8 @@ void Connection::handle_message(msg::MiningSubmit&& m)
     m.apply_to(extra2prefix, *b);
     put_chain_append(BlockWorker { std::move(*b), authorized->worker },
         // [&, p = shared_from_this(), id = m.id](const wrt::optional<Error>& res) {
-        [&, p = shared_from_this(), id = m.id](Error res) {
-            server.on_append_result({ .p = p, .stratumId = id, .result { res } });
+        [&, p = shared_from_this(), id = m.id](Result<void> res) {
+            server.on_append_result({ .p = p, .stratumId = id, .result { res.has_value() ? Error::none : res.error() } });
         });
 }
 
