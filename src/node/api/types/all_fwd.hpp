@@ -45,20 +45,18 @@ using MinedMatch = Mined<block::Match>;
 using MaybeMinedLiquidityDeposit = MaybeMined<block::LiquidityDeposit>;
 using MaybeMinedLiquidityWithdrawal = MaybeMined<block::LiquidityWithdrawal>;
 using MaybeMinedCancelation = MaybeMined<block::TransactionCancelation>;
-using MaybeMinedOrderCancelation = MaybeMined<block::OrderCancelation>;
 
 // this is returned for transaction lookup
 using TransactionDetails = wrt::variant<
-    MinedReward,
+    MinedReward, // <-- always mined, not in mempool
     MaybeMinedWartTransfer,
     MaybeMinedTokenTransfer,
     MaybeMinedAssetCreation,
     MaybeMinedNewOrder,
-    MinedMatch,// <-- this is always mined, can only come from block, not from mempool
+    MinedMatch, // <-- always mined, not in mempool
     MaybeMinedLiquidityDeposit,
     MaybeMinedLiquidityWithdrawal,
-    MaybeMinedCancelation,
-    MaybeMinedOrderCancelation>;
+    MaybeMinedCancelation>;
 
 struct Richlist;
 struct RichlistInfo;

@@ -84,23 +84,15 @@ auto State::api_get_header(const api::HeightOrHash& hh) const
     return get_header(*h);
 }
 
-auto State::api_get_asset(const api::AssetIdOrHash& a) const -> wrt::optional<api::Asset>
+auto State::api_get_asset(const api::AssetIdOrHash& a) const -> Result<AssetDetail>
 {
-    auto asset { normalize(a) };
-    if (!asset.has_value())
-        return {};
-    return api::Asset {
-        .name { asset->name.to_string() },
-        .hash { asset->hash },
-        .height { asset->height },
-        .decimals { asset->decimals },
-    };
+    return  normalize(a) ;
 }
 auto State::api_search_asset(const api::AssetSearchArgs& args) const -> Result<api::AssetSearchResult>
 {
     api::AssetSearchResult result(args);
     for (auto& a : db.search_assets(args)) {
-        result.entries.push_back({ .name { a.name.to_string() }, .hash { a.hash }, .height { a.height }, .decimals { a.decimals } });
+        result.entries.push_back(a);
     };
     return result;
 }

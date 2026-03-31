@@ -86,16 +86,6 @@ struct Rollback {
     Height length;
 };
 
-struct BlockSummary {
-    Header header;
-    NonzeroHeight height;
-    uint32_t confirmations = 0;
-    uint32_t nTransfers;
-    Address miner;
-    Wart transferred;
-    Wart totalTxFee;
-    Wart blockReward;
-};
 namespace block {
 
 struct TransactionSignedData {
@@ -160,6 +150,7 @@ struct NewOrderData {
     static constexpr const char* label = ::block::labels::limitSwap;
     AssetBasic assetInfo;
     Funds_uint64 amount;
+    std::optional<Funds_uint64> filled;
     Price_uint64 limit;
     bool buy;
 
@@ -186,15 +177,13 @@ struct AssetCreationData {
 struct CancelationData {
     static constexpr const char* label = ::block::labels::cancelation;
     TransactionId cancelTxid;
-};
-
-struct OrderCancelationData {
-    static constexpr const char* label = ::block::labels::orderCancelation;
-    TransactionId cancelTxid;
-    bool buy;
-    AssetBasic assetInfo;
-    HistoryId historyId;
-    Funds_uint64 remaining;
+    struct OrderCancelationData {
+        bool buy;
+        AssetBasic assetInfo;
+        HistoryId historyId;
+        Funds_uint64 remaining;
+    };
+    std::optional<OrderCancelationData> canceledOrder;
 };
 
 struct LiquidityDepositData {
@@ -209,8 +198,7 @@ struct LiquidityWithdrawalData {
     static constexpr const char* label = ::block::labels::liquidityWithdrawal;
     AssetBasic assetInfo;
     Funds_uint64 sharesRedeemed;
-    wrt::optional<Funds_uint64> baseReceived;
-    wrt::optional<Wart> quoteReceived;
+    wrt::optional<defi::BaseQuote> received;
 };
 
 template <typename T>
@@ -304,19 +292,12 @@ struct MarketDetail {
     std::vector<Order> sells;
 };
 
-struct Asset {
-    std::string name;
-    AssetHash hash;
-    NonzeroHeight height;
-    TokenDecimals decimals;
-};
-
 struct AssetSearchResult {
     AssetSearchResult(AssetSearchArgs args)
         : args(std::move(args))
     {
     }
-    std::vector<Asset> entries;
+    std::vector<AssetDetail> entries;
     AssetSearchArgs args;
 };
 

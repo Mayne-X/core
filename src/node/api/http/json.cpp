@@ -164,14 +164,13 @@ json header_json(const Header& header, NonzeroHeight height)
     return h;
 }
 
-[[nodiscard]] json body_json(const api::Block& b)
+[[nodiscard]] json actions_json(const api::block::Actions& actions)
 {
     json j;
-    auto& actions { b.actions };
     { // rewards
         json a = json::array();
-        if (b.actions.reward) {
-            a.push_back(to_json(*b.actions.reward));
+        if (actions.reward) {
+            a.push_back(to_json(*actions.reward));
         }
         j["rewards"] = a;
     }
@@ -233,12 +232,12 @@ json to_json(const api::BlockBinary& b)
     };
 }
 
-json to_json(const api::Asset& a)
+json to_json(const AssetDetail& a)
 {
     return { { "height", a.height },
         { "hash", serialize_hex(a.hash) },
         { "decimals", a.decimals.value() },
-        { "name", a.name } };
+        { "name", a.name.to_string() } };
 }
 json to_json(const api::AssetSearchResult& a)
 {
@@ -609,7 +608,7 @@ json to_json(const api::TransactionsByBlocks& txs)
         arr.push_back(
             json {
                 { "header", header_json(block.header, block.height) },
-                { "body", body_json(block) },
+                { "body", actions_json(block) },
                 { "timestamp", block.header.timestamp() },
                 { "utc", format_utc(block.header.timestamp()) },
                 { "confirmations", block.confirmations },
@@ -638,33 +637,17 @@ json to_json(const api::Block& block)
     json j;
     HeaderView hv(block.header.data());
     j["header"] = header_json(block.header, block.height);
-    j["body"] = body_json(block);
+    j["body"] = actions_json(block.actions);
     j["timestamp"] = hv.timestamp();
     j["utc"] = format_utc(hv.timestamp());
     j["confirmations"] = block.confirmations;
     j["height"] = block.height;
     return j;
 }
-json to_json(const api::BlockSummary& block)
-{
-    json j;
-    HeaderView hv(block.header.data());
-    j["header"] = header_json(block.header, block.height);
-    j["confirmations"] = block.confirmations;
-    j["height"] = block.height;
-    j["nTransfers"] = block.nTransfers;
-    j["miner"] = block.miner.to_string();
-    j["transferred"] = to_json(block.transferred);
-    j["totalTxFee"] = to_json(block.totalTxFee);
-    auto r { block.height.reward() };
-    j["blockReward"] = to_json(r);
-    return j;
-}
 
 json to_json(const api::Account& a)
 {
     return {
-
         { "address", a.address.to_string() },
         { "accountId", a.id.value() }
     };
@@ -679,7 +662,7 @@ json to_json(const api::AccountHistory& h)
         json elem;
         elem["height"] = b.height;
         elem["confirmations"] = b.confirmations;
-        elem["transactions"] = body_json(b);
+        elem["transactions"] = actions_json(b);
         a.push_back(elem);
     }
     json j;
@@ -887,7 +870,17 @@ json to_json(const api::MarketDetail& mdet)
                             { "quoteWart", quote },
                             { "baseAsset", base },
                         } },
-        { "match", { { "filled", { { "baseAsset", to_json(match.filled.base.to_decimal(basePrec), false) }, { "quoteWart", to_json(match.filled.quote.as_wart()) } } }, { "toPool", toPool } } }
+        { "match", 
+            { 
+                { "filled", 
+                    { 
+                        { "baseAsset", to_json(match.filled.base.to_decimal(basePrec), false) }, 
+                        { "quoteWart", to_json(match.filled.quote.as_wart()) } 
+                    } 
+                }, 
+                { "toPool", toPool } 
+            } 
+        }
     };
 }
 

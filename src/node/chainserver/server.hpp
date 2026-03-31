@@ -30,7 +30,7 @@
     XX(GetMining, ChainMiningTask, Address, address)                             \
     XX(GetBlockBinary, api::BlockBinary, api::HeightOrHash, heightOrHash)        \
     XX(MarketDetail, api::MarketDetail, api::AssetIdOrHash, asset)               \
-    XX(LookupAsset, api::Asset, api::AssetIdOrHash, asset)                       \
+    XX(LookupAsset, AssetDetail, api::AssetIdOrHash, asset)                      \
     XX(CompleteAsset, api::AssetSearchResult,                                    \
         std::string, namePrefix, std::string, hashPrefix)                        \
     XX(MempoolConstraintUpdate, api::MempoolUpdate)                              \
