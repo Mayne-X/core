@@ -17,6 +17,7 @@ sources = files(
 	'src/hash.c',
 	'src/hmac.c',
 	'src/ice.c',
+	'src/tcp.c',
 	'src/juice.c',
 	'src/log.c',
 	'src/random.c',
