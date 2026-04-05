@@ -27,12 +27,8 @@
 #include "glaze/net/http_router.hpp"
 #include "glaze/net/openapi.hpp"
 #include "glaze/net/websocket_connection.hpp"
+#include "glaze/util/itoa.hpp"
 #include "glaze/util/key_transformers.hpp"
-
-// Conditionally include SSL headers only when needed
-#ifdef GLZ_ENABLE_SSL
-#include <asio/ssl.hpp>
-#endif
 
 // To deconflict Windows.h
 #ifdef DELETE
@@ -509,6 +505,18 @@ namespace glz
        * Default: 0 (unlimited)
        */
       uint32_t max_requests_per_connection = 0;
+
+      /**
+       * @brief Maximum allowed request body size in bytes
+       *
+       * Requests whose Content-Length exceeds this limit are rejected with
+       * HTTP 413 (Payload Too Large) before the body is allocated or read.
+       * Only applies to Content-Length-based requests (the server does not
+       * currently support chunked request Transfer-Encoding).
+       * Set to 0 for no limit.
+       * Default: 100 MB
+       */
+      size_t max_request_body_size = http_default_max_body_size;
    };
 
    // Server implementation using non-blocking asio with WebSocket support
@@ -526,6 +534,87 @@ namespace glz
 
       /**
        * @brief Construct an HTTP server
+       *
+       * @param executor Optional external asio executor to use. If using a
+       *                 default-constructed asio::any_io_executor() without target
+       *                 executor, it creates its own io_context.  Using an external
+       *                 executor allows sharing the io_context and its event loop with
+       *                 other asio-based components or managing the io_context lifecycle
+       *                 externally.
+       *
+       * @note When using an external executor, no worker threads are created by start().
+       *       The caller is responsible for running the executor (e.g., calling io_context::run()
+       *       from their own threads).
+       *
+       * @param custom_error_handler Optional error handler for server errors.
+       *                             If not provided, uses a default handler that prints
+       *                             to stderr.
+       *
+       * Example with internal io_context (default):
+       * @code
+       * glz::http_server server;
+       * server.bind(8080);
+       * server.start();  // Creates worker threads using hardware_concurrency()
+       * @endcode
+       *
+       * Example with external io_context:
+       * @code
+       * auto io_ctx = std::make_shared<asio::io_context>();
+       * glz::http_server server(io_ctx->get_executor());
+       * server.bind(8080);
+       * server.start(0);  // Pass 0 to skip creating worker threads
+       *
+       * // Run io_context in your own thread(s)
+       * std::thread io_thread([io_ctx]() {
+       *    io_ctx->run();
+       * });
+       *
+       * // ... later ...
+       * server.stop();
+       * io_ctx->stop();
+       * io_thread.join();
+       * @endcode
+       *
+       * Example with custom error handler:
+       * @code
+       * auto error_handler = [](std::error_code ec, std::source_location loc) {
+       *    my_logger.error("Server error at {}:{}: {}",
+       *                    loc.file_name(), loc.line(), ec.message());
+       * };
+       * glz::http_server server({}, error_handler);
+       * @endcode
+       */
+      inline http_server(asio::any_io_executor executor = asio::any_io_executor(),
+                         glz::error_handler custom_error_handler = {})
+         : io_executor(executor)
+      {
+         if (!io_executor) {
+            io_context = std::make_shared<asio::io_context>();
+            io_executor = io_context->get_executor();
+         }
+         if (custom_error_handler) {
+            error_handler = std::move(custom_error_handler);
+         }
+         else {
+            error_handler = [](std::error_code ec, std::source_location loc) {
+               std::fprintf(stderr, "Error at %s:%d: %s\n", loc.file_name(), static_cast<int>(loc.line()),
+                            ec.message().c_str());
+            };
+         }
+
+         // Initialize SSL context for TLS-enabled servers
+         if constexpr (EnableTLS) {
+#ifdef GLZ_ENABLE_SSL
+            ssl_context = std::make_unique<asio::ssl::context>(asio::ssl::context::tlsv12);
+            ssl_context->set_default_verify_paths();
+#else
+            static_assert(!EnableTLS, "TLS support requires GLZ_ENABLE_SSL to be defined and OpenSSL to be available");
+#endif
+         }
+      }
+
+      /**
+       * @brief Construct an HTTP server (Legacy Constructor, construct using external io_context)
        *
        * @param context Optional external io_context to use. If nullptr, creates its own.
        *                Using an external io_context allows sharing the event loop with
@@ -569,28 +658,14 @@ namespace glz
        * glz::http_server server(nullptr, error_handler);
        * @endcode
        */
-      inline http_server(std::shared_ptr<asio::io_context> context = nullptr,
-                         glz::error_handler custom_error_handler = {})
-         : io_context(context ? context : std::make_shared<asio::io_context>())
+      inline http_server(std::shared_ptr<asio::io_context> context, glz::error_handler custom_error_handler = {})
+         : http_server(context ? context->get_executor() : asio::any_io_executor(), custom_error_handler)
       {
-         if (custom_error_handler) {
-            error_handler = std::move(custom_error_handler);
-         }
-         else {
-            error_handler = [](std::error_code ec, std::source_location loc) {
-               std::fprintf(stderr, "Error at %s:%d: %s\n", loc.file_name(), static_cast<int>(loc.line()),
-                            ec.message().c_str());
-            };
-         }
-
-         // Initialize SSL context for TLS-enabled servers
-         if constexpr (EnableTLS) {
-#ifdef GLZ_ENABLE_SSL
-            ssl_context = std::make_unique<asio::ssl::context>(asio::ssl::context::tlsv12);
-            ssl_context->set_default_verify_paths();
-#else
-            static_assert(!EnableTLS, "TLS support requires GLZ_ENABLE_SSL to be defined and OpenSSL to be available");
-#endif
+         // Preserve shared ownership to prevent use-after-free. The delegated constructor
+         // only stores io_context when no executor is provided, but the executor alone
+         // doesn't keep the io_context alive.
+         if (context) {
+            io_context = context;
          }
       }
 
@@ -616,7 +691,7 @@ namespace glz
       {
          try {
             asio::ip::tcp::endpoint endpoint(asio::ip::make_address(address), port);
-            acceptor = std::make_unique<asio::ip::tcp::acceptor>(*io_context, endpoint);
+            acceptor = std::make_unique<asio::ip::tcp::acceptor>(io_executor, endpoint);
          }
          catch (...) {
             error_handler(std::make_error_code(std::errc::address_in_use), std::source_location::current());
@@ -715,9 +790,8 @@ namespace glz
 
          // Start the acceptor
          do_accept();
-
          // Start worker threads (unless explicitly set to 0)
-         if (actual_threads > 0) {
+         if (io_context && actual_threads > 0) {
             threads.reserve(actual_threads);
             for (size_t i = 0; i < actual_threads; ++i) {
                threads.emplace_back([this] {
@@ -759,7 +833,7 @@ namespace glz
          }
 
          // Stop the io_context
-         io_context->stop();
+         if (io_context) io_context->stop();
 
          // Only join threads if we're not in one of the worker threads
          auto current_thread_id = std::this_thread::get_id();
@@ -1222,7 +1296,7 @@ namespace glz
          signal_handling_enabled = true;
 
          // Create signal_set that will handle SIGINT and SIGTERM
-         signals_ = std::make_unique<asio::signal_set>(*io_context, SIGINT, SIGTERM);
+         signals_ = std::make_unique<asio::signal_set>(io_executor, SIGINT, SIGTERM);
 
          // Set up async handler - this properly captures 'this' and integrates with ASIO
          signals_->async_wait([this](std::error_code ec, int signal_number) {
@@ -1296,6 +1370,17 @@ namespace glz
          return *this;
       }
 
+      // Set maximum request body size in bytes (0 = unlimited).
+      // Requests exceeding this are rejected with HTTP 413.
+      // Must be configured before starting the server; not safe to change while serving.
+      inline http_server& max_request_body_size(size_t max_size)
+      {
+         conn_config_.max_request_body_size = max_size;
+         return *this;
+      }
+
+      size_t max_request_body_size() const { return conn_config_.max_request_body_size; }
+
       /**
        * @brief Wait for a shutdown signal
        *
@@ -1319,7 +1404,11 @@ namespace glz
          threads.clear();
       }
 
+      // Get executor for async operations (timers, etc.)
+      asio::any_io_executor get_executor() const { return io_executor; }
+
      private:
+      asio::any_io_executor io_executor;
       std::shared_ptr<asio::io_context> io_context;
       std::unique_ptr<asio::ip::tcp::acceptor> acceptor;
       std::vector<std::thread> threads;
@@ -1343,19 +1432,22 @@ namespace glz
       // Uses socket_type which is either tcp::socket (HTTP) or ssl::stream<tcp::socket> (HTTPS)
       struct connection_state : public std::enable_shared_from_this<connection_state>
       {
-         std::shared_ptr<socket_type> socket;
-         std::shared_ptr<asio::streambuf> buffer;
-         std::string body;
+         socket_type socket;
+         std::string read_buf; // Flat read buffer (capacity reused across keep-alive)
+         size_t buf_len = 0; // Valid data in read_buf[0..buf_len)
+         size_t buf_consumed = 0; // Bytes consumed for current request (shifted on next request)
+         request request_;
          asio::ip::tcp::endpoint remote_endpoint;
-         std::shared_ptr<asio::steady_timer> idle_timer;
+         asio::steady_timer idle_timer;
          uint32_t request_count = 0;
          bool should_close = false;
+         response response_; // Persists across keep-alive requests to reuse capacity
+         std::string header_buf; // Persists across keep-alive requests to reuse capacity
 
-         connection_state(std::shared_ptr<socket_type> sock, asio::ip::tcp::endpoint endpoint)
+         connection_state(socket_type sock, asio::ip::tcp::endpoint endpoint)
             : socket(std::move(sock)),
-              buffer(std::make_shared<asio::streambuf>()),
               remote_endpoint(std::move(endpoint)),
-              idle_timer(std::make_shared<asio::steady_timer>(socket->lowest_layer().get_executor()))
+              idle_timer(socket.lowest_layer().get_executor())
          {}
       };
 
@@ -1395,27 +1487,26 @@ namespace glz
                else {
                   if constexpr (EnableTLS) {
 #ifdef GLZ_ENABLE_SSL
-                     // For HTTPS: wrap socket in SSL stream and perform handshake
-                     auto ssl_socket = std::make_shared<socket_type>(std::move(socket), *ssl_context);
-                     ssl_socket->async_handshake(asio::ssl::stream_base::server, [this, ssl_socket, remote_endpoint](
-                                                                                    std::error_code handshake_ec) {
-                        if (!handshake_ec) {
-                           auto conn = std::make_shared<connection_state>(ssl_socket, remote_endpoint);
-                           start_connection(conn);
-                        }
-                        else {
-                           // SSL handshake failed - explicitly close the socket
-                           error_handler(handshake_ec, std::source_location::current());
-                           asio::error_code close_ec;
-                           ssl_socket->lowest_layer().close(close_ec);
-                        }
-                     });
+                     // For HTTPS: create connection eagerly, then perform SSL handshake
+                     auto conn = std::make_shared<connection_state>(socket_type(std::move(socket), *ssl_context),
+                                                                    remote_endpoint);
+                     conn->socket.async_handshake(asio::ssl::stream_base::server,
+                                                  [this, conn](std::error_code handshake_ec) {
+                                                     if (!handshake_ec) {
+                                                        start_connection(conn);
+                                                     }
+                                                     else {
+                                                        // SSL handshake failed - explicitly close the socket
+                                                        error_handler(handshake_ec, std::source_location::current());
+                                                        asio::error_code close_ec;
+                                                        conn->socket.lowest_layer().close(close_ec);
+                                                     }
+                                                  });
 #endif
                   }
                   else {
                      // For HTTP: use TCP socket directly
-                     auto socket_ptr = std::make_shared<socket_type>(std::move(socket));
-                     auto conn = std::make_shared<connection_state>(std::move(socket_ptr), remote_endpoint);
+                     auto conn = std::make_shared<connection_state>(std::move(socket), remote_endpoint);
                      start_connection(conn);
                   }
                }
@@ -1442,20 +1533,28 @@ namespace glz
             return; // No timeout configured
          }
 
-         conn->idle_timer->expires_after(std::chrono::seconds(conn_config_.keep_alive_timeout));
-         conn->idle_timer->async_wait([conn](std::error_code ec) {
+         conn->idle_timer.expires_after(std::chrono::seconds(conn_config_.keep_alive_timeout));
+         conn->idle_timer.async_wait([conn](asio::error_code ec) {
             if (!ec) {
-               // Timer expired - close the connection
-               std::error_code close_ec;
-               conn->socket->lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both, close_ec);
-               conn->socket->lowest_layer().close(close_ec);
+               // Timer expired - send FIN; socket closed via RAII when conn is destroyed
+               asio::error_code close_ec;
+               conn->socket.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_send, close_ec);
             }
             // If ec is operation_aborted, the timer was cancelled (new request arrived)
          });
       }
 
       // Cancel the idle timer (called when a new request starts)
-      inline void cancel_idle_timer(std::shared_ptr<connection_state> conn) { conn->idle_timer->cancel(); }
+      inline void cancel_idle_timer(std::shared_ptr<connection_state> conn) { conn->idle_timer.cancel(); }
+
+      // Parse result from try_parse_request
+      enum struct parse_status { complete, incomplete, error };
+      struct parse_result
+      {
+         parse_status status = parse_status::incomplete;
+         size_t headers_end = 0; // Byte offset past the final \r\n\r\n
+         bool is_http_11 = false;
+      };
 
       // Read the next HTTP request from the connection
       inline void read_request(std::shared_ptr<connection_state> conn)
@@ -1465,73 +1564,96 @@ namespace glz
             start_idle_timer(conn);
          }
 
-         asio::async_read_until(*conn->socket, *conn->buffer, "\r\n\r\n",
+         // Check for pipelined data already in buffer
+         if (conn->buf_len > 0) {
+            auto result = try_parse_request(conn);
+            if (result.status == parse_status::complete) {
+               cancel_idle_timer(conn);
+               conn->request_count++;
+               finish_request(conn, result);
+               return;
+            }
+            else if (result.status == parse_status::error) {
+               cancel_idle_timer(conn);
+               return; // error response already sent by try_parse_request
+            }
+         }
+
+         do_read_headers(conn);
+      }
+
+      // Read headers using async_read_until with dynamic_buffer wrapping our flat string
+      inline void do_read_headers(std::shared_ptr<connection_state> conn)
+      {
+         // Trim read_buf to buf_len so dynamic_buffer starts from the right position
+         conn->read_buf.resize(conn->buf_len);
+
+         asio::async_read_until(conn->socket, asio::dynamic_buffer(conn->read_buf), "\r\n\r\n",
                                 [this, conn](asio::error_code ec, std::size_t /*bytes_transferred*/) {
-                                   // Cancel idle timer since we received data
                                    cancel_idle_timer(conn);
 
                                    if (ec) {
-                                      // EOF is a normal disconnect, not a server error
                                       if (ec != asio::error::eof && ec != asio::error::operation_aborted) {
                                          error_handler(ec, std::source_location::current());
                                       }
                                       return;
                                    }
 
-                                   conn->request_count++;
-                                   process_request_data(conn);
+                                   // dynamic_buffer grew read_buf; update buf_len to match
+                                   conn->buf_len = conn->read_buf.size();
+
+                                   auto result = try_parse_request(conn);
+
+                                   if (result.status == parse_status::complete) {
+                                      conn->request_count++;
+
+                                      finish_request(conn, result);
+                                   }
+                                   else if (result.status == parse_status::error) {
+                                      // error response already sent by try_parse_request
+                                   }
+                                   else {
+                                      // incomplete — shouldn't happen since async_read_until found \r\n\r\n
+                                      send_error_response_with_close(conn, 400, "Bad Request");
+                                   }
                                 });
       }
 
-      // Process data received from the connection
-      inline void process_request_data(std::shared_ptr<connection_state> conn)
+      // Single-pass HTTP request parser: scans data line by line, parsing semantics as it goes.
+      // Returns complete when all headers are found, incomplete if more data needed.
+      inline parse_result try_parse_request(std::shared_ptr<connection_state> conn)
       {
-         const auto data_size = conn->buffer->size();
-         const char* data_ptr = static_cast<const char*>(conn->buffer->data().data());
-         std::string_view request_view(data_ptr, data_size);
+         std::string_view data(conn->read_buf.data(), conn->buf_len);
+         parse_result result;
 
-         size_t headers_end_pos = request_view.find("\r\n\r\n");
-         if (headers_end_pos == std::string_view::npos) {
-            send_error_response_with_close(conn, 400, "Bad Request");
-            return;
-         }
-         std::string_view headers_part = request_view.substr(0, headers_end_pos);
-         size_t body_start_offset = headers_end_pos + 4;
+         // Clear headers for re-parse safety (preserves bucket allocation)
+         conn->request_.headers.clear();
 
-         // Parse request line
-         size_t request_line_end_pos = headers_part.find("\r\n");
-         std::string_view request_line;
-         if (request_line_end_pos == std::string_view::npos) {
-            request_line = headers_part; // Request line is the entire headers_part
-            headers_part = ""; // headers_part becomes empty as there are no more headers
-         }
-         else {
-            request_line = headers_part.substr(0, request_line_end_pos);
-            headers_part.remove_prefix(request_line_end_pos + 2); // +2 for \r\n
-         }
+         // --- Parse request line ---
+         size_t rl_end = data.find("\r\n");
+         if (rl_end == std::string_view::npos) return result; // incomplete
 
-         // Parse method, target, and HTTP version from the request line
+         std::string_view request_line = data.substr(0, rl_end);
+
          size_t first_space = request_line.find(' ');
          if (first_space == std::string_view::npos) {
+            result.status = parse_status::error;
             send_error_response_with_close(conn, 400, "Bad Request");
-            return;
+            return result;
          }
          std::string_view method_sv = request_line.substr(0, first_space);
-         if (method_sv.empty() ||
-             !std::all_of(method_sv.begin(), method_sv.end(), [](char c) { return std::isalnum(c) || c == '_'; })) {
-            send_error_response_with_close(conn, 400, "Bad Request");
-            return;
-         }
 
          size_t second_space = request_line.find(' ', first_space + 1);
          if (second_space == std::string_view::npos) {
+            result.status = parse_status::error;
             send_error_response_with_close(conn, 400, "Bad Request");
-            return;
+            return result;
          }
          std::string_view target_sv = request_line.substr(first_space + 1, second_space - first_space - 1);
          if (target_sv.empty() || target_sv.find(' ') != std::string_view::npos) {
+            result.status = parse_status::error;
             send_error_response_with_close(conn, 400, "Bad Request");
-            return;
+            return result;
          }
 
          std::string_view http_version_part = request_line.substr(second_space + 1);
@@ -1539,109 +1661,156 @@ namespace glz
             http_version_part.remove_suffix(1);
          }
          if (http_version_part.size() < 7 || http_version_part.rfind("HTTP/", 0) != 0) {
+            result.status = parse_status::error;
             send_error_response_with_close(conn, 400, "Bad Request");
-            return;
+            return result;
          }
          std::string_view version_number = http_version_part.substr(5);
          size_t dot_pos = version_number.find('.');
          if (dot_pos == std::string_view::npos || dot_pos == 0 || dot_pos == version_number.length() - 1) {
+            result.status = parse_status::error;
             send_error_response_with_close(conn, 400, "Bad Request");
-            return;
+            return result;
          }
          std::string_view major_v = version_number.substr(0, dot_pos);
          std::string_view minor_v = version_number.substr(dot_pos + 1);
          if (major_v.empty() || !std::all_of(major_v.begin(), major_v.end(), ::isdigit) || minor_v.empty() ||
              !std::all_of(minor_v.begin(), minor_v.end(), ::isdigit)) {
+            result.status = parse_status::error;
             send_error_response_with_close(conn, 400, "Bad Request");
-            return;
+            return result;
          }
 
-         // Determine HTTP version for keep-alive default behavior
-         // HTTP/1.1 defaults to keep-alive, HTTP/1.0 defaults to close
-         bool is_http_11 = (major_v == "1" && minor_v == "1");
+         result.is_http_11 = (major_v == "1" && minor_v == "1");
 
-         auto method_opt = from_string(std::string(method_sv));
+         // from_string validates by matching against known methods; rejects all unknown input
+         auto method_opt = from_string(method_sv);
          if (!method_opt) {
+            result.status = parse_status::error;
             send_error_response_with_close(conn, 501, "Not Implemented");
-            return;
+            return result;
          }
-         std::string target{target_sv};
+         conn->request_.method = *method_opt;
+         conn->request_.target = target_sv;
 
-         // Parse headers
-         std::unordered_map<std::string, std::string> headers;
-         while (!headers_part.empty()) {
-            size_t line_end = headers_part.find("\r\n");
-            std::string_view line = headers_part.substr(0, line_end);
+         // --- Parse headers line by line (single pass) ---
+         size_t pos = rl_end + 2;
+         auto& headers = conn->request_.headers;
 
+         while (true) {
+            // Need at least 2 bytes to check for empty line
+            if (pos + 1 >= conn->buf_len) return result; // incomplete
+
+            // Empty line = end of headers
+            if (data[pos] == '\r' && data[pos + 1] == '\n') {
+               result.headers_end = pos + 2;
+               result.status = parse_status::complete;
+               return result;
+            }
+
+            // Find end of this header line
+            size_t line_end = data.find("\r\n", pos);
+            if (line_end == std::string_view::npos) return result; // incomplete
+
+            // Parse header name:value
+            std::string_view line = data.substr(pos, line_end - pos);
             auto colon_pos = line.find(':');
             if (colon_pos != std::string_view::npos) {
                std::string_view name_sv = line.substr(0, colon_pos);
                std::string_view value_sv = line.substr(colon_pos + 1);
                value_sv.remove_prefix(std::min(value_sv.find_first_not_of(" \t"), value_sv.size()));
-               headers[to_lower_case(name_sv)] = std::string(value_sv);
+               std::string key(name_sv);
+               for (auto& c : key) c = ascii_tolower(c);
+               headers[std::move(key)] = std::string(value_sv);
             }
 
-            if (line_end == std::string_view::npos) break;
-            headers_part.remove_prefix(line_end + 2);
+            pos = line_end + 2;
          }
+      }
 
-         // Determine if connection should be kept alive based on:
-         // 1. Server configuration
-         // 2. HTTP version (1.1 = keep-alive by default, 1.0 = close by default)
-         // 3. Client's Connection header
-         // 4. Max requests per connection limit
-         bool should_keep_alive = determine_keep_alive(headers, is_http_11, conn);
+      // Post-parse dispatch: keep-alive, body reading, handler invocation.
+      // Does NOT shift the read buffer — header string_views remain valid through the handler.
+      // Buffer compaction happens in the keep-alive reset (send_response_with_conn completion).
+      inline void finish_request(std::shared_ptr<connection_state> conn, const parse_result& result)
+      {
+         auto& headers = conn->request_.headers;
+
+         bool should_keep_alive = determine_keep_alive(headers, result.is_http_11, conn);
          conn->should_close = !should_keep_alive;
 
-         // Consume the parsed headers from the buffer
-         conn->buffer->consume(body_start_offset);
-
          if (is_websocket_upgrade(headers)) {
-            // WebSocket upgrades take over the connection
-            handle_websocket_upgrade(conn->socket, *method_opt, target, headers, conn->remote_endpoint);
+            handle_websocket_upgrade_with_conn(std::move(conn));
             return;
          }
 
          std::size_t content_length = 0;
          if (auto it = headers.find("content-length"); it != headers.end()) {
-            try {
-               content_length = std::stoul(it->second);
-            }
-            catch (const std::exception&) {
+            const auto& cl = it->second;
+            auto [ptr, ec] = std::from_chars(cl.data(), cl.data() + cl.size(), content_length);
+            if (ec != std::errc{} || ptr != cl.data() + cl.size()) {
                send_error_response_with_close(conn, 400, "Bad Request");
                return;
             }
          }
 
+         // Reject oversized request bodies before allocating memory
+         if (conn_config_.max_request_body_size > 0 && content_length > conn_config_.max_request_body_size) {
+            send_error_response_with_close(conn, 413, "Payload Too Large");
+            return;
+         }
+
+         // Body bytes in the buffer start at headers_end
+         const size_t body_offset = result.headers_end;
+         const size_t available_body = conn->buf_len - body_offset;
+
          if (content_length > 0) {
-            conn->body.resize(content_length);
-            // Copy what's already in the buffer to the body
-            const size_t initial_body_size = std::min(content_length, conn->buffer->size());
-            const auto missing_bytes = content_length - initial_body_size;
-            std::memcpy(conn->body.data(), conn->buffer->data().data(), initial_body_size);
-            conn->buffer->consume(initial_body_size);
-            if (initial_body_size < content_length) {
-               asio::async_read(*conn->socket, asio::buffer(&conn->body[initial_body_size], missing_bytes),
-                                asio::transfer_exactly(missing_bytes),
-                                [this, conn, method_opt, target, headers](std::error_code ec, size_t) {
+            conn->request_.body.resize(content_length);
+            const size_t initial_body_size = std::min(content_length, available_body);
+            if (initial_body_size > 0) {
+               std::memcpy(conn->request_.body.data(), &conn->read_buf[body_offset], initial_body_size);
+            }
+            // Track consumed bytes (headers + body taken from buffer)
+            conn->buf_consumed = body_offset + initial_body_size;
+
+            const size_t missing_bytes = content_length - initial_body_size;
+            if (missing_bytes > 0) {
+               asio::async_read(conn->socket, asio::buffer(&conn->request_.body[initial_body_size], missing_bytes),
+                                asio::transfer_exactly(missing_bytes), [this, conn](std::error_code ec, size_t) {
                                    if (ec) {
                                       error_handler(ec, std::source_location::current());
                                       return;
                                    }
-                                   // Append newly read data
-                                   process_full_request_with_conn(conn, *method_opt, target, headers);
+                                   process_full_request_with_conn(conn);
                                 });
             }
             else {
-               process_full_request_with_conn(conn, *method_opt, target, headers);
+               process_full_request_with_conn(conn);
             }
          }
          else {
-            process_full_request_with_conn(conn, *method_opt, target, headers);
+            conn->buf_consumed = body_offset;
+            process_full_request_with_conn(conn);
          }
       }
 
       // Determine if the connection should be kept alive
+      // Case-insensitive substring search
+      static bool ci_contains(std::string_view haystack, std::string_view needle)
+      {
+         if (needle.size() > haystack.size()) return false;
+         for (size_t i = 0; i <= haystack.size() - needle.size(); ++i) {
+            bool match = true;
+            for (size_t j = 0; j < needle.size(); ++j) {
+               if (ascii_tolower(haystack[i + j]) != ascii_tolower(needle[j])) {
+                  match = false;
+                  break;
+               }
+            }
+            if (match) return true;
+         }
+         return false;
+      }
+
       inline bool determine_keep_alive(const std::unordered_map<std::string, std::string>& headers, bool is_http_11,
                                        std::shared_ptr<connection_state> conn)
       {
@@ -1656,15 +1825,14 @@ namespace glz
             return false;
          }
 
-         // Check client's Connection header
+         // Check client's Connection header (case-insensitive)
          auto conn_header_it = headers.find("connection");
          if (conn_header_it != headers.end()) {
-            std::string conn_value = to_lower_case(conn_header_it->second);
-            if (conn_value.find("close") != std::string::npos) {
-               return false; // Client requested close
+            if (ci_contains(conn_header_it->second, "close")) {
+               return false;
             }
-            if (conn_value.find("keep-alive") != std::string::npos) {
-               return true; // Client explicitly requested keep-alive
+            if (ci_contains(conn_header_it->second, "keep-alive")) {
+               return true;
             }
          }
 
@@ -1675,42 +1843,39 @@ namespace glz
       }
 
       // Process a full request using connection state (new keep-alive aware version)
-      inline void process_full_request_with_conn(std::shared_ptr<connection_state> conn, http_method method,
-                                                 const std::string& target,
-                                                 const std::unordered_map<std::string, std::string>& headers)
+      inline void process_full_request_with_conn(std::shared_ptr<connection_state> conn)
       {
-         std::string body = std::move(conn->body);
          // Check for a streaming handler first
-         auto handler_it = streaming_handlers_.find(target);
+         auto handler_it = streaming_handlers_.find(conn->request_.target);
          if (handler_it != streaming_handlers_.end()) {
-            auto method_it = handler_it->second.find(method);
+            auto method_it = handler_it->second.find(conn->request_.method);
             if (method_it != handler_it->second.end()) {
                // Streaming handlers take over the connection (no keep-alive loop)
-               handle_streaming_request(conn->socket, method, target, headers, std::move(body), conn->remote_endpoint,
-                                        method_it->second);
+               handle_streaming_request_with_conn(std::move(conn), method_it->second);
                return;
             }
          }
 
          // Create the request object
-         request request;
-         request.method = method;
-         request.target = target;
-         request.remote_ip = conn->remote_endpoint.address().to_string();
-         request.remote_port = conn->remote_endpoint.port();
+         request& request = conn->request_;
+
+         // Lazy remote IP resolution (deferred from accept to avoid syscall + allocation per connection)
+         if (request.remote_ip.empty()) {
+            request.remote_ip = conn->remote_endpoint.address().to_string();
+            request.remote_port = conn->remote_endpoint.port();
+         }
 
          // Parse path and query string from target
-         const auto [path_view, query_string] = split_target(target);
+         const auto [path_view, query_string] = split_target(conn->request_.target);
          request.path = std::string(path_view);
          request.query = parse_urlencoded(query_string);
-         request.headers = headers;
-         request.body = std::move(body);
 
          // Find a matching route
-         auto [handle, params] = root_router.match(method, request.path);
+         auto [handle, params] = root_router.match(conn->request_.method, request.path);
 
-         // Create the response object
-         response response;
+         // Reuse the connection-persistent response object (preserves capacity).
+         // Cleared in the keep-alive reset path after the response is written.
+         response& response = conn->response_;
 
          // Call request hooks for metrics/logging
          try {
@@ -1725,7 +1890,7 @@ namespace glz
          }
 
          if (!handle) {
-            if (method == http_method::OPTIONS) {
+            if (conn->request_.method == http_method::OPTIONS) {
                std::vector<http_method> allowed_methods;
                std::unordered_map<std::string, std::string> preflight_params;
 
@@ -1737,7 +1902,7 @@ namespace glz
 
                auto try_method = [&](http_method m) {
                   if (m == http_method::OPTIONS) return;
-                  auto [candidate_handle, candidate_params] = root_router.match(m, target);
+                  auto [candidate_handle, candidate_params] = root_router.match(m, conn->request_.target);
                   if (candidate_handle) {
                      allowed_methods.push_back(m);
                      capture_first_params(std::move(candidate_params));
@@ -1761,7 +1926,7 @@ namespace glz
                   if (auto request_method_it = request.headers.find("access-control-request-method");
                       request_method_it != request.headers.end()) {
                      has_request_method_header = true;
-                     std::string method_token = request_method_it->second;
+                     std::string method_token{request_method_it->second};
                      auto trim_pos = method_token.find_last_not_of(" \t\r\n");
                      if (trim_pos != std::string::npos) {
                         method_token.erase(trim_pos + 1);
@@ -1877,89 +2042,147 @@ namespace glz
          }
       }
 
-      // Send response with keep-alive support
-      inline void send_response_with_conn(std::shared_ptr<connection_state> conn, const response& response)
+      // Pre-cached status lines for common HTTP status codes
+      inline static std::string_view get_status_line(int code)
       {
-         size_t estimated_size = 64;
+         switch (code) {
+         case 200:
+            return "HTTP/1.1 200 OK\r\n";
+         case 201:
+            return "HTTP/1.1 201 Created\r\n";
+         case 204:
+            return "HTTP/1.1 204 No Content\r\n";
+         case 301:
+            return "HTTP/1.1 301 Moved Permanently\r\n";
+         case 400:
+            return "HTTP/1.1 400 Bad Request\r\n";
+         case 401:
+            return "HTTP/1.1 401 Unauthorized\r\n";
+         case 403:
+            return "HTTP/1.1 403 Forbidden\r\n";
+         case 404:
+            return "HTTP/1.1 404 Not Found\r\n";
+         case 405:
+            return "HTTP/1.1 405 Method Not Allowed\r\n";
+         case 500:
+            return "HTTP/1.1 500 Internal Server Error\r\n";
+         case 501:
+            return "HTTP/1.1 501 Not Implemented\r\n";
+         case 503:
+            return "HTTP/1.1 503 Service Unavailable\r\n";
+         default:
+            return {};
+         }
+      }
+
+      // Send response with keep-alive support
+      inline void send_response_with_conn(std::shared_ptr<connection_state> conn, response& response)
+      {
+         // Reuse connection-persistent header buffer (preserves capacity across requests)
+         conn->header_buf.clear();
+         auto& h = conn->header_buf;
+         char num_buf[20];
+
+         // Status line (pre-cached for common codes)
+         auto status_line = get_status_line(response.status_code);
+         if (!status_line.empty()) {
+            h.append(status_line);
+         }
+         else {
+            h.append("HTTP/1.1 ");
+            auto* end = glz::to_chars(num_buf, static_cast<int32_t>(response.status_code));
+            h.append(num_buf, size_t(end - num_buf));
+            h.append(" ");
+            h.append(get_status_message(response.status_code));
+            h.append("\r\n");
+         }
 
          for (const auto& [name, value] : response.response_headers) {
-            estimated_size += name.size() + value.size() + 4;
+            h.append(name);
+            h.append(": ");
+            h.append(value);
+            h.append("\r\n");
          }
 
-         estimated_size += response.response_body.size() + 128;
-
-         std::string response_str;
-         response_str.reserve(estimated_size);
-
-         response_str.append("HTTP/1.1 ");
-         response_str.append(std::to_string(response.status_code));
-         response_str.append(" ");
-         response_str.append(get_status_message(response.status_code));
-         response_str.append("\r\n");
-
-         for (const auto& [name, value] : response.response_headers) {
-            response_str.append(name);
-            response_str.append(": ");
-            response_str.append(value);
-            response_str.append("\r\n");
+         if (!(response.user_headers_set & response::has_content_length)) {
+            h.append("Content-Length: ");
+            auto* end = glz::to_chars(num_buf, static_cast<uint64_t>(response.response_body.size()));
+            h.append(num_buf, size_t(end - num_buf));
+            h.append("\r\n");
          }
 
-         if (response.response_headers.find("content-length") == response.response_headers.end()) {
-            response_str.append("Content-Length: ");
-            response_str.append(std::to_string(response.response_body.size()));
-            response_str.append("\r\n");
+         if (!(response.user_headers_set & response::has_date)) {
+            h.append("Date: ");
+            h.append(get_current_date());
+            h.append("\r\n");
          }
 
-         if (response.response_headers.find("date") == response.response_headers.end()) {
-            response_str.append("Date: ");
-            response_str.append(get_current_date());
-            response_str.append("\r\n");
-         }
-
-         if (response.response_headers.find("server") == response.response_headers.end()) {
-            response_str.append("Server: Glaze/1.0\r\n");
+         if (!(response.user_headers_set & response::has_server)) {
+            h.append("Server: Glaze/1.0\r\n");
          }
 
          // Add Connection header based on keep-alive decision
-         if (response.response_headers.find("connection") == response.response_headers.end()) {
+         if (!(response.user_headers_set & response::has_connection)) {
             if (conn->should_close) {
-               response_str.append("Connection: close\r\n");
+               h.append("Connection: close\r\n");
             }
             else {
-               response_str.append("Connection: keep-alive\r\n");
+               h.append("Connection: keep-alive\r\n");
                // Add Keep-Alive header with timeout info
                if (conn_config_.keep_alive_timeout > 0) {
-                  response_str.append("Keep-Alive: timeout=");
-                  response_str.append(std::to_string(conn_config_.keep_alive_timeout));
+                  h.append("Keep-Alive: timeout=");
+                  auto* end = glz::to_chars(num_buf, conn_config_.keep_alive_timeout);
+                  h.append(num_buf, size_t(end - num_buf));
                   if (conn_config_.max_requests_per_connection > 0) {
-                     response_str.append(", max=");
-                     response_str.append(std::to_string(conn_config_.max_requests_per_connection));
+                     h.append(", max=");
+                     end = glz::to_chars(num_buf, conn_config_.max_requests_per_connection);
+                     h.append(num_buf, size_t(end - num_buf));
                   }
-                  response_str.append("\r\n");
+                  h.append("\r\n");
                }
             }
          }
 
-         response_str.append("\r\n");
-         response_str.append(response.response_body);
+         h.append("\r\n");
 
-         auto response_buffer = std::make_shared<std::string>(std::move(response_str));
+         // Scatter-gather write: send headers and body as separate buffers.
+         // Zero-copy for the body — write directly from conn->response_.response_body.
+         // conn (shared_ptr) keeps header_buf and response_body alive during the async write.
+         std::array<asio::const_buffer, 2> bufs = {asio::buffer(h), asio::buffer(response.response_body)};
 
-         asio::async_write(*conn->socket, asio::buffer(*response_buffer),
-                           [this, conn, response_buffer](std::error_code ec, std::size_t /*bytes_transferred*/) {
+         // Custom completion condition: removes the default 64KB-per-chunk cap
+         // in asio::async_write (transfer_all uses 65536). Without this, a 960KB
+         // response requires ~15 event loop iterations instead of ~8.
+         auto unlimited = [](const asio::error_code& ec, std::size_t) -> std::size_t {
+            return ec ? 0 : (std::numeric_limits<std::size_t>::max)();
+         };
+         asio::async_write(conn->socket, bufs, unlimited,
+                           [this, conn](asio::error_code ec, std::size_t /*bytes_transferred*/) {
                               if (ec) {
                                  // Write error - connection is dead
                                  return;
                               }
 
                               if (conn->should_close) {
-                                 // Close the connection gracefully
-                                 std::error_code close_ec;
-                                 conn->socket->lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both, close_ec);
-                                 conn->socket->lowest_layer().close(close_ec);
+                                 // Send FIN; socket closed via RAII when conn is destroyed
+                                 asio::error_code close_ec;
+                                 conn->socket.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_send, close_ec);
                               }
                               else {
-                                 // Keep-alive: read the next request
+                                 // Keep-alive: compact buffer (shift leftover pipelined data to front)
+                                 conn->request_.params.clear();
+                                 conn->request_.query.clear();
+                                 conn->request_.headers.clear();
+                                 conn->request_.body.clear();
+                                 conn->response_.clear();
+
+                                 size_t leftover = conn->buf_len - conn->buf_consumed;
+                                 if (leftover > 0) {
+                                    std::memmove(conn->read_buf.data(), &conn->read_buf[conn->buf_consumed], leftover);
+                                 }
+                                 conn->buf_len = leftover;
+                                 conn->buf_consumed = 0;
+
                                  read_request(conn);
                               }
                            });
@@ -1969,9 +2192,9 @@ namespace glz
       inline void send_error_response_with_conn(std::shared_ptr<connection_state> conn, int status_code,
                                                 const std::string& message)
       {
-         response resp;
-         resp.status(status_code).content_type("text/plain").body(message);
-         send_response_with_conn(conn, resp);
+         conn->response_.clear();
+         conn->response_.status(status_code).content_type("text/plain").body(message);
+         send_response_with_conn(conn, conn->response_);
       }
 
       // Send error response and close connection (for protocol errors)
@@ -1990,63 +2213,40 @@ namespace glz
          auto connection_it = headers.find("connection");
          if (connection_it == headers.end()) return false;
 
-         // Check if upgrade header contains "websocket" (case-insensitive)
-         auto upgrade_value = to_lower_case(upgrade_it->second);
-         if (upgrade_value.find("websocket") == std::string::npos) return false;
-
-         // Check if connection header contains "upgrade" (case-insensitive)
-         auto connection_value = to_lower_case(connection_it->second);
-         return connection_value.find("upgrade") != std::string::npos;
+         if (!ci_contains(upgrade_it->second, "websocket")) return false;
+         return ci_contains(connection_it->second, "upgrade");
       }
 
-      inline void handle_websocket_upgrade(std::shared_ptr<socket_type> socket, http_method method,
-                                           const std::string& target,
-                                           const std::unordered_map<std::string, std::string>& headers,
-                                           asio::ip::tcp::endpoint remote_endpoint)
+      inline void handle_websocket_upgrade_with_conn(std::shared_ptr<connection_state> conn)
       {
          // Find matching WebSocket handler
-         auto ws_it = websocket_handlers_.find(target);
+         auto ws_it = websocket_handlers_.find(conn->request_.target);
          if (ws_it == websocket_handlers_.end()) {
-            send_error_response(socket, 404, "Not Found");
+            send_error_response_with_close(conn, 404, "Not Found");
             return;
          }
 
-         // Create request object for WebSocket handler
-         request req;
-         req.method = method;
-         req.target = target;
-         req.headers = headers;
-         req.remote_ip = remote_endpoint.address().to_string();
-         req.remote_port = remote_endpoint.port();
+         // Copy request for WebSocket handler (request body is typically empty for upgrades)
+         request req{conn->request_};
 
          // Create WebSocket connection and start it
          // Uses socket_type which is either tcp::socket (ws://) or ssl::stream (wss://)
-         auto ws_conn = std::make_shared<websocket_connection<socket_type>>(socket, ws_it->second);
+         auto socket_ptr = std::make_shared<socket_type>(std::move(conn->socket));
+         auto ws_conn = std::make_shared<websocket_connection<socket_type>>(socket_ptr, ws_it->second);
          ws_conn->start(req);
       }
 
-      inline void handle_streaming_request(std::shared_ptr<socket_type> socket, http_method method,
-                                           const std::string& target,
-                                           const std::unordered_map<std::string, std::string>& headers,
-                                           std::string body, asio::ip::tcp::endpoint remote_endpoint,
-                                           const streaming_handler& handler)
+      inline void handle_streaming_request_with_conn(std::shared_ptr<connection_state> conn,
+                                                     const streaming_handler& handler)
       {
-         // Create request object
-         request req;
-         req.method = method;
-         req.target = target;
-         req.headers = headers;
-         req.body = std::move(body);
-         req.remote_ip = remote_endpoint.address().to_string();
-         req.remote_port = remote_endpoint.port();
-
          // Create streaming connection (works for both HTTP and HTTPS via interface)
-         auto stream_conn = std::make_shared<streaming_connection<socket_type>>(socket);
+         auto socket_ptr = std::make_shared<socket_type>(std::move(conn->socket));
+         auto stream_conn = std::make_shared<streaming_connection<socket_type>>(socket_ptr);
          streaming_response stream_res(stream_conn);
 
          try {
             // Call the streaming handler
-            handler(req, stream_res);
+            handler(conn->request_, stream_res);
          }
          catch (const std::exception&) {
             // If handler throws immediately, try to send an error response.
@@ -2058,294 +2258,6 @@ namespace glz
             // Log the error
             error_handler(std::make_error_code(std::errc::invalid_argument), std::source_location::current());
          }
-      }
-
-      inline void process_full_request(std::shared_ptr<socket_type> socket, http_method method,
-                                       const std::string& target,
-                                       const std::unordered_map<std::string, std::string>& headers, std::string body,
-                                       asio::ip::tcp::endpoint remote_endpoint)
-      {
-         // Check for a streaming handler first. This performs an exact match on the path,
-         // so parameterized streaming routes are not supported, which is consistent
-         // with the WebSocket implementation.
-         auto handler_it = streaming_handlers_.find(target);
-         if (handler_it != streaming_handlers_.end()) {
-            auto method_it = handler_it->second.find(method);
-            if (method_it != handler_it->second.end()) {
-               // Found a streaming handler, delegate to it and exit.
-               handle_streaming_request(socket, method, target, headers, std::move(body), remote_endpoint,
-                                        method_it->second);
-               return;
-            }
-         }
-
-         // Create the request object
-         request request;
-         request.method = method;
-         request.target = target;
-         request.remote_ip = remote_endpoint.address().to_string();
-         request.remote_port = remote_endpoint.port();
-
-         // Parse path and query string from target
-         const auto [path_view, query_string] = split_target(target);
-         request.path = std::string(path_view);
-         request.query = parse_urlencoded(query_string);
-         request.headers = headers;
-         request.body = std::move(body);
-
-         // Find a matching route using http_router::match which handles both exact and parameterized routes
-         auto [handle, params] = root_router.match(method, request.path);
-
-         // Create the response object up front so we can reuse it in fallback flows
-         response response;
-
-         // Call request hooks for metrics/logging
-         try {
-            for (const auto& hook : request_hooks_) {
-               hook(request, response);
-            }
-         }
-         catch (const std::exception&) {
-            error_handler(std::make_error_code(std::errc::invalid_argument), std::source_location::current());
-            send_error_response(socket, 500, "Internal Server Error");
-            return;
-         }
-
-         if (!handle) {
-            if (method == http_method::OPTIONS) {
-               std::vector<http_method> allowed_methods;
-               std::unordered_map<std::string, std::string> preflight_params;
-
-               auto capture_first_params = [&](std::unordered_map<std::string, std::string>&& candidate_params) {
-                  if (preflight_params.empty()) {
-                     preflight_params = std::move(candidate_params);
-                  }
-               };
-
-               auto try_method = [&](http_method method) {
-                  if (method == http_method::OPTIONS) return;
-                  auto [candidate_handle, candidate_params] = root_router.match(method, target);
-                  if (candidate_handle) {
-                     allowed_methods.push_back(method);
-                     capture_first_params(std::move(candidate_params));
-                  }
-               };
-
-               try_method(http_method::GET);
-               try_method(http_method::POST);
-               try_method(http_method::PUT);
-               try_method(http_method::DELETE);
-               try_method(http_method::PATCH);
-               try_method(http_method::HEAD);
-
-               if (!allowed_methods.empty()) {
-                  request.params = std::move(preflight_params);
-
-                  bool has_request_method_header = false;
-                  bool requested_method_known = false;
-                  http_method requested_method{};
-
-                  // Parse and normalize the request method from the Access-Control-Request-Method header
-                  if (auto request_method_it = request.headers.find("access-control-request-method");
-                      request_method_it != request.headers.end()) {
-                     has_request_method_header = true;
-                     std::string method_token = request_method_it->second;
-                     auto trim_pos = method_token.find_last_not_of(" \t\r\n");
-                     if (trim_pos != std::string::npos) {
-                        method_token.erase(trim_pos + 1);
-                     }
-                     else {
-                        method_token.clear();
-                     }
-
-                     if (!method_token.empty()) {
-                        std::transform(method_token.begin(), method_token.end(), method_token.begin(),
-                                       [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
-
-                        if (auto parsed = from_string(method_token)) {
-                           requested_method = *parsed;
-                           requested_method_known = true;
-                        }
-                     }
-                  }
-
-                  if (std::none_of(allowed_methods.begin(), allowed_methods.end(),
-                                   [](http_method m) { return m == http_method::OPTIONS; })) {
-                     allowed_methods.push_back(http_method::OPTIONS);
-                  }
-
-                  // Build the Allow header
-                  std::string allow_header;
-                  allow_header.reserve(allowed_methods.size() * 8);
-                  for (size_t i = 0; i < allowed_methods.size(); ++i) {
-                     if (i > 0) allow_header.append(", ");
-                     allow_header.append(std::string{to_string(allowed_methods[i])});
-                  }
-                  response.header("Allow", allow_header);
-
-                  bool requested_method_allowed = true;
-                  if (has_request_method_header) {
-                     requested_method_allowed =
-                        requested_method_known && std::find(allowed_methods.begin(), allowed_methods.end(),
-                                                            requested_method) != allowed_methods.end();
-                  }
-
-                  try {
-                     for (const auto& middleware : root_router.middlewares) {
-                        middleware(request, response);
-                     }
-                  }
-                  catch (const std::exception&) {
-                     error_handler(std::make_error_code(std::errc::invalid_argument), std::source_location::current());
-                     send_error_response(socket, 500, "Internal Server Error");
-                     return;
-                  }
-
-                  if (!requested_method_allowed) {
-                     response.status(405);
-                     // Call response hooks before sending
-                     for (const auto& hook : response_hooks_) {
-                        try {
-                           hook(request, response);
-                        }
-                        catch (const std::exception&) {
-                           error_handler(std::make_error_code(std::errc::invalid_argument),
-                                         std::source_location::current());
-                        }
-                     }
-                     send_response(socket, response);
-                     return;
-                  }
-
-                  // Call response hooks before sending
-                  for (const auto& hook : response_hooks_) {
-                     try {
-                        hook(request, response);
-                     }
-                     catch (const std::exception&) {
-                        error_handler(std::make_error_code(std::errc::invalid_argument),
-                                      std::source_location::current());
-                     }
-                  }
-                  send_response(socket, response);
-                  return;
-               }
-            }
-
-            // No matching route found (path or method)
-            send_error_response(socket, 404, "Not Found");
-            return;
-         }
-
-         // Update the request with any extracted parameters
-         request.params = std::move(params);
-
-         try {
-            // Apply old-style middleware (runs before handler)
-            for (const auto& middleware : root_router.middlewares) {
-               middleware(request, response);
-            }
-
-            // Execute wrapping middleware chain (index-based, no allocations)
-            if (wrapping_middlewares_.empty()) {
-               handle(request, response);
-            }
-            else {
-               execute_middleware_chain(0, request, response, handle);
-            }
-
-            // Call response hooks for metrics/logging
-            for (const auto& hook : response_hooks_) {
-               try {
-                  hook(request, response);
-               }
-               catch (const std::exception&) {
-                  error_handler(std::make_error_code(std::errc::invalid_argument), std::source_location::current());
-               }
-            }
-
-            // Send the response
-            send_response(socket, response);
-         }
-         catch (const std::exception& e) {
-            // Log the exception details for debugging
-            std::string error_message = e.what();
-            error_handler(std::make_error_code(std::errc::invalid_argument), std::source_location::current());
-
-            // Send a 500 error response back to the client
-            send_error_response(socket, 500, "Internal Server Error");
-         }
-      }
-
-      inline void send_response(std::shared_ptr<socket_type> socket, const response& response)
-      {
-         // Note: We can't call response hooks here because we don't have access to the request object
-         // Response hooks are called in process_full_request before calling this method
-
-         // Pre-calculate response size to avoid reallocations
-         size_t estimated_size = 64; // Base size for status line
-
-         for (const auto& [name, value] : response.response_headers) {
-            estimated_size += name.size() + value.size() + 4; // ": " + "\r\n"
-         }
-
-         estimated_size += response.response_body.size() + 128; // Extra buffer for default headers
-
-         // Use a single string with reserved capacity
-         std::string response_str;
-         response_str.reserve(estimated_size);
-
-         // Direct string building without streams
-         response_str.append("HTTP/1.1 ");
-         response_str.append(std::to_string(response.status_code));
-         response_str.append(" ");
-         response_str.append(get_status_message(response.status_code));
-         response_str.append("\r\n");
-
-         for (const auto& [name, value] : response.response_headers) {
-            response_str.append(name);
-            response_str.append(": ");
-            response_str.append(value);
-            response_str.append("\r\n");
-         }
-
-         // Add default headers if not present (using find is faster than streams)
-         if (response.response_headers.find("content-length") == response.response_headers.end()) {
-            response_str.append("Content-Length: ");
-            response_str.append(std::to_string(response.response_body.size()));
-            response_str.append("\r\n");
-         }
-
-         if (response.response_headers.find("date") == response.response_headers.end()) {
-            response_str.append("Date: ");
-            response_str.append(get_current_date());
-            response_str.append("\r\n");
-         }
-
-         if (response.response_headers.find("server") == response.response_headers.end()) {
-            response_str.append("Server: Glaze/1.0\r\n");
-         }
-
-         // End headers and add body
-         response_str.append("\r\n");
-         response_str.append(response.response_body);
-
-         auto response_buffer = std::make_shared<std::string>(std::move(response_str));
-
-         // Send the response asynchronously
-         asio::async_write(*socket, asio::buffer(*response_buffer),
-                           [socket, response_buffer](std::error_code /*ec*/, std::size_t /*bytes_transferred*/) {
-                              // response_buffer keeps the string alive for the duration of the async operation
-                              // Socket cleanup handled by shared_ptr
-                           });
-      }
-
-      inline void send_error_response(std::shared_ptr<socket_type> socket, int status_code, const std::string& message)
-      {
-         response response;
-         response.status(status_code).content_type("text/plain").body(message);
-
-         send_response(socket, response);
       }
 
       inline std::string_view get_status_message(int status_code)
@@ -2382,15 +2294,26 @@ namespace glz
          }
       }
 
-      inline std::string get_current_date()
+      inline const std::string& get_current_date()
       {
+         static thread_local std::string cached;
+         static thread_local std::chrono::seconds cached_sec{};
          auto now = std::chrono::system_clock::now();
-         auto time_t_now = std::chrono::system_clock::to_time_t(now);
-
-         char buf[100];
-         std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_t_now));
-
-         return buf;
+         auto sec = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
+         if (sec != cached_sec) {
+            cached_sec = sec;
+            auto time_t_now = std::chrono::system_clock::to_time_t(now);
+            char buf[64];
+#ifdef _MSC_VER
+            std::tm tm_buf;
+            gmtime_s(&tm_buf, &time_t_now);
+            std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &tm_buf);
+#else
+            std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_t_now));
+#endif
+            cached = buf;
+         }
+         return cached;
       }
    };
 
@@ -2398,74 +2321,110 @@ namespace glz
    namespace streaming_utils
    {
       // Create a periodic data sender (works with both HTTP and HTTPS)
+      // Uses enable_shared_from_this to avoid circular reference memory leaks
       template <typename T>
       void send_periodic_data(std::shared_ptr<streaming_connection_interface> conn, std::function<T()> data_generator,
                               std::chrono::milliseconds interval, size_t max_events = 0)
       {
-         auto counter = std::make_shared<size_t>(0);
          if (!conn || !conn->is_open()) return;
-         auto timer = std::make_shared<asio::steady_timer>(conn->get_executor());
 
-         // Use shared_ptr to safely handle recursive lambda calls and avoid compiler-specific segfaults
-         auto send_next = std::make_shared<std::function<void()>>();
-         *send_next = [conn, timer, counter, data_generator, interval, max_events, send_next]() mutable {
-            if (!conn->is_open() || (max_events > 0 && *counter >= max_events)) {
-               conn->close();
-               return;
-            }
+         struct periodic_sender : std::enable_shared_from_this<periodic_sender>
+         {
+            std::shared_ptr<streaming_connection_interface> conn;
+            std::shared_ptr<asio::steady_timer> timer;
+            std::function<T()> data_generator;
+            std::chrono::milliseconds interval;
+            size_t max_events;
+            size_t counter = 0;
 
-            try {
-               T data = data_generator();
-               conn->send_json_event(data, "data", std::to_string(*counter), [=](std::error_code ec) mutable {
-                  if (!ec) {
-                     (*counter)++;
-                     timer->expires_after(interval);
-                     timer->async_wait([send_next, timer, counter](std::error_code) { (*send_next)(); });
-                  }
-                  else {
-                     conn->close();
-                  }
-               });
-            }
-            catch (const std::exception&) {
-               conn->close();
+            periodic_sender(std::shared_ptr<streaming_connection_interface> c, std::function<T()> gen,
+                            std::chrono::milliseconds intv, size_t max_ev)
+               : conn(std::move(c)),
+                 timer(std::make_shared<asio::steady_timer>(conn->get_executor())),
+                 data_generator(std::move(gen)),
+                 interval(intv),
+                 max_events(max_ev)
+            {}
+
+            void send_next()
+            {
+               if (!conn->is_open() || (max_events > 0 && counter >= max_events)) {
+                  conn->close();
+                  return;
+               }
+
+               try {
+                  T data = data_generator();
+                  conn->send_json_event(data, "data", std::to_string(counter),
+                                        [self = this->shared_from_this()](std::error_code ec) {
+                                           if (!ec) {
+                                              self->counter++;
+                                              self->timer->expires_after(self->interval);
+                                              self->timer->async_wait([self](std::error_code) { self->send_next(); });
+                                           }
+                                           else {
+                                              self->conn->close();
+                                           }
+                                        });
+               }
+               catch (const std::exception&) {
+                  conn->close();
+               }
             }
          };
 
-         (*send_next)();
+         auto sender = std::make_shared<periodic_sender>(conn, std::move(data_generator), interval, max_events);
+         sender->send_next();
       }
 
       // Create a data stream from a collection (works with both HTTP and HTTPS)
+      // Uses enable_shared_from_this to avoid circular reference memory leaks
+      // Note: Makes a copy of the container to ensure data outlives the async operation
       template <typename Container>
       void stream_collection(std::shared_ptr<streaming_connection_interface> conn, const Container& data,
                              std::chrono::milliseconds delay_between_items = std::chrono::milliseconds(10))
       {
-         auto it = std::make_shared<typename Container::const_iterator>(data.begin());
-         auto end_it = data.end();
          if (!conn || !conn->is_open()) return;
-         auto timer = std::make_shared<asio::steady_timer>(conn->get_executor());
 
-         // Use shared_ptr to safely handle recursive lambda calls and avoid compiler-specific segfaults
-         auto send_next = std::make_shared<std::function<void()>>();
-         *send_next = [conn, timer, it, end_it, delay_between_items, send_next]() mutable {
-            if (!conn->is_open() || *it == end_it) {
-               conn->close();
-               return;
-            }
+         struct collection_sender : std::enable_shared_from_this<collection_sender>
+         {
+            std::shared_ptr<streaming_connection_interface> conn;
+            std::shared_ptr<asio::steady_timer> timer;
+            Container data;
+            typename Container::const_iterator it;
+            std::chrono::milliseconds delay;
 
-            conn->send_json_event(**it, "item", "", [=](std::error_code ec) mutable {
-               if (!ec) {
-                  ++(*it);
-                  timer->expires_after(delay_between_items);
-                  timer->async_wait([send_next, timer, it](std::error_code) { (*send_next)(); });
-               }
-               else {
+            collection_sender(std::shared_ptr<streaming_connection_interface> c, Container d,
+                              std::chrono::milliseconds dl)
+               : conn(std::move(c)),
+                 timer(std::make_shared<asio::steady_timer>(conn->get_executor())),
+                 data(std::move(d)),
+                 it(data.begin()),
+                 delay(dl)
+            {}
+
+            void send_next()
+            {
+               if (!conn->is_open() || it == data.end()) {
                   conn->close();
+                  return;
                }
-            });
+
+               conn->send_json_event(*it, "item", "", [self = this->shared_from_this()](std::error_code ec) {
+                  if (!ec) {
+                     ++self->it;
+                     self->timer->expires_after(self->delay);
+                     self->timer->async_wait([self](std::error_code) { self->send_next(); });
+                  }
+                  else {
+                     self->conn->close();
+                  }
+               });
+            }
          };
 
-         (*send_next)();
+         auto sender = std::make_shared<collection_sender>(conn, data, delay_between_items);
+         sender->send_next();
       }
    } // namespace streaming_utils
 

@@ -682,6 +682,17 @@ namespace glz
                         }
                      }
                   }
+                  else if constexpr (is_specialization_v<val_t, custom_t> && Opts.skip_null_members &&
+                                     custom_getter_returns_nullable<val_t>()) {
+                     if (!is_custom_field_null<T, I>(value, t, ctx)) {
+                        ++member_count;
+                     }
+                  }
+                  else if constexpr (Opts.skip_null_members && glaze_value_is_nullable<val_t>()) {
+                     if (!is_glaze_value_field_null<T, I>(value, t)) {
+                        ++member_count;
+                     }
+                  }
                   else {
                      ++member_count;
                   }
@@ -731,6 +742,17 @@ namespace glz
                         if (is_null) {
                            return;
                         }
+                     }
+                  }
+                  else if constexpr (is_specialization_v<val_t, custom_t> && Opts.skip_null_members &&
+                                     custom_getter_returns_nullable<val_t>()) {
+                     if (is_custom_field_null<T, I>(value, t, ctx)) {
+                        return;
+                     }
+                  }
+                  else if constexpr (Opts.skip_null_members && glaze_value_is_nullable<val_t>()) {
+                     if (is_glaze_value_field_null<T, I>(value, t)) {
+                        return;
                      }
                   }
 
@@ -855,9 +877,31 @@ namespace glz
       }
    };
 
+   // Expected types
+   template <is_expected T>
+   struct to<CBOR, T> final
+   {
+      template <auto Opts>
+      GLZ_ALWAYS_INLINE static void op(auto&& value, is_context auto&& ctx, auto&& b, auto& ix)
+      {
+         if (value) {
+            if constexpr (not std::is_void_v<typename std::decay_t<T>::value_type>) {
+               serialize<CBOR>::op<Opts>(*value, ctx, b, ix);
+            }
+            else {
+               // void value type: serialize as empty map
+               cbor_detail::encode_arg_cx<0>(ctx, cbor::major::map, b, ix);
+            }
+         }
+         else {
+            serialize<CBOR>::op<Opts>(unexpected_wrapper{&value.error()}, ctx, b, ix);
+         }
+      }
+   };
+
    // Nullable types (std::optional, std::unique_ptr, std::shared_ptr)
    template <nullable_t T>
-      requires(!std::is_array_v<T>)
+      requires(!std::is_array_v<T> && not is_expected<T>)
    struct to<CBOR, T> final
    {
       template <auto Opts>
