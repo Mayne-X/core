@@ -11,32 +11,57 @@ namespace glaze {
 struct FundsDecimalNoDecimals {
     std::string str;
     uint64_t u64;
+    struct glaze {
+        static constexpr const char* name = "FundsDecimalNoDecimals";
+    };
 };
 struct FundsDecimal {
     std::string str;
     uint64_t u64;
     int decimals;
+    struct glaze {
+        static constexpr const char* name = "FundsDecimal";
+    };
 };
 
 struct Grid {
     std::vector<std::string> headers;
+    struct glaze {
+        static constexpr const char* name = "HeaderGrid";
+    };
 };
 struct HashResult {
     std::string hash;
+    struct glaze {
+        static constexpr const char* name = "HashResult";
+    };
+    // struct glaze {
+    //     using mimic = std::string;
+    //     static constexpr auto value = &HashResult::hash;
+    // };
 };
 struct BanEntry {
     std::string ip;
     uint32_t banuntil;
     std::string reason;
+    struct glaze {
+        static constexpr const char* name = "BanEntry";
+    };
 };
 
 struct Account {
     std::string address;
     uint64_t accountId;
+    struct glaze {
+        static constexpr const char* name = "Account";
+    };
 };
 struct Wart {
     std::string str;
     uint64_t E8;
+    struct glaze {
+        static constexpr const char* name = "Wart";
+    };
 };
 
 struct TransactionSignedCommon {
@@ -46,6 +71,9 @@ struct TransactionSignedCommon {
     uint32_t nonceId;
     uint32_t pinHeight;
     // std::string signature;
+    struct glaze {
+        static constexpr const char* name = "TransactionSignedCommon";
+    };
 };
 
 template <typename Data>
@@ -79,23 +107,32 @@ struct WithHistoryId {
     uint64_t historyId;
 };
 
-struct Price {
+struct PriceDetail {
     int precExponent10;
     int exponent2;
     int mantissa;
     std::string hex;
     double doubleAdjusted;
     double doubleRaw;
+    struct glaze {
+        static constexpr const char* name = "PriceDetail";
+    };
 };
 struct BaseQuote {
     FundsDecimal base;
     Wart quote;
+    struct glaze {
+        static constexpr const char* name = "BaseQuote";
+    };
 };
 struct AssetBasic {
     std::string hash;
     uint64_t id;
     std::string name;
     uint32_t decimals;
+    struct glaze {
+        static constexpr const char* name = "AssetBasic";
+    };
 };
 struct AssetDetail {
     std::string hash;
@@ -107,18 +144,27 @@ struct AssetDetail {
     FundsDecimal totalSupply;
     uint64_t groupId;
     std::optional<uint64_t> parentId;
+    struct glaze {
+        static constexpr const char* name = "AssetDetail";
+    };
 };
 
 struct TransactionId {
     uint64_t accountId;
     uint32_t nonceId;
     uint32_t pinHeight;
+    struct glaze {
+        static constexpr const char* name = "TransactionId";
+    };
 };
 
 namespace reward {
 struct Data {
     std::string toAddress;
     Wart amount;
+    struct glaze {
+        static constexpr const char* name = "RewardData";
+    };
 };
 using Transaction = Transaction<Data>;
 using WithHistoryId = WithHistoryId<Transaction>;
@@ -128,6 +174,9 @@ namespace wart_transfer {
 struct Data {
     std::string toAddress;
     Wart amount;
+    struct glaze {
+        static constexpr const char* name = "WartTransferData";
+    };
 };
 using Transaction = SignedTransaction<Data>;
 using WithHistoryId = WithHistoryId<Transaction>;
@@ -140,6 +189,9 @@ struct Data {
     AssetBasic asset;
     bool isLiquidity;
     std::string tokenSpec;
+    struct glaze {
+        static constexpr const char* name = "TokenTransferData";
+    };
 };
 using Transaction = SignedTransaction<Data>;
 using WithHistoryId = WithHistoryId<Transaction>;
@@ -149,9 +201,15 @@ namespace asset_creation {
 struct Data {
     std::string name;
     FundsDecimal supply;
+    struct glaze {
+        static constexpr const char* name = "AssetCreationData";
+    };
 };
 struct Processed {
     uint64_t assetId;
+    struct glaze {
+        static constexpr const char* name = "AssetCreationProcessed";
+    };
 };
 using TransactionUnprocessed = SignedTransaction<Data>;
 using TransactionProcessed = SignedTransactionProcessed<Data, Processed>;
@@ -163,11 +221,17 @@ namespace new_order {
 struct Data {
     AssetBasic baseAsset;
     FundsDecimal amount;
-    Price limit;
+    PriceDetail limit;
     bool buy;
+    struct glaze {
+        static constexpr const char* name = "NewOrderProcessed";
+    };
 };
 struct Processed {
     FundsDecimal filled;
+    struct glaze {
+        static constexpr const char* name = "NewOrderProcessed";
+    };
 };
 using TransactionUnprocessed = SignedTransaction<Data>;
 using TransactionProcessed = SignedTransactionProcessed<Data, Processed>;
@@ -180,12 +244,18 @@ struct Data {
     struct SwapEntry {
         BaseQuote swapped;
         uint64_t historyId;
+        struct glaze {
+            static constexpr const char* name = "SwapEntry";
+        };
     };
     AssetBasic baseAsset;
     BaseQuote poolBefore;
     BaseQuote poolAfter;
     std::vector<SwapEntry> buySwaps;
     std::vector<SwapEntry> sellSwaps;
+    struct glaze {
+        static constexpr const char* name = "MatchData";
+    };
 };
 using Transaction = Transaction<Data>;
 using WithHistoryId = WithHistoryId<Transaction>;
@@ -195,9 +265,15 @@ namespace liquidity_deposit {
 struct Data {
     AssetBasic baseAsset;
     BaseQuote deposited;
+    struct glaze {
+        static constexpr const char* name = "LiquidityDepositData";
+    };
 };
 struct Processed {
     FundsDecimal sharesReceived;
+    struct glaze {
+        static constexpr const char* name = "LiquidityDepositProcessed";
+    };
 };
 using TransactionUnprocessed = SignedTransaction<Data>;
 using TransactionProcessed = SignedTransactionProcessed<Data, Processed>;
@@ -209,9 +285,15 @@ namespace liquidity_withdrawal {
 struct Data {
     AssetBasic baseAsset;
     FundsDecimal sharesRedeemed;
+    struct glaze {
+        static constexpr const char* name = "LiquidityWithdrawalData";
+    };
 };
 struct Processed {
     BaseQuote received;
+    struct glaze {
+        static constexpr const char* name = "LiquidityWithdrawalProcessed";
+    };
 };
 using TransactionUnprocessed = SignedTransaction<Data>;
 using TransactionProcessed = SignedTransactionProcessed<Data, Processed>;
@@ -222,9 +304,15 @@ using WithHistoryId = WithHistoryId<TransactionProcessed>;
 namespace cancelation {
 struct Data {
     TransactionId cancelTxid;
+    struct glaze {
+        static constexpr const char* name = "CancelationData";
+    };
 };
 struct Processed {
     std::string canceledTxHash;
+    struct glaze {
+        static constexpr const char* name = "CancelationProcessed";
+    };
 };
 using TransactionUnprocessed = SignedTransaction<Data>;
 using TransactionProcessed = SignedTransactionProcessed<Data, Processed>;
@@ -242,6 +330,9 @@ struct BlockActions {
     std::vector<liquidity_withdrawal::WithHistoryId> liquidityWithdrawals;
     std::vector<asset_creation::WithHistoryId> assetCreations;
     std::vector<cancelation::WithHistoryId> cancelations;
+    struct glaze {
+        static constexpr const char* name = "BlockActions";
+    };
 };
 
 struct MempoolEntry {
@@ -256,6 +347,9 @@ struct MempoolEntry {
 
     Transaction transaction;
     std::string tag;
+    struct glaze {
+        static constexpr const char* name = "MempoolEntry";
+    };
 };
 using MempoolEntries = std::vector<MempoolEntry>;
 
@@ -267,23 +361,35 @@ struct ActionsByBlock {
     };
     std::vector<BlockEntry> perBlock;
     uint64_t fromId;
+    struct glaze {
+        static constexpr const char* name = "ActionsByBlock";
+    };
 };
 
 struct AddressCount {
     std::string address;
     uint64_t count;
+    struct glaze {
+        static constexpr const char* name = "AddressCount";
+    };
 };
 struct AssetSearchResult {
     std::vector<AssetDetail> matches;
     std::string hashPrefix;
     std::string namePrefix;
+    struct glaze {
+        static constexpr const char* name = "AssetSearchResult";
+    };
 };
-struct POW {
+struct ProofOfWorkDetail {
     bool verusV2_2;
     std::string hashVerus;
     std::string hashSha256t;
     double floatVerus;
     double floatSha256t;
+    struct glaze {
+        static constexpr const char* name = "ProofOfWorkDetail";
+    };
 };
 
 struct BlockHeader {
@@ -292,31 +398,46 @@ struct BlockHeader {
     std::string utc;
     std::string target;
     std::string hash;
-    POW pow;
+    ProofOfWorkDetail pow;
     std::string merkleroot;
     std::string nonce;
     std::string prevHash;
     std::string version;
+    struct glaze {
+        static constexpr const char* name = "BlockHeader";
+    };
 };
-struct HeaderInfo {
+struct HeaderResult {
     BlockHeader header;
+    struct glaze {
+        static constexpr const char* name = "HeaderResult";
+    };
 };
 struct Block {
     BlockHeader header;
     BlockActions body;
     uint32_t confirmations;
     uint32_t height;
+    struct glaze {
+        static constexpr const char* name = "Block";
+    };
 };
 struct BlockBinaryAnnotation {
     std::string tag;
     std::string beginOffset;
     std::string endOffset;
     std::vector<BlockBinaryAnnotation> children;
+    struct glaze {
+        static constexpr const char* name = "BlockBinaryAnnotation";
+    };
 };
 
 struct BlockBinary {
     std::string bytes;
     std::vector<BlockBinaryAnnotation> structure;
+    struct glaze {
+        static constexpr const char* name = "BlockBinary";
+    };
 };
 struct ChainHead {
     std::string hash;
@@ -328,56 +449,92 @@ struct ChainHead {
     std::string worksumHex;
     std::string pinHash;
     uint64_t hashrate;
+    struct glaze {
+        static constexpr const char* name = "ChainHead";
+    };
 };
 struct ChainHeadSynced {
     ChainHead chainHead;
     bool synced;
+    struct glaze {
+        static constexpr const char* name = "ChainHeadSynced";
+    };
 };
 struct FundsBalance {
     FundsDecimal total;
     FundsDecimal locked;
     FundsDecimal mempool;
+    struct glaze {
+        static constexpr const char* name = "FundsBalance";
+    };
 };
 struct WartBalance {
     Wart total;
     Wart locked;
     Wart mempool;
+    struct glaze {
+        static constexpr const char* name = "WartBalance";
+    };
 };
 
 struct Uint32Range {
     uint32_t begin;
     uint32_t end;
+    struct glaze {
+        static constexpr const char* name = "Uint32Range";
+    };
 };
 struct HashrateBlockChart {
     Uint32Range range;
     std::vector<double> data;
+    struct glaze {
+        static constexpr const char* name = "HashrateBlockChart";
+    };
 };
 struct HashrateTimeChart {
     struct Entry {
         uint32_t timestamp;
         uint32_t height;
         uint64_t hashrate;
+        struct glaze {
+            static constexpr const char* name = "HashrateTimeChartEntry";
+        };
     };
     Uint32Range range;
     std::vector<Entry> data;
     uint32_t interval;
+    struct glaze {
+        static constexpr const char* name = "HashrateTimeChart";
+    };
 };
-struct HashrateInfo {
+struct HashrateResult {
     uint64_t lastNBlocksEstimate;
     size_t N;
+    struct glaze {
+        static constexpr const char* name = "HashrateResult";
+    };
 };
 
-struct JanushashInfo {
+struct JanushashResult {
     double janushashNumber;
+    struct glaze {
+        static constexpr const char* name = "JanushashResult";
+    };
 };
 
 struct LiquidityPool {
     FundsDecimal asset;
     Wart wart;
     FundsDecimal shares;
+    struct glaze {
+        static constexpr const char* name = "LiquidityPool";
+    };
 };
-struct MempoolUpdate {
+struct MempoolUpdateResult {
     size_t deleted;
+    struct glaze {
+        static constexpr const char* name = "MempoolUpdateResult";
+    };
 };
 struct MiningState {
     bool synced;
@@ -388,23 +545,35 @@ struct MiningState {
     Wart blockReward;
     uint32_t height;
     bool testnet;
+    struct glaze {
+        static constexpr const char* name = "MiningState";
+    };
 };
 
 struct SwapOrder {
     std::string txHash;
-    Price limit;
+    PriceDetail limit;
     FundsDecimal amount;
     FundsDecimal filled;
+    struct glaze {
+        static constexpr const char* name = "SwapOrder";
+    };
 };
 
 struct MarketOrders {
     AssetBasic baseAsset;
     std::vector<SwapOrder> wartToAssetSwaps;
     std::vector<SwapOrder> assetToWartSwaps;
+    struct glaze {
+        static constexpr const char* name = "MarketOrders";
+    };
 };
 struct ToPool {
     bool isQuote;
     FundsDecimal amount;
+    struct glaze {
+        static constexpr const char* name = "ToPool";
+    };
 };
 
 struct MarketDetail {
@@ -417,11 +586,17 @@ struct MarketDetail {
         ToPool toPool;
     };
     Match match;
+    struct glaze {
+        static constexpr const char* name = "MarketDetails";
+    };
 };
 struct ParsedPrice {
     uint32_t decimals;
-    Price floor;
-    Price ceil;
+    PriceDetail floor;
+    PriceDetail ceil;
+    struct glaze {
+        static constexpr const char* name = "ParsedPrice";
+    };
 };
 
 struct ThrottleState {
@@ -433,10 +608,16 @@ struct ThrottleState {
     int delay;
     State blockRequest;
     State headerRequest;
+    struct glaze {
+        static constexpr const char* name = "ThrottleState";
+    };
 };
 struct Timepoint {
     std::string UTC;
     uint32_t timestamp;
+    struct glaze {
+        static constexpr const char* name = "Timepoint";
+    };
 };
 struct Peerinfo {
     struct Connection {
@@ -465,34 +646,55 @@ struct Peerinfo {
     ThrottleState throttle;
     Chain chain;
     LeaderPriority leaderPriority;
+    struct glaze {
+        static constexpr const char* name = "Peerinfo";
+    };
 };
 
 struct RichlistEntry {
     std::string address;
     FundsDecimal balance;
+    struct glaze {
+        static constexpr const char* name = "RichlistEntry";
+    };
 };
 struct Token {
     uint64_t id;
     std::string spec;
     std::string name;
     int decimals;
+    struct glaze {
+        static constexpr const char* name = "Token";
+    };
 };
 
-struct Richlist {
+struct RichlistResult {
     Token token;
     std::vector<RichlistEntry> richlist;
+    struct glaze {
+        static constexpr const char* name = "RichlistResult";
+    };
 };
 struct Connection {
     std::string endpoint;
     uint64_t id;
+    struct glaze {
+        static constexpr const char* name = "Connection";
+    };
 };
 struct ThrottledPeer {
     ThrottleState throttle;
     Connection connection;
+    struct glaze {
+        static constexpr const char* name = "ThrottledPeer";
+    };
 };
 struct AssetLookupTrace {
     std::vector<AssetDetail> fails;
     std::optional<uint32_t> snapshotHeight;
+    struct glaze {
+        static constexpr const char* name = "AssetLookupTrace";
+    };
 };
 
 struct TokenBalanceLookup {
@@ -500,6 +702,9 @@ struct TokenBalanceLookup {
     Token token;
     std::optional<AssetLookupTrace> lookupTrace;
     std::optional<Account> account;
+    struct glaze {
+        static constexpr const char* name = "TokenBalanceLookup";
+    };
 };
 
 struct TransactionDetails {
@@ -525,16 +730,25 @@ struct TransactionDetails {
     };
     std::optional<Mined> mined;
     uint32_t confirmations;
+    struct glaze {
+        static constexpr const char* name = "TransactionDetails";
+    };
 };
 struct CompactFee {
     std::string str;
     uint64_t E8;
     std::string bytes;
+    struct glaze {
+        static constexpr const char* name = "CompactFee";
+    };
 };
-struct TransactionMinfee {
+struct TransactionMinfeeResult {
     CompactFee minFee;
+    struct glaze {
+        static constexpr const char* name = "TransactionMinfeeResult";
+    };
 };
-struct TransmissionCharts {
+struct TransmissionChartsResult {
     struct Element {
         uint32_t begin;
         uint32_t end;
@@ -542,28 +756,46 @@ struct TransmissionCharts {
         size_t tx;
     };
     std::map<std::string, std::vector<Element>> byHost;
+    struct glaze {
+        static constexpr const char* name = "TransmissionChartsResult";
+    };
 };
 struct Wallet {
     std::string privKey;
     std::string pubKey;
     std::string address;
+    struct glaze {
+        static constexpr const char* name = "Wallet";
+    };
 };
 struct WartBalanceResult {
     WartBalance wart;
     std::optional<Account> account;
+    struct glaze {
+        static constexpr const char* name = "WartBalanceResult";
+    };
 };
 struct OffenseEntry {
     std::string ip;
     uint32_t timestamp;
     std::string utc;
     std::string offense;
+    struct glaze {
+        static constexpr const char* name = "OffenseEntry";
+    };
 };
 struct RoundedFeeResult {
     Wart original;
     CompactFee rounded;
+    struct glaze {
+        static constexpr const char* name = "RoundedFeeResult";
+    };
 };
 struct RollbackResult {
     uint32_t length;
+    struct glaze {
+        static constexpr const char* name = "RollbackResult";
+    };
 };
 struct NodeVersion {
     std::string name;
@@ -571,8 +803,11 @@ struct NodeVersion {
     int minor;
     int patch;
     std::string commit;
+    struct glaze {
+        static constexpr const char* name = "NodeVersion";
+    };
 };
-struct NodeInfo {
+struct NodeInfoResult {
     struct Uptime {
         Timepoint since;
         uint32_t seconds;
@@ -584,9 +819,12 @@ struct NodeInfo {
     std::string rxtxDBPath;
     NodeVersion version;
     Uptime uptime;
+    struct glaze {
+        static constexpr const char* name = "NodeInfoResult";
+    };
 };
-using Candle = std::tuple<uint32_t,uint32_t,double,double,double,double,double,double>;
-using Trade = std::tuple<uint32_t,uint32_t,double,double>;
+using Candle = std::tuple<uint32_t, uint32_t, double, double, double, double, double, double>;
+using Trade = std::tuple<uint32_t, uint32_t, double, double>;
 
 }
 }

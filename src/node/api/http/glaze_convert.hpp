@@ -27,7 +27,7 @@ AssetLookupTrace from(const ::api::AssetLookupTrace& a);
 TransactionDetails to_json(const api::TransactionDetails&);
 TransactionSignedCommon from(const api::block::TransactionSignedData&);
 CompactFee from(::CompactUInt);
-TransactionMinfee from(const api::TransactionMinfee&);
+TransactionMinfeeResult from(const api::TransactionMinfee&);
 ActionsByBlock from(const api::TransactionsByBlocks&);
 
 // for transactions which do not differ between mined/unmined
@@ -35,15 +35,15 @@ reward::Transaction from(const block::Reward&);
 wart_transfer::Transaction from(const block::WartTransfer&);
 token_transfer::Transaction from(const block::TokenTransfer&);
 match::Transaction from(const block::Match&);
-TransmissionCharts::Element from(const rxtx::RangeAggregated&);
-TransmissionCharts from(const api::TransmissionTimeseries&);
+TransmissionChartsResult::Element from(const rxtx::RangeAggregated&);
+TransmissionChartsResult from(const api::TransmissionTimeseries&);
 Wallet from(const api::Wallet& w);
 WartBalanceResult from(const api::WartBalanceLookup&);
 OffenseEntry from(const api::OffenseEntry&);
 RoundedFeeResult from(const api::Round16Bit&);
 RollbackResult from(const api::Rollback&);
 std::vector<std::pair<std::string, size_t>> from(const api::IPCounter&);
-NodeInfo from(const api::NodeInfo&);
+NodeInfoResult from(const api::NodeInfo&);
 Candle from(const api::Candle&);
 Trade from(const api::Trade&);
 
