@@ -47,6 +47,12 @@ NodeInfoResult from(const api::NodeInfo&);
 Candle from(const api::Candle&);
 Trade from(const api::Trade&);
 
+// template <typename T>
+// using target_type = std::remove_cvref_t<decltype(from(std::declval<const T&>()))>;
+
+template <typename T>
+auto from(const api::block::WithHistoryId<T>& tx);
+
 template <typename T>
 auto from(const ReversibleVector<T> v)
 {
@@ -56,11 +62,33 @@ auto from(const ReversibleVector<T> v)
     return out;
 }
 
-template <typename T>
-auto from(const api::block::WithHistoryId<T>& tx);
-template <typename T>
-using target_type = std::remove_cvref_t<decltype(from(std::declval<const T&>()))>;
-
+template<typename T>
+auto from(const std::vector<T>& v){
+    using target_type = std::remove_cvref_t<decltype(from(std::declval<const T&>()))>;
+    std::vector<target_type> out;
+    for (auto &e : v) {
+        out.push_back(from(e));
+    }
+    return out;
 }
+
+template <typename T>
+static auto from(const wrt::optional<T>& o)
+{
+    using target_type = std::remove_cvref_t<decltype(from(std::declval<const T&>()))>;
+    std::optional<target_type> out;
+    if (o)
+        out = from(*o);
+    return out;
+}
+
+
+
+template <typename T>
+concept convertible = requires {
+    api::glaze::from(std::declval<T>());
+};
+}
+
 
 }

@@ -104,7 +104,7 @@ TransactionSignedCommon from(const api::block::TransactionSignedData& d)
         .pinHeight = from(d.pinHeight),
     };
 }
-static Price make_price(Price_uint64 p, TokenDecimals d)
+static PriceDetail make_price(Price_uint64 p, TokenDecimals d)
 {
     return {
         .precExponent10 = p.base10_decimals_exponent(d),
@@ -131,24 +131,6 @@ auto from(const api::block::WithHistoryId<T>& tx)
     return WithHistoryId { .transaction = from(tx.transaction), .historyId = tx.historyId.value() };
 }
 
-template <typename T>
-static auto from(const wrt::optional<T>& o)
-{
-    std::optional<target_type<T>> out;
-    if (o)
-        out = from(*o);
-    return out;
-}
-
-template <typename T>
-static auto from(const std::vector<T>& v)
-{
-    std::vector<target_type<T>> out;
-    for (auto& e : v) {
-        out.push_back(from(e));
-    }
-    return out;
-}
 
 static BaseQuote make_base_quote(const defi::BaseQuote& bq, TokenDecimals d)
 {
@@ -286,9 +268,9 @@ TransactionDetails to_json(const api::TransactionDetails& d)
                 .hash { serialize_hex(t.hash) },
                 .signedCommon { from(t.signedData) }
             };
-            if (d.filled) {
+            if (d.remaining) {
                 out.processed = new_order::Processed {
-                    .filled = from(::FundsDecimal(*d.filled, d.assetInfo.decimals))
+                    .remaining = from(::FundsDecimal(*d.remaining, d.assetInfo.decimals))
                 };
             }
             return out;
@@ -389,7 +371,7 @@ CompactFee from(::CompactUInt f)
         .bytes { serialize_hex(f.value()) },
     };
 }
-TransactionMinfee from(const api::TransactionMinfee& f)
+TransactionMinfeeResult from(const api::TransactionMinfee& f)
 {
     return { .minFee = from(f.minfee) };
 }
@@ -494,10 +476,7 @@ ActionsByBlock from(const api::TransactionsByBlocks& f)
         for (auto& e : b.actions.newOrders) {
             auto& t = e.transaction;
             auto& d { t.data };
-            assert(d.filled);
-            // if (d.filled) {
-            //     out.processed = new_order::Processed {
-            // };
+            assert(d.remaining);
             a.newOrders.push_back(
                 { .transaction = new_order::TransactionProcessed {
                       .data {
@@ -506,7 +485,7 @@ ActionsByBlock from(const api::TransactionsByBlocks& f)
                           .limit { make_price(d.limit, d.assetInfo.decimals) },
                           .buy = d.buy },
                       .processed {
-                          .filled = from(::FundsDecimal(*d.filled, d.assetInfo.decimals)) },
+                          .remaining = from(::FundsDecimal(*d.remaining, d.assetInfo.decimals)) },
                       .hash { serialize_hex(t.hash) },
                       .signedCommon { from(t.signedData) } },
                     .historyId = e.historyId.value() });
@@ -558,7 +537,7 @@ ActionsByBlock from(const api::TransactionsByBlocks& f)
     return out;
 }
 
-TransmissionCharts::Element from(const rxtx::RangeAggregated& ra)
+TransmissionChartsResult::Element from(const rxtx::RangeAggregated& ra)
 {
     return {
         .begin = ra.begin.value(),
@@ -567,9 +546,9 @@ TransmissionCharts::Element from(const rxtx::RangeAggregated& ra)
         .tx = ra.tx
     };
 }
-TransmissionCharts from(const api::TransmissionTimeseries& ts)
+TransmissionChartsResult from(const api::TransmissionTimeseries& ts)
 {
-    TransmissionCharts out;
+    TransmissionChartsResult out;
     for (auto& [host, vec] : ts.byHost) {
         out.byHost.try_emplace(host, from(vec));
     }
@@ -628,7 +607,7 @@ std::vector<std::pair<std::string, size_t>> from(const api::IPCounter& c)
         out.push_back({ e.first.to_string(), e.second });
     return out;
 }
-NodeInfo from(const api::NodeInfo& info)
+NodeInfoResult from(const api::NodeInfo& info)
 {
     using namespace std;
     using namespace std::chrono;

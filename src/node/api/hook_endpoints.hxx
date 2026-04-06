@@ -3,6 +3,8 @@
 #include "general/static_string.hpp"
 #include "tools/try_parse.hpp"
 #include "types/opt_param.hpp"
+#include "http/glaze_convert.hpp"
+#include "glaze/glaze.hpp"
 // #include "general/funds.hpp"
 #include "api/http/parse.hpp"
 #include "api/types/accountid_or_address.hpp"
@@ -15,6 +17,7 @@
 #include "spdlog/spdlog.h"
 #include "uwebsockets/HttpParser.h"
 #include <string>
+
 
 namespace {
 
@@ -231,6 +234,14 @@ template <typename T>
 class RouterHook {
     T& t;
 
+    template<typename R>
+    static std::string serialize(const R& r){
+        // if constexpr (api::glaze::convertible<R>) {
+            return glz::write_json(api::glaze::from(r)).value();
+        // }else{
+        //     return jsonmsg::serialize(r);
+        // }
+    }
 public:
     RouterHook(T& t)
         : t(t) { };
@@ -289,7 +300,7 @@ public:
                     [&]<size_t... Ids>(std::index_sequence<Ids...>) {
                         asyncfun(ParameterParser(args.get<argsCount.get_index(Ids)>(req))...,
                             [&t, res](auto& data) {
-                                t.async_reply(res, jsonmsg::serialize(data));
+                                t.async_reply(res, serialize(data));
                             });
                     }(std::make_index_sequence<ARGC - 1>());
                     t.insert_pending(res);
@@ -353,7 +364,7 @@ public:
                             try {
                                 asyncfun(parser(body),
                                     [&t, res](auto& data) {
-                                        t.async_reply(res, jsonmsg::serialize(data));
+                                        t.async_reply(res, serialize(data));
                                     });
                             } catch (Error e) {
                                 auto ser = jsonmsg::serialize_error(e);

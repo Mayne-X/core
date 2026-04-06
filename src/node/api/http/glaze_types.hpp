@@ -228,7 +228,7 @@ struct Data {
     };
 };
 struct Processed {
-    FundsDecimal filled;
+    FundsDecimal remaining;
     struct glaze {
         static constexpr const char* name = "NewOrderProcessed";
     };
