@@ -237,7 +237,7 @@ class RouterHook {
     template<typename R>
     static std::string serialize(const R& r){
         // if constexpr (api::glaze::convertible<R>) {
-            return glz::write_json(api::glaze::from(r)).value();
+            return glz::write<glz::opts{.skip_null_members = false}>(api::glaze::from(r)).value();
         // }else{
         //     return jsonmsg::serialize(r);
         // }

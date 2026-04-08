@@ -464,7 +464,6 @@ BlockActions from(const api::block::Actions& actions)
     for (auto& e : actions.newOrders) {
         auto& t = e.transaction;
         auto& d { t.data };
-        assert(d.remaining);
         a.newOrders.push_back(
             { .transaction = new_order::TransactionProcessed {
                   .data {
