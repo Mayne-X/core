@@ -1,10 +1,10 @@
 #pragma once
 #include "api/http/json.hpp"
 #include "general/static_string.hpp"
+#include "glaze/glaze.hpp"
+#include "http/glaze_convert.hpp"
 #include "tools/try_parse.hpp"
 #include "types/opt_param.hpp"
-#include "http/glaze_convert.hpp"
-#include "glaze/glaze.hpp"
 // #include "general/funds.hpp"
 #include "api/http/parse.hpp"
 #include "api/types/accountid_or_address.hpp"
@@ -17,7 +17,6 @@
 #include "spdlog/spdlog.h"
 #include "uwebsockets/HttpParser.h"
 #include <string>
-
 
 namespace {
 
@@ -234,14 +233,22 @@ template <typename T>
 class RouterHook {
     T& t;
 
-    template<typename R>
-    static std::string serialize(const R& r){
-        // if constexpr (api::glaze::convertible<R>) {
-            return glz::write<glz::opts{.skip_null_members = false}>(api::glaze::from(r)).value();
-        // }else{
-        //     return jsonmsg::serialize(r);
-        // }
+    static constexpr const glz::opts Opts = glz::opts { .skip_null_members = false };
+    template <typename R>
+    static std::string serialize(const Result<R>& r)
+    {
+        return glz::write<Opts>(api::glaze::from(r)).value();
     }
+    template <typename R>
+    static std::string serialize(const R& r)
+    {
+        auto tmp { api::glaze::from(r) };
+        auto out = glz::write<Opts>(
+            api::glaze::Success<std::remove_cvref_t<decltype(tmp)>&> { 0, tmp })
+                  .value();
+        return out;
+    }
+
 public:
     RouterHook(T& t)
         : t(t) { };

@@ -1,4 +1,5 @@
 #pragma once
+#include "glaze/core/common.hpp"
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -879,6 +880,11 @@ template <typename T>
 struct Success {
     int code;
     T data;
+    struct glaze {
+        static constexpr auto value = glz::object(
+            "code", [](auto&& self) -> auto& { return self.code; },
+            "data", [](auto&& self) -> auto& { return self.data; });
+    };
 };
 template <>
 struct Success<void> {

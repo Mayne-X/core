@@ -1173,12 +1173,15 @@ TCPConnectionSchedule from(const api::TCPConnectionSchedule& tcs)
     TCPConnectionSchedule out;
     auto convert_schedule =
         [](const api::TCPConnectionSchedule::Schedule& c) {
-            return TCPConnectionSchedule::Schedule {
+            TCPConnectionSchedule::Schedule out {
                 .address = c.address.to_string(),
-                .lastError = c.lastError.format(),
+                .lastError = {},
                 .sleepDuration = c.sleepDuration,
                 .expiresIn = c.expiresIn,
             };
+            if (c.lastError)
+                out.lastError = c.lastError.format();
+            return out;
         };
     auto convert_vschedule = [&](const api::TCPConnectionSchedule::VerifiedSchedule& c) {
         return TCPConnectionSchedule::VerifiedSchedule {
