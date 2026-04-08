@@ -29,5 +29,7 @@ using LiquidityWithdrawal = IsSignedTransaction<LiquidityWithdrawalData>;
 using Cancelation = IsSignedTransaction<CancelationData>;
 using Match = IsTransaction<MatchData>;
 
+struct MempoolEntry;
+
 }
 }

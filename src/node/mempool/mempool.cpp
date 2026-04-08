@@ -113,21 +113,21 @@ void MempoolTransactions::erase(iter_t iter)
     txs().erase(iter);
 }
 
-wrt::optional<TransactionMessage> MempoolTransactions::operator[](const TransactionId& id) const
+const TransactionMessage* MempoolTransactions::operator[](const TransactionId& id) const
 {
     auto iter = txs().find(id);
     if (iter == txs().end())
         return {};
-    return *static_cast<const TransactionMessage*>(&*iter);
+    return &*iter;
 }
 
-wrt::optional<TransactionMessage> MempoolTransactions::operator[](const HashView txHash) const
+const TransactionMessage* MempoolTransactions::operator[](const HashView txHash) const
 {
     auto iter = _index.hash().find(txHash);
     if (iter == _index.hash().end())
         return {};
     assert((*iter)->txhash == txHash);
-    return *static_cast<const TransactionMessage*>(&**iter);
+    return &**iter;
 }
 CompactUInt MempoolTransactions::min_fee() const
 {
@@ -166,8 +166,8 @@ std::vector<TransactionId> MempoolTransactions::filter_new(const std::vector<Txi
 
 Funds_uint64 Mempool::locked_balance(AccountId aid, TokenId tid) const
 {
-    auto iter{lockedBalances.find(AccountToken(aid,tid))};
-    if (iter == lockedBalances.end()) 
+    auto iter { lockedBalances.find(AccountToken(aid, tid)) };
+    if (iter == lockedBalances.end())
         return Funds_uint64::zero();
     return iter->second.locked();
 }

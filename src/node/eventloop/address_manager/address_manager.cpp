@@ -59,6 +59,14 @@ auto AddressManager::to_json() const -> json
     };
 }
 
+api::ConnectionSchedule AddressManager::api_connection_schedule() const{
+#ifndef DISABLE_LIBUV
+        return tcpConnectionSchedule.api_connection_schedule();
+#else
+        return wsConnectionSchedule.api_connection_schedule();
+#endif
+}
+
 void AddressManager::start_scheduled_connections()
 {
     if (config().node.isolated)

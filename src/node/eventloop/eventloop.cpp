@@ -192,7 +192,7 @@ void Eventloop::api_get_hashrate(HashrateCb&& cb, size_t n)
     defer(GetHashrate { std::move(cb), n });
 }
 
-void Eventloop::api_get_connection_schedule(JSONCb&& cb)
+void Eventloop::api_get_connection_schedule(ConScheduleCb&& cb)
 {
     defer(GetConnectionSchedule(std::move(cb)));
 }
@@ -576,7 +576,7 @@ void Eventloop::handle_event(GetHashrateTimeChart&& e)
 
 void Eventloop::handle_event(GetConnectionSchedule&& e)
 {
-    e.cb(connections.to_json());
+    e.cb(connections.api_connection_schedule());
 }
 
 void Eventloop::handle_event(FailedConnect&& e)
@@ -1498,7 +1498,11 @@ void Eventloop::handle_msg(Conref cr, TxreqMsg&& m)
     log_communication("{} handle TxreqMsg", cr.str());
     TxrepMsg::vector_t out;
     for (auto& e : m.txids()) {
-        out.push_back(mempool[e]);
+        if (auto p{mempool[e]}){
+            out.push_back(*p);
+        }else{
+            out.push_back({});
+        }
     }
     if (out.size() > 0)
         cr.send(TxrepMsg(m.nonce(), out));

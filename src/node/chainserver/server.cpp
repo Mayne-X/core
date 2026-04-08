@@ -217,7 +217,11 @@ void ChainServer::handle_event(LookupTxids&& e)
     auto t { timing->time("LookupTxIds") };
     std::vector<wrt::optional<TransactionMessage>> out;
     std::transform(e.txids.begin(), e.txids.end(), std::back_inserter(out),
-        [&](auto txid) { return state.get_mempool_tx(txid); });
+        [&](auto txid) -> wrt::optional<TransactionMessage> {
+            if (auto p { state.get_mempool_tx(txid) })
+                return *p;
+            return {};
+        });
     e.callback(out);
 }
 

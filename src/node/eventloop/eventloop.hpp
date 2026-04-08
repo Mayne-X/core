@@ -133,7 +133,7 @@ public:
     void api_is_synced(SyncedCb&& cb);
     void api_inspect(InspectorCb&&);
     void api_count_ips(IpCounterCb&&);
-    void api_get_connection_schedule(JSONCb&& cb);
+    void api_get_connection_schedule(ConScheduleCb&& cb);
     void api_sample_verified_peers(size_t n, SampledPeersCb cb);
     void start_timer(StartTimer);
     void cancel_timer(TimerSystem::key_t);
@@ -306,7 +306,7 @@ private:
         size_t n;
     };
     struct GetConnectionSchedule {
-        JSONCb cb;
+        ConScheduleCb cb;
     };
     struct FailedConnect {
         ConnectRequest connectRequest;

@@ -502,62 +502,62 @@ json to_json(const api::MempoolUpdate& r)
     };
 }
 
-json to_json(const api::MempoolEntries& entries)
+json to_json(const api::MempoolEntries&)
 {
     json j;
     json a = json::array();
-    for (auto& e : entries.entries) {
-        json elem;
-        elem["fromAddress"] = e.from_address(e.txHash).to_string();
-        elem["pinHeight"] = e.pin_height();
-        elem["txHash"] = serialize_hex(e.txHash);
-        elem["nonceId"] = e.nonce_id();
-        elem["signature"] = e.signature().to_string();
-        elem["fee"] = to_json(e.fee());
-        e.visit_overload(
-            [&](const WartTransferMessage& m) {
-                elem["type"] = api::block::WartTransferData::label;
-                elem["toAddress"] = m.to_addr().to_string();
-                elem["amount"] = to_json(m.wart());
-            },
-            [&](const TokenTransferMessage& m) {
-                elem["type"] = api::block::TokenTransferData::label;
-                elem["toAddress"] = m.to_addr().to_string();
-                elem["amountU64"] = m.amount().value();
-                elem["assetHash"] = m.asset_hash().hex_string();
-                elem["isLiquidity"] = m.is_liquidity();
-                elem["tokenSpec"] = api::TokenSpec(m.asset_hash(), m.is_liquidity()).to_string();
-            },
-            [&](const LimitSwapMessage& m) {
-                elem["type"] = api::block::NewOrderData::label;
-                elem["assetHash"] = m.asset_hash().hex_string();
-                elem["buy"] = m.buy();
-                elem["amountRaw"] = m.amount().value();
-                elem["limitRaw"] = m.limit().to_double_raw();
-            },
-            [&](const CancelationMessage& m) {
-                elem["type"] = api::block::CancelationData::label;
-                elem["cancelHeight"] = m.cancel_height().value();
-                elem["cancelNonce"] = m.cancel_nonceid();
-            },
-            [&](const LiquidityDepositMessage& m) {
-                elem["type"] = api::block::LiquidityDepositData::label;
-                elem["assetHash"] = m.asset_hash().hex_string();
-                elem["quoteWart"] = m.quote();
-                elem["baseU64"] = m.base().value(); // TODO: this should be looked up and the mempool should only contain elements where it can be looked up (i.e. such elements where the base currency exists)
-            },
-            [&](const LiquidityWithdrawalMessage& m) {
-                elem["type"] = api::block::LiquidityWithdrawalData::label;
-                elem["assetHash"] = m.asset_hash().hex_string();
-                elem["liquidityU64"] = m.amount().value();
-            },
-            [&](const AssetCreationMessage& m) {
-                elem["type"] = api::block::AssetCreationData::label;
-                elem["supply"] = m.supply().to_string();
-                elem["assetName"] = m.asset_name().to_string();
-            });
-        a.push_back(elem);
-    }
+    // for (auto& e : entries.entries) {
+    //     json elem;
+    //     elem["fromAddress"] = e.from_address(e.txHash).to_string();
+    //     elem["pinHeight"] = e.pin_height();
+    //     elem["txHash"] = serialize_hex(e.txHash);
+    //     elem["nonceId"] = e.nonce_id();
+    //     elem["signature"] = e.signature().to_string();
+    //     elem["fee"] = to_json(e.fee());
+    //     e.visit_overload(
+    //         [&](const WartTransferMessage& m) {
+    //             elem["type"] = api::block::WartTransferData::label;
+    //             elem["toAddress"] = m.to_addr().to_string();
+    //             elem["amount"] = to_json(m.wart());
+    //         },
+    //         [&](const TokenTransferMessage& m) {
+    //             elem["type"] = api::block::TokenTransferData::label;
+    //             elem["toAddress"] = m.to_addr().to_string();
+    //             elem["amountU64"] = m.amount().value();
+    //             elem["assetHash"] = m.asset_hash().hex_string();
+    //             elem["isLiquidity"] = m.is_liquidity();
+    //             elem["tokenSpec"] = api::TokenSpec(m.asset_hash(), m.is_liquidity()).to_string();
+    //         },
+    //         [&](const LimitSwapMessage& m) {
+    //             elem["type"] = api::block::NewOrderData::label;
+    //             elem["assetHash"] = m.asset_hash().hex_string();
+    //             elem["buy"] = m.buy();
+    //             elem["amountRaw"] = m.amount().value();
+    //             elem["limitRaw"] = m.limit().to_double_raw();
+    //         },
+    //         [&](const CancelationMessage& m) {
+    //             elem["type"] = api::block::CancelationData::label;
+    //             elem["cancelHeight"] = m.cancel_height().value();
+    //             elem["cancelNonce"] = m.cancel_nonceid();
+    //         },
+    //         [&](const LiquidityDepositMessage& m) {
+    //             elem["type"] = api::block::LiquidityDepositData::label;
+    //             elem["assetHash"] = m.asset_hash().hex_string();
+    //             elem["quoteWart"] = m.quote();
+    //             elem["baseU64"] = m.base().value(); // TODO: this should be looked up and the mempool should only contain elements where it can be looked up (i.e. such elements where the base currency exists)
+    //         },
+    //         [&](const LiquidityWithdrawalMessage& m) {
+    //             elem["type"] = api::block::LiquidityWithdrawalData::label;
+    //             elem["assetHash"] = m.asset_hash().hex_string();
+    //             elem["liquidityU64"] = m.amount().value();
+    //         },
+    //         [&](const AssetCreationMessage& m) {
+    //             elem["type"] = api::block::AssetCreationData::label;
+    //             elem["supply"] = m.supply().to_string();
+    //             elem["assetName"] = m.asset_name().to_string();
+    //         });
+    //     a.push_back(elem);
+    // }
     j["data"] = a;
     return j;
 }

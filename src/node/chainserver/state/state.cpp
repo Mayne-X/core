@@ -1,3 +1,4 @@
+#include "api/types/all.hpp"
 #include "defi/token/account_token.hpp"
 #include "defi/uint64/lazy_matching.hpp"
 #include "general/format_plural.hpp"
@@ -549,10 +550,9 @@ const AssetDetail* State::lookup_hash_warn(const AssetHash& h) const
     return p;
 }
 
-api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
-    TransactionMessage&& tx) const
+api::MempoolEntry State::api_dispatch_mempool(const TxHash& txHash,
+    const TransactionMessage& tx) const
 {
-
     auto get_asset {
         [&](AssetHash hash) -> const AssetDetail& {
             auto p { dbcache.lookup_asset(hash) };
@@ -567,79 +567,72 @@ api::TransactionDetails State::api_dispatch_mempool(const TxHash& txHash,
             tx.nonce_id(), tx.pin_height());
     } };
 
-    return std::move(tx).visit_overload(
-        [&](WartTransferMessage&& wtm) -> api::TransactionDetails {
-            return api::MaybeMinedWartTransfer { {}, 0,
-                { txHash,
-                    {
-                        .toAddress = wtm.to_addr(),
-                        .amount = wtm.wart(),
-                    },
-                    make_signed_info(wtm) } };
-        },
-        [&](TokenTransferMessage&& ttm) -> api::TransactionDetails {
-            // ttm.byte_size
-            return api::TransactionDetails { api::MaybeMinedTokenTransfer {
-                {}, 0,
-                { txHash,
-                    {
-                        .assetInfo { get_asset(ttm.asset_hash()) },
-                        .isLiquidity = ttm.is_liquidity(),
-                        .toAddress = ttm.to_addr(),
-                        .amount = ttm.amount(),
-                    },
-                    make_signed_info(ttm) } } };
-        },
-        [&](LimitSwapMessage&& o) -> api::TransactionDetails {
-            return api::MaybeMinedNewOrder { {}, 0,
-                { txHash,
-                    {
-                        .assetInfo { get_asset(o.asset_hash()) },
-                        .amount { o.amount() },
-                        .remaining {},
-                        .limit { o.limit() },
-                        .buy = o.buy(),
-                    },
-                    make_signed_info(o) } };
-        },
-        [&](CancelationMessage&& a) -> api::TransactionDetails {
-            return api::MaybeMinedCancelation {
-                {}, 0,
-                { txHash, { .cancelTxid { a.cancel_txid() }, .canceledTxHash {} }, make_signed_info(a) }
+    return tx.visit_overload(
+        [&](const WartTransferMessage& wtm) -> api::MempoolEntry {
+            return {
+                txHash,
+                api::block::WartTransferData {
+                    .toAddress = wtm.to_addr(),
+                    .amount = wtm.wart(),
+                },
+                make_signed_info(wtm)
             };
         },
-        [&](LiquidityDepositMessage&& ld) -> api::TransactionDetails {
-            return api::MaybeMinedLiquidityDeposit {
-                {}, 0,
-                { txHash,
-                    {
-                        .assetInfo { get_asset(ld.asset_hash()) },
-                        .baseDeposited { ld.base() },
-                        .quoteDeposited { ld.quote() },
-                        .sharesReceived { wrt::nullopt },
-                    },
-                    make_signed_info(ld) }
+        [&](const TokenTransferMessage& ttm) -> api::MempoolEntry {
+            return {
+                txHash,
+                api::block::TokenTransferData {
+                    .assetInfo { get_asset(ttm.asset_hash()) },
+                    .isLiquidity = ttm.is_liquidity(),
+                    .toAddress = ttm.to_addr(),
+                    .amount = ttm.amount(),
+                },
+                make_signed_info(ttm)
             };
         },
-        [&](LiquidityWithdrawalMessage&& lw) -> api::TransactionDetails {
-            return api::MaybeMinedLiquidityWithdrawal {
-                {}, 0,
-                { txHash,
-                    { .assetInfo { get_asset(lw.asset_hash()) },
-                        .sharesRedeemed { lw.amount() },
-                        .received {} },
-                    make_signed_info(lw) }
-            };
+        [&](const LimitSwapMessage& o) -> api::MempoolEntry {
+            return { txHash,
+                api::block::NewOrderData {
+                    .assetInfo { get_asset(o.asset_hash()) },
+                    .amount { o.amount() },
+                    .remaining {},
+                    .limit { o.limit() },
+                    .buy = o.buy(),
+                },
+                make_signed_info(o) };
         },
-        [&](AssetCreationMessage&& rm) -> api::TransactionDetails {
-            return api::MaybeMinedAssetCreation { {}, 0,
-                { txHash,
-                    {
-                        .name { rm.asset_name() },
-                        .supply { rm.supply() },
-                        .assetId { wrt::nullopt },
-                    },
-                    make_signed_info(rm) } };
+        [&](const CancelationMessage& a) -> api::MempoolEntry {
+            return { txHash,
+                api::block::CancelationData {
+                    .cancelTxid { a.cancel_txid() }, .canceledTxHash {} },
+                make_signed_info(a) };
+        },
+        [&](const LiquidityDepositMessage& ld) -> api::MempoolEntry {
+            return { txHash,
+                api::block::LiquidityDepositData {
+                    .assetInfo { get_asset(ld.asset_hash()) },
+                    .baseDeposited { ld.base() },
+                    .quoteDeposited { ld.quote() },
+                    .sharesReceived { wrt::nullopt },
+                },
+                make_signed_info(ld) };
+        },
+        [&](const LiquidityWithdrawalMessage& lw) -> api::MempoolEntry {
+            return { txHash,
+                api::block::LiquidityWithdrawalData { .assetInfo { get_asset(lw.asset_hash()) },
+                    .sharesRedeemed { lw.amount() },
+                    .received {} },
+                make_signed_info(lw) };
+        },
+        [&](const AssetCreationMessage& rm) -> api::MempoolEntry {
+            return {
+                txHash, api::block::AssetCreationData {
+                            .name { rm.asset_name() },
+                            .supply { rm.supply() },
+                            .assetId { wrt::nullopt },
+                        },
+                make_signed_info(rm)
+            };
         });
 }
 
@@ -773,7 +766,13 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
 wrt::optional<api::TransactionDetails> State::api_get_tx(const TxHash& txHash) const
 {
     if (auto p { chainstate.mempool()[txHash] }; p)
-        return api_dispatch_mempool(txHash, std::move(*p));
+        return api_dispatch_mempool(txHash, std::move(*p)).visit([](auto&& transaction) -> api::TransactionDetails {
+            return api::MaybeMined {
+                .mined = {},
+                .confirmations = 0,
+                .transaction = std::move(transaction)
+            };
+        });
     if (auto p { db.lookup_history(txHash) }; p) {
         auto& [parsed, historyId] = *p;
         return api_dispatch_history(txHash, historyId, std::move(parsed));
@@ -1901,9 +1900,12 @@ api::ChainHead State::api_get_head() const
 auto State::api_get_account_mempool(api::AccountIdOrAddress account, size_t) const -> api::MempoolEntries
 {
     auto acc { normalize(account).value_or_throw() };
+    chainserver::DBCache c(db);
     api::MempoolEntries out;
-    for (auto& e : chainstate.mempool().account_txs(acc.id))
-        out.entries.push_back({ *static_cast<const TransactionMessage*>(&e), e.txhash });
+    for (auto& e : chainstate.mempool().account_txs(acc.id)) {
+        const auto& txHash { e.txhash };
+        out.entries.push_back(api_dispatch_mempool(txHash, e));
+    }
     return out;
 }
 
@@ -1915,7 +1917,7 @@ auto State::api_get_mempool(size_t n) const -> api::MempoolEntries
     assert(hashes.size() == entries.size());
     api::MempoolEntries out;
     for (size_t i = 0; i < hashes.size(); ++i) {
-        out.entries.push_back(api::MempoolEntry { entries[i], hashes[i] });
+        out.entries.push_back(api_dispatch_mempool(hashes[i], entries[i]));
     }
     return out;
 }
@@ -2006,7 +2008,7 @@ auto State::get_body_data(DescriptedBlockRange range) const
 }
 
 auto State::get_mempool_tx(TransactionId txid) const
-    -> wrt::optional<TransactionMessage>
+    -> const TransactionMessage*
 {
     return chainstate.mempool()[txid];
 }

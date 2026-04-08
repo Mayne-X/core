@@ -71,4 +71,7 @@ struct NodeInfo;
 struct IPCounter;
 struct ThrottleState;
 struct ThrottledPeer;
+struct TCPConnectionSchedule;
+struct WSConnectionSchedule;
+using ConnectionSchedule = wrt::variant<TCPConnectionSchedule, WSConnectionSchedule>;
 }

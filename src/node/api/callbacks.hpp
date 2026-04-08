@@ -45,7 +45,7 @@ using ConnectedConnectionCb = std::function<void(const api::PeerinfoConnections&
 
 using WartBalanceCb = ResultCb<api::WartBalance>;
 using TokenBalanceCb = ResultCb<api::TokenBalanceLookup>;
-using JSONCb = ResultCb<nlohmann::json>;
+using ConScheduleCb = ResultCb<api::ConnectionSchedule>;
 using MempoolCb = ResultCb<api::MempoolEntries>;
 using MempoolInsertCb = ResultCb<TxHash>;
 using MempoolConstraintCb = ResultCb<api::MempoolUpdate>;

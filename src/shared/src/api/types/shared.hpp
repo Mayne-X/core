@@ -30,6 +30,7 @@ class DBCache;
 }
 
 namespace api {
+
 using sc = std::chrono::steady_clock;
 struct ChainHead {
     Worksum worksum;
@@ -213,6 +214,24 @@ struct Actions {
     std::vector<WithHistoryId<block::Cancelation>> cancelations;
 };
 }
+
+struct MempoolEntry : public wrt::variant<
+                          block::WartTransfer,
+                          block::TokenTransfer,
+                          block::AssetCreation,
+                          block::NewOrder,
+                          block::LiquidityDeposit,
+                          block::LiquidityWithdrawal,
+                          block::Cancelation> {
+    using variant::variant;
+    MempoolEntry(TxHash txhash, auto&& t, block::TransactionSignedData s)
+        : variant(block::IsSignedTransaction { txhash, t, s })
+    {
+    }
+};
+struct MempoolEntries {
+    std::vector<MempoolEntry> entries;
+};
 
 struct Block {
     static constexpr const char eventName[] = "blockAppend";

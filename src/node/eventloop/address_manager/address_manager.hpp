@@ -118,6 +118,7 @@ public:
     void outbound_failed(const ConnectRequest& r, Error e);
     void outbound_closed(OutboundClosedEvent);
     json to_json() const;
+    api::ConnectionSchedule api_connection_schedule() const;
 
     void verify(std::vector<TCPPeeraddr>, IPv4 source);
     [[nodiscard]] wrt::optional<Conref> find(uint64_t id) const;

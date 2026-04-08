@@ -41,10 +41,6 @@ FundsDecimal from(::FundsDecimal fd)
         .decimals = fd.decimals.value()
     };
 }
-std::string from(const ::Peeraddr a)
-{
-    return a.to_string();
-}
 Wart from(const ::Wart w)
 {
     return {
@@ -732,6 +728,86 @@ ChainHeadSynced from(const api::Head& h)
         .synced = h.synced
     };
 }
+MempoolEntry from(const api::MempoolEntry& e)
+{
+    return e.visit_overload(
+        [&](const block::WartTransfer& tx) -> MempoolEntry {
+            return {
+                .transaction = api::glaze::from(tx),
+                .tag = tx.data.label
+            };
+        },
+        [&](const block::TokenTransfer& tx) -> MempoolEntry {
+            return {
+                .transaction = api::glaze::from(tx),
+                .tag = tx.data.label
+            };
+        },
+        [&](const block::NewOrder& tx) -> MempoolEntry {
+            auto& d { tx.data };
+            return {
+                .transaction = new_order::TransactionUnprocessed {
+                    .data {
+                        .baseAsset { from(d.assetInfo) },
+                        .amount { from(d.amount_decimal()) },
+                        .limit { make_price(d.limit, d.assetInfo.decimals) },
+                        .buy = d.buy },
+                    .hash { serialize_hex(tx.hash) },
+                    .signedCommon { from(tx.signedData) } },
+                .tag = tx.data.label,
+            };
+        },
+        [&](const block::LiquidityDeposit& tx) -> MempoolEntry {
+            auto& d { tx.data };
+            defi::BaseQuote bq { d.baseDeposited, d.quoteDeposited };
+            return {
+                .transaction = liquidity_deposit::TransactionUnprocessed {
+                    .data {
+                        .baseAsset { from(d.assetInfo) },
+                        .deposited { make_base_quote(bq, d.assetInfo.decimals) } },
+                    .hash { serialize_hex(tx.hash) },
+                    .signedCommon { from(tx.signedData) } },
+                .tag = d.label,
+            };
+        },
+        [&](const block::LiquidityWithdrawal& tx) -> MempoolEntry {
+            auto& d { tx.data };
+            ::FundsDecimal fd(d.sharesRedeemed, TokenDecimals::LIQUIDITY);
+            return {
+                .transaction = liquidity_withdrawal::TransactionUnprocessed {
+                    .data {
+                        .baseAsset { from(d.assetInfo) },
+                        .sharesRedeemed { from(fd) } },
+                    .hash { serialize_hex(tx.hash) },
+                    .signedCommon { from(tx.signedData) } },
+                .tag = d.label,
+            };
+        },
+        [&](const block::AssetCreation& t) -> MempoolEntry {
+            auto& d { t.data };
+            return {
+                .transaction = asset_creation::TransactionUnprocessed {
+                    .data {
+                        .name = d.name.to_string(),
+                        .supply = from(t.data.supply) },
+                    .hash { serialize_hex(t.hash) },
+                    .signedCommon { from(t.signedData) } },
+                .tag = d.label,
+            };
+        },
+        // cancelation::TransactionUnprocessed
+        [&](const block::Cancelation& t) -> MempoolEntry {
+            auto& d { t.data };
+            return {
+                .transaction = cancelation::TransactionUnprocessed {
+                    .data { .cancelTxid = from(d.cancelTxid) },
+                    .hash { serialize_hex(t.hash) },
+                    .signedCommon { from(t.signedData) } },
+                .tag = d.label,
+            };
+        });
+}
+
 // MempoolEntry from(api::MempoolEntry e)
 // {
 //     std::string hash { serialize_hex(e.txHash) };
@@ -1076,15 +1152,49 @@ double from(const api::JanushashNumber& e)
 {
     return e.d;
 }
-std::vector<PeerinfoConnection> from(const api::PeerinfoConnections& pcs){
+std::vector<PeerinfoConnection> from(const api::PeerinfoConnections& pcs)
+{
     std::vector<PeerinfoConnection> out;
-    for (auto &pi : pcs.v) {
+    for (auto& pi : pcs.v) {
         out.push_back(
-        {
-            .since = make_timepoint(pi.since),
-            .port = pi.endpoint.port(),
-            .ip = from(pi.endpoint.ip()),
-        });
+            {
+                .since = make_timepoint(pi.since),
+                .port = pi.endpoint.port(),
+                .ip = from(pi.endpoint.ip()),
+            });
+    }
+    return out;
+}
+WSConnectionSchedule from(const api::WSConnectionSchedule&)
+{
+    return {};
+}
+TCPConnectionSchedule from(const api::TCPConnectionSchedule& tcs)
+{
+    TCPConnectionSchedule out;
+    auto convert_schedule =
+        [](const api::TCPConnectionSchedule::Schedule& c) {
+            return TCPConnectionSchedule::Schedule {
+                .address = c.address.to_string(),
+                .lastError = c.lastError.format(),
+                .sleepDuration = c.sleepDuration,
+                .expiresIn = c.expiresIn,
+            };
+        };
+    auto convert_vschedule = [&](const api::TCPConnectionSchedule::VerifiedSchedule& c) {
+        return TCPConnectionSchedule::VerifiedSchedule {
+            .lastVerified = c.lastVerified,
+            .schedule = convert_schedule(c.schedule)
+        };
+    };
+    for (auto& e : tcs.connectedVerified) {
+        out.connectedVerified.push_back(convert_vschedule(e));
+    }
+    for (auto& e : tcs.disconnectedVerified) {
+        out.disconnectedVerified.push_back(convert_vschedule(e));
+    }
+    for (auto& e : tcs.feelers) {
+        out.feelers.push_back(convert_schedule(e));
     }
     return out;
 }

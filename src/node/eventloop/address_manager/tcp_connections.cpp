@@ -122,6 +122,21 @@ void EntryWithTimer::wakeup_after(duration d)
     timer = Timer(d);
 }
 
+api::TCPConnectionSchedule::Schedule EntryWithTimer::api_schedule() const
+{
+    api::TCPConnectionSchedule::Schedule out {
+        .address = address,
+        .lastError = lastError,
+        .sleepDuration = uint32_t(duration_cast<seconds>(timer.sleep_duration()).count()),
+        .expiresIn = {}
+    };
+
+    if (timer.wakeup_time()) {
+        out.expiresIn = seconds_from_now(*timer.wakeup_time());
+    }
+    return out;
+}
+
 json EntryWithTimer::to_json() const
 {
     auto j(VectorEntry::to_json());
@@ -166,7 +181,20 @@ void VerifiedVector::prune(auto&& pred, size_t n)
             && pred(e);
     });
 }
+std::vector<api::TCPConnectionSchedule::VerifiedSchedule> VerifiedVector::api_schedule() const
+{
+    return data
+        | std::views::transform([](auto& element) { return element.api_schedule(); })
+        | std::ranges::to<std::vector>();
+}
 
+api::TCPConnectionSchedule::VerifiedSchedule VerifiedEntry::api_schedule() const
+{
+    return {
+        .lastVerified = uint32_t(seconds_from_now(lastVerified)),
+        .schedule = EntryWithTimer::api_schedule(),
+    };
+}
 json VerifiedEntry::to_json() const
 {
     auto json(EntryWithTimer::to_json());
@@ -232,6 +260,12 @@ auto SockaddrVectorBase<T>::find(const TCPPeeraddr& address) const -> elem_t*
     if (iter == data.end())
         return nullptr;
     return &*iter;
+}
+
+std::vector<api::TCPConnectionSchedule::Schedule> FeelerVector::api_schedule() const{
+    return data
+        | std::views::transform([](auto& element) { return element.api_schedule(); })
+        | std::ranges::to<std::vector>();
 }
 
 auto FeelerVector::insert(const EntryWithTimer& e1) -> std::pair<elem_t&, bool>
@@ -472,6 +506,15 @@ auto TCPConnectionSchedule::to_json() const -> json
     };
 }
 
+api::TCPConnectionSchedule TCPConnectionSchedule::api_connection_schedule() const
+{
+    return {
+        .connectedVerified = connectedVerified.api_schedule(),
+        .disconnectedVerified = disconnectedVerified.api_schedule(),
+        .feelers = feelers.api_schedule()
+    };
+}
+
 auto TCPConnectionSchedule::updated_wakeup_time() -> wrt::optional<time_point>
 {
     return wakeup_tp.pop();
@@ -527,5 +570,4 @@ void TCPConnectionSchedule::refresh_wakeup_time()
     wakeup_tp.consider(disconnectedVerified.timeout());
     wakeup_tp.consider(feelers.timeout());
 }
-
 }

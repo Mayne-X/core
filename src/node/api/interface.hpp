@@ -38,7 +38,7 @@ void get_transaction_minfee(TransactionMinfeeCb f);
 void get_ip_count(IpCounterCb&& cb);
 void get_banned_peers(PeerServer::banned_callback_t&& cb);
 void unban_peers(ErrorCb&& cb);
-void get_connection_schedule(JSONCb&& cb);
+void get_connection_schedule(ConScheduleCb&& cb);
 
 inline void get_offenses(Page page, PeerServer::offenses_callback_t&& cb)
 {

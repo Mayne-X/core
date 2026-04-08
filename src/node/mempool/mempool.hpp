@@ -127,9 +127,9 @@ public:
 
     // operator[]
     [[nodiscard]] auto operator[](const TransactionId& id) const
-        -> wrt::optional<TransactionMessage>;
+        -> const TransactionMessage*;
     [[nodiscard]] auto operator[](const HashView txHash) const
-        -> wrt::optional<TransactionMessage>;
+        -> const TransactionMessage*;
     [[nodiscard]] CompactUInt min_fee() const;
     [[nodiscard]] auto sample(size_t, bool onlyWartTransfer) const -> std::vector<TxidWithFee>;
     [[nodiscard]] auto filter_new(const std::vector<TxidWithFee>&) const

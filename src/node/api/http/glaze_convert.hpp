@@ -1,7 +1,7 @@
 #pragma once
 // #include "api/events/subscription.hpp"
 // #include "api/interface.hpp"
-#include "api/types/all.hpp"
+#include "api/types/all_impl.hpp"
 #include "block/header/batch.hpp"
 #include "glaze_types.hpp"
 #include "peerserver/db/peer_db.hpp"
@@ -78,6 +78,8 @@ std::string from(const TCPPeeraddr&);
 SignedSnapshot from(const ::SignedSnapshot&);
 BlockActions from(const api::block::Actions&);
 std::vector<PeerinfoConnection> from(const api::PeerinfoConnections&);
+WSConnectionSchedule from(const api::WSConnectionSchedule&);
+TCPConnectionSchedule from(const api::TCPConnectionSchedule&);
 
 template <typename T>
 auto from(const api::block::WithHistoryId<T>& tx);
@@ -87,6 +89,9 @@ auto from(const ReversibleVector<T> v);
 
 template <typename T>
 auto from(const std::vector<T>& v);
+
+template<typename ...Ts>
+auto from(const wrt::variant<Ts...>& v);
 
 template <typename T>
 auto from(const std::vector<T>& v)
@@ -138,6 +143,11 @@ auto from(const ::Result<T>& res)
             return out_type { from(res.error()) };
         }
     }
+}
+template<typename ...Ts>
+auto from(const wrt::variant<Ts...>& v){
+    using Res = std::variant<std::remove_cvref_t<decltype(from(std::declval<const Ts&>()))>...>;
+    return v.visit([&](auto& e)->Res{return from(e);});
 }
 
 // auto from(const ::Result<void>& res){

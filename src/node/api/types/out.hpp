@@ -1,5 +1,6 @@
 #pragma once
 
+#include "all_fwd.hpp"
 #include "block/chain/height.hpp"
 #include "eventloop/types/conndata.hpp"
 #include "peerserver/db/offense_entry.hpp"
@@ -48,12 +49,27 @@ struct PeerinfoConnections {
     const std::vector<api::Peerinfo>& v;
     static constexpr auto map = [](const Peerinfo& pi) -> auto& { return pi.endpoint; };
 };
+struct TCPConnectionSchedule {
+    struct Schedule {
+        TCPPeeraddr address;
+        Error lastError;
+        uint32_t sleepDuration;
+        std::optional<uint32_t> expiresIn;
+    };
+    struct VerifiedSchedule {
+        uint32_t lastVerified;
+        Schedule schedule;
+    };
+    std::vector<VerifiedSchedule> connectedVerified;
+    std::vector<VerifiedSchedule> disconnectedVerified;
+    std::vector<Schedule> feelers;
+};
+struct WSConnectionSchedule {
+};
 
-struct MempoolEntry : public TransactionMessage {
-    TxHash txHash;
-};
-struct MempoolEntries {
-    std::vector<MempoolEntry> entries;
-};
+// struct MempoolEntry : public TransactionMessage {
+//     TxHash txHash;
+// };
+
 using OffenseEntry = ::OffenseEntry;
 }

@@ -106,7 +106,7 @@ public:
     [[nodiscard]] auto get_descriptor() const { return chainstate.descriptor(); }
     [[nodiscard]] auto get_hash(Height h) const -> wrt::optional<Hash>;
     [[nodiscard]] auto get_body_data(DescriptedBlockRange) const -> std::vector<BodyData>;
-    [[nodiscard]] auto get_mempool_tx(TransactionId) const -> wrt::optional<TransactionMessage>;
+    [[nodiscard]] auto get_mempool_tx(TransactionId) const -> const TransactionMessage*;
 
     // api getters
     api::WartBalanceLookup api_get_wart_balance(api::AccountIdOrAddress a) const;
@@ -172,7 +172,7 @@ public:
 
 private:
     const AssetDetail* lookup_hash_warn(const AssetHash&) const;
-    api::TransactionDetails api_dispatch_mempool(const TxHash&, TransactionMessage&&) const;
+    api::MempoolEntry api_dispatch_mempool(const TxHash&, const TransactionMessage&) const;
     api::TransactionDetails api_dispatch_history(const TxHash&, HistoryId hid, history::HistoryVariant&&) const;
 
     // transaction helpers

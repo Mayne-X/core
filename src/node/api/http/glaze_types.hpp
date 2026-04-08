@@ -353,7 +353,7 @@ struct MempoolEntry {
         cancelation::TransactionUnprocessed>;
 
     Transaction transaction;
-    std::string tag;
+    std::string tag = "none";
     struct glaze {
         static constexpr const char* name = "MempoolEntry";
     };
@@ -529,7 +529,7 @@ struct JanushashResult {
     };
 };
 
-struct SignedSnapshot{
+struct SignedSnapshot {
     std::string hash;
     std::string signature;
     uint32_t priorityHeight;
@@ -856,12 +856,31 @@ struct AccountHistory {
 using Candle = std::tuple<uint32_t, uint32_t, double, double, double, double, double, double>;
 using Trade = std::tuple<uint32_t, uint32_t, double, double>;
 
+struct TCPConnectionSchedule {
+    struct Schedule {
+        std::string address;
+        std::optional<std::string> lastError;
+        uint32_t sleepDuration;
+        std::optional<uint32_t> expiresIn;
+    };
+    struct VerifiedSchedule {
+        uint32_t lastVerified;
+        Schedule schedule;
+    };
+    std::vector<VerifiedSchedule> connectedVerified;
+    std::vector<VerifiedSchedule> disconnectedVerified;
+    std::vector<Schedule> feelers;
+};
+struct WSConnectionSchedule {
+};
+using ConnectionSchedule = std::variant<TCPConnectionSchedule, WSConnectionSchedule>;
+
 template <typename T>
 struct Success {
     int code;
     T data;
 };
-template<>
+template <>
 struct Success<void> {
     int code;
 };

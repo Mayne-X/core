@@ -1,4 +1,5 @@
 #pragma once
+#include "api/types/out.hpp"
 #include "general/errors_forward.hpp"
 #include "init_arg.hpp"
 #include "peerserver/connection_data.hpp"
@@ -24,10 +25,10 @@ struct WithSource {
     addr_t address;
     wrt::optional<Source> source;
     explicit WithSource(addr_t addr)
-        : address(std::move(addr)) {};
+        : address(std::move(addr)) { };
     WithSource(addr_t addr, Source source)
         : address(std::move(addr))
-        , source(std::move(source)) {};
+        , source(std::move(source)) { };
 };
 using TCPWithSource = WithSource<TCPPeeraddr>;
 
@@ -73,6 +74,7 @@ public:
     json to_json() const;
 
     Error lastError { 0 };
+
 protected:
     ConnectionLog connectionLog;
     std::set<Source> sources;
@@ -108,6 +110,7 @@ public:
     wrt::optional<time_point> make_expired_pending(time_point, std::vector<ConnectRequest>& outpending);
     void wakeup_after(duration);
     json to_json() const;
+    api::TCPConnectionSchedule::Schedule api_schedule() const;
     [[nodiscard]] wrt::optional<time_point> wakeup_time() const;
     [[nodiscard]] auto sleep_duration() const { return timer.sleep_duration(); }
     using VectorEntry::VectorEntry;
@@ -139,6 +142,7 @@ public:
         log_success();
         connections += 1;
     }
+    api::TCPConnectionSchedule::VerifiedSchedule api_schedule() const;
     void on_disconnected()
     {
         assert(connections != 0);
@@ -180,7 +184,7 @@ public:
     size_t erase(const TCPPeeraddr& a, auto lambda);
     size_t erase(const TCPPeeraddr& a)
     {
-        return erase(a, [](auto) {});
+        return erase(a, [](auto) { });
     }
     void take_expired(time_point now, std::vector<ConnectRequest>&);
     elem_t& push_back(elem_t);
@@ -197,6 +201,7 @@ class FeelerVector : public SockaddrVectorBase<EntryWithTimer> {
 public:
     std::pair<elem_t&, bool> insert(const WithSource<TCPPeeraddr>&);
     std::pair<elem_t&, bool> insert(const EntryWithTimer&);
+    std::vector<api::TCPConnectionSchedule::Schedule> api_schedule() const;
     using SockaddrVectorBase::SockaddrVectorBase;
 };
 
@@ -212,6 +217,7 @@ public:
     using tp = typename VerifiedEntry::tp;
     std::pair<VectorEntry&, bool> insert(const TCPWithSource&, tp lastVerified);
     void prune(auto&& pred, size_t N);
+    std::vector<api::TCPConnectionSchedule::VerifiedSchedule> api_schedule() const;
     using SockaddrVectorBase::SockaddrVectorBase;
 };
 
@@ -219,6 +225,7 @@ class TCPConnectionSchedule {
     using json = nlohmann::json;
     using InitArg = address_manager::InitArg;
     using ConnectionData = peerserver::ConnectionData;
+
 public:
     TCPConnectionSchedule(InitArg);
 
@@ -235,13 +242,13 @@ public:
     void on_inbound_disconnected(const IPv4& ip);
 
     json to_json() const;
+    api::TCPConnectionSchedule api_connection_schedule() const;
 
     [[nodiscard]] wrt::optional<time_point> updated_wakeup_time();
 
     std::vector<TCPPeeraddr> sample_verified(size_t N) const;
 
 private:
-
     void insert_freshly_pinned(const TCPPeeraddr&);
     void prune_verified();
     [[nodiscard]] std::vector<TCPConnectRequest> pop_expired(time_point now = steady_clock::now());

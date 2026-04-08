@@ -42,7 +42,7 @@ void unban_peers(ErrorCb&& f)
     global().peerServer->async_unban(std::move(f));
 }
 
-void get_connection_schedule(JSONCb&& cb)
+void get_connection_schedule(ConScheduleCb&& cb)
 {
     global().core->api_get_connection_schedule(std::move(cb));
 }
