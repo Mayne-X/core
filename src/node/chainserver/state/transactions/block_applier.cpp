@@ -1328,7 +1328,7 @@ private:
         }.match(pool);
 
         if (!matched)
-            return;
+            return; // skip noop matches
 
         h.pool_after() = pool; // write moodified pool after match
 
