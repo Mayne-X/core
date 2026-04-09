@@ -60,6 +60,9 @@ struct Account {
     Address address;
     AccountId id;
 };
+struct TransactionAddResult {
+    TxHash txHash;
+};
 
 struct WartBalance {
     Wart total { Wart::zero() };

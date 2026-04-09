@@ -38,10 +38,10 @@ struct Grid {
         static constexpr const char* name = "HeaderGrid";
     };
 };
-struct HashResult {
-    std::string hash;
+struct TransactionAddResult {
+    std::string txHash;
     struct glaze {
-        static constexpr const char* name = "HashResult";
+        static constexpr const char* name = "TransactionAddResult";
     };
 };
 struct BanEntry {

@@ -199,9 +199,14 @@ Grid from(const ::Grid& g)
     return out;
 }
 
-HashResult from(const ::Hash& h)
+std::string from(const ::Hash& h)
 {
-    return { .hash = serialize_hex(h) };
+    return serialize_hex(h);
+}
+
+TransactionAddResult from(const api::TransactionAddResult& h)
+{
+    return { .txHash = from(h.txHash) };
 }
 
 BanEntry from(const ::PeerDB::BanEntry& e)
@@ -250,7 +255,7 @@ Token from(const ::api::Token& t)
 AssetDetail from(const ::AssetDetail& ad)
 {
     return {
-        .hash = serialize_hex(ad.hash),
+        .hash = from(ad.hash),
         .id = ad.id.value(),
         .name = ad.name.to_string(),
         .decimals = ad.decimals.value(),
@@ -296,7 +301,7 @@ TransactionDetails from(const api::TransactionDetails& d)
                     .name = t.data.name.to_string(),
                     .supply = from(t.data.supply) },
                 .processed {},
-                .hash { serialize_hex(t.hash) },
+                .hash { from(t.hash) },
                 .signedCommon { from(t.signedData) }
             };
 
@@ -315,7 +320,7 @@ TransactionDetails from(const api::TransactionDetails& d)
                     .limit { make_price(d.limit, d.assetInfo.decimals) },
                     .buy = d.buy },
                 .processed {},
-                .hash { serialize_hex(t.hash) },
+                .hash { from(t.hash) },
                 .signedCommon { from(t.signedData) }
             };
             if (d.remaining) {
@@ -336,7 +341,7 @@ TransactionDetails from(const api::TransactionDetails& d)
                     .baseAsset { from(d.assetInfo) },
                     .deposited { make_base_quote(bq, d.assetInfo.decimals) } },
                 .processed {},
-                .hash { serialize_hex(t.hash) },
+                .hash { from(t.hash) },
                 .signedCommon { from(t.signedData) }
             };
             if (d.sharesReceived) {
@@ -353,7 +358,7 @@ TransactionDetails from(const api::TransactionDetails& d)
                     .baseAsset { from(d.assetInfo) },
                     .sharesRedeemed { from(fd) } },
                 .processed {},
-                .hash { serialize_hex(t.hash) },
+                .hash { from(t.hash) },
                 .signedCommon { from(t.signedData) }
             };
             if (d.received) {
@@ -367,12 +372,12 @@ TransactionDetails from(const api::TransactionDetails& d)
             cancelation::TransactionMaybeProcessed out {
                 .data { .cancelTxid = from(t.data.cancelTxid) },
                 .processed {},
-                .hash { serialize_hex(t.hash) },
+                .hash { from(t.hash) },
                 .signedCommon { from(t.signedData) }
             };
             if (d.canceledTxHash) {
                 out.processed = cancelation::Processed {
-                    .canceledTxHash = serialize_hex(*d.canceledTxHash),
+                    .canceledTxHash = from(*d.canceledTxHash),
                 };
             }
             return out;
@@ -387,7 +392,7 @@ TransactionDetails from(const api::TransactionDetails& d)
                     .historyId = from(m.hid),
                     .block {
                         .hegiht = m.block.height.value(),
-                        .hash = serialize_hex(m.block.hash),
+                        .hash = from(m.block.hash),
                         .timestamp = m.block.timestamp,
                     },
                 } },
@@ -432,7 +437,7 @@ reward::Transaction from(const block::Reward& t)
         .data {
             .toAddress { from(t.data.toAddress) },
             .amount { from(t.data.amount) } },
-        .hash { serialize_hex(t.hash) }
+        .hash { from(t.hash) }
     };
 }
 wart_transfer::Transaction from(const block::WartTransfer& t)
@@ -442,7 +447,7 @@ wart_transfer::Transaction from(const block::WartTransfer& t)
             .toAddress = from(t.data.toAddress),
             .amount = from(t.data.amount),
         },
-        .hash { serialize_hex(t.hash) },
+        .hash { from(t.hash) },
         .signedCommon = from(t.signedData),
     };
 }
@@ -458,7 +463,7 @@ token_transfer::Transaction from(const block::TokenTransfer& t)
             .isLiquidity = data.isLiquidity,
             .tokenSpec = TokenSpec(data.assetInfo.hash, data.isLiquidity).to_string(),
         },
-        .hash { serialize_hex(t.hash) },
+        .hash { from(t.hash) },
         .signedCommon { from(t.signedData) }
     };
 }
@@ -488,7 +493,7 @@ match::Transaction from(const block::Match& t)
             .buySwaps { std::move(buySwaps) },
             .sellSwaps { std::move(sellSwaps) } },
 
-        .hash { serialize_hex(t.hash) },
+        .hash { from(t.hash) },
     };
 }
 
@@ -508,7 +513,7 @@ BlockActions from(const api::block::Actions& actions)
                       .name = t.data.name.to_string(),
                       .supply = from(t.data.supply) },
                   .processed { .assetId = from(*aid) },
-                  .hash { serialize_hex(t.hash) },
+                  .hash { from(t.hash) },
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
     }
@@ -524,7 +529,7 @@ BlockActions from(const api::block::Actions& actions)
                       .buy = d.buy },
                   .processed {
                       .remaining = from(::FundsDecimal(*d.remaining, d.assetInfo.decimals)) },
-                  .hash { serialize_hex(t.hash) },
+                  .hash { from(t.hash) },
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
     }
@@ -540,7 +545,7 @@ BlockActions from(const api::block::Actions& actions)
                       .baseAsset { from(d.assetInfo) },
                       .deposited { make_base_quote(bq, d.assetInfo.decimals) } },
                   .processed { .sharesReceived = from(::FundsDecimal(*d.sharesReceived, d.assetInfo.decimals)) },
-                  .hash { serialize_hex(t.hash) },
+                  .hash { from(t.hash) },
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
     }
@@ -555,7 +560,7 @@ BlockActions from(const api::block::Actions& actions)
                       .baseAsset { from(d.assetInfo) },
                       .sharesRedeemed { from(fd) } },
                   .processed { .received = make_base_quote(*d.received, d.assetInfo.decimals) },
-                  .hash { serialize_hex(t.hash) },
+                  .hash { from(t.hash) },
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
     }
@@ -566,8 +571,8 @@ BlockActions from(const api::block::Actions& actions)
         a.cancelations.push_back(
             { .transaction = {
                   .data { .cancelTxid = from(t.data.cancelTxid) },
-                  .processed { .canceledTxHash = serialize_hex(*d.canceledTxHash) },
-                  .hash { serialize_hex(t.hash) },
+                  .processed { .canceledTxHash = from(*d.canceledTxHash) },
+                  .hash { from(t.hash) },
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
     }
@@ -722,14 +727,14 @@ MempoolUpdateResult from(const api::MempoolUpdate& u)
 ChainHead from(const api::ChainHead& h)
 {
     return {
-        .hash = serialize_hex(h.hash),
+        .hash = from(h.hash),
         .height = h.height.value(),
         .difficulty = h.nextTarget.difficulty(),
         .is_janushash = h.nextTarget.is_janushash(),
         .pinHeight = h.pinHeight.value(),
         .worksum = h.worksum.getdouble(),
         .worksumHex = h.worksum.to_string(),
-        .pinHash = serialize_hex(h.pinHash),
+        .pinHash = from(h.pinHash),
         .hashrate = h.hashrate,
     };
 }
@@ -750,11 +755,11 @@ BlockHeader make_header(const ::Header& header, NonzeroHeight height)
         .raw = serialize_hex(header),
         .time = make_timepoint(header.timestamp()),
         .target = serialize_hex(targetBE),
-        .hash = serialize_hex(header.hash()),
+        .hash = from(header.hash()),
         .pow = {
             .verusV2_2 = verusV2_2,
-            .hashVerus = serialize_hex(verusHash),
-            .hashSha256t = serialize_hex(sha256tHash),
+            .hashVerus = from(verusHash),
+            .hashSha256t = from(sha256tHash),
             .floatVerus = CustomFloat(verusHash).to_double(),
             .floatSha256t = CustomFloat(sha256tHash).to_double(),
         },
@@ -802,7 +807,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                         .amount { from(d.amount_decimal()) },
                         .limit { make_price(d.limit, d.assetInfo.decimals) },
                         .buy = d.buy },
-                    .hash { serialize_hex(tx.hash) },
+                    .hash { from(tx.hash) },
                     .signedCommon { from(tx.signedData) } },
                 .tag = tx.data.label,
             };
@@ -815,7 +820,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                     .data {
                         .baseAsset { from(d.assetInfo) },
                         .deposited { make_base_quote(bq, d.assetInfo.decimals) } },
-                    .hash { serialize_hex(tx.hash) },
+                    .hash { from(tx.hash) },
                     .signedCommon { from(tx.signedData) } },
                 .tag = d.label,
             };
@@ -828,7 +833,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                     .data {
                         .baseAsset { from(d.assetInfo) },
                         .sharesRedeemed { from(fd) } },
-                    .hash { serialize_hex(tx.hash) },
+                    .hash { from(tx.hash) },
                     .signedCommon { from(tx.signedData) } },
                 .tag = d.label,
             };
@@ -840,7 +845,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                     .data {
                         .name = d.name.to_string(),
                         .supply = from(t.data.supply) },
-                    .hash { serialize_hex(t.hash) },
+                    .hash { from(t.hash) },
                     .signedCommon { from(t.signedData) } },
                 .tag = d.label,
             };
@@ -851,7 +856,7 @@ MempoolEntry from(const api::MempoolEntry& e)
             return {
                 .transaction = cancelation::TransactionUnprocessed {
                     .data { .cancelTxid = from(d.cancelTxid) },
-                    .hash { serialize_hex(t.hash) },
+                    .hash { from(t.hash) },
                     .signedCommon { from(t.signedData) } },
                 .tag = d.label,
             };
@@ -965,7 +970,7 @@ std::string from(const TCPPeeraddr& a)
 SignedSnapshot from(const ::SignedSnapshot& ss)
 {
     return {
-        .hash = serialize_hex(ss.hash),
+        .hash = from(ss.hash),
         .signature = ss.signature.to_string(),
         .priorityHeight = ss.priority.height.value(),
         .priorityImportance = ss.priority.importance
@@ -1023,7 +1028,7 @@ SwapOrder make_swap_order(const api::Order& o, const TokenDecimals& dec)
 {
     return {
         .inMempool = o.confirmations == 0,
-        .txHash = serialize_hex(o.txHash),
+        .txHash = from(o.txHash),
         .limit = make_price(o.limit, dec),
         .amount = from(::FundsDecimal(o.amount, dec)),
         .filled = from(::FundsDecimal(o.filled, dec)),

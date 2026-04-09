@@ -1,5 +1,7 @@
 #pragma once
-#include "api/http/json.hpp"
+// #include "api/http/json.hpp"
+#include "api/interface.hpp"
+#include "chainserver/server.hpp"
 #include "general/static_string.hpp"
 #include "glaze/glaze.hpp"
 #include "glaze/glz_convert.hpp"
@@ -13,7 +15,7 @@
 #include "chainserver/transaction_ids.hpp"
 #include "communication/mining_task.hpp"
 #include "communication/rxtx_server/rxtx_server.hpp"
-#include "http/json.hpp"
+// #include "http/json.hpp"
 #include "spdlog/spdlog.h"
 #include "uwebsockets/HttpParser.h"
 #include <string>

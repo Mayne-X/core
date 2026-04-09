@@ -9,7 +9,8 @@ namespace api {
 namespace glaze {
 
 Grid from(const ::Grid&);
-HashResult from(const ::Hash&);
+TransactionAddResult from(const api::TransactionAddResult&);
+std::string from(const ::Hash&);
 
 std::string from(const Address&);
 BanEntry from(const ::PeerDB::BanEntry&);

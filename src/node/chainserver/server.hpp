@@ -16,7 +16,7 @@
 
 #define LIST_API_TYPES(XX)                                                       \
     XX(MiningAppend, void, Block, block, std::string, worker)                    \
-    XX(PutMempool, TxHash, TransactionCreate, message)                           \
+    XX(PutMempool, api::TransactionAddResult, TransactionCreate, message)        \
     XX(LatestTxs, api::TransactionsByBlocks)                                     \
     XX(LookupTxByHash, api::TransactionDetails, TxHash, hash)                    \
     XX(GetHeader, api::HeaderInfo, api::HeightOrHash, heightOrHash)              \
@@ -230,7 +230,7 @@ private:
     TxHash append_gentx(const TransactionCreate&);
 
 private:
-    auto handle_api(chainserver::PutMempool&&) -> TxHash;
+    auto handle_api(chainserver::PutMempool&&) -> api::TransactionAddResult;
     auto handle_api(chainserver::MiningAppend&& e) { return append_mined(e, true); };
     auto handle_api(chainserver::LatestTxs&&) { return state.api_get_latest_txs(); }
     auto handle_api(chainserver::LookupTxByHash&& e) { return state.api_get_tx(e.hash()); }

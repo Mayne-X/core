@@ -11,6 +11,7 @@ struct LiquidityDepositData;
 struct LiquidityWithdrawalData;
 struct CancelationData;
 struct MatchData;
+struct TransactionAddResult;
 
 template <typename T>
 struct IsTransaction;

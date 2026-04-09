@@ -313,11 +313,11 @@ void ChainServer::handle_event(stage_operation::StageAddOperation&& r)
     global().core->async_stage_action(res.status);
 }
 
-auto ChainServer::handle_api(chainserver::PutMempool&& e) -> TxHash
+auto ChainServer::handle_api(chainserver::PutMempool&& e) -> api::TransactionAddResult
 {
     auto [log, txhash] = state.append_gentx(e.message());
     global().core->async_mempool_update(std::move(log));
-    return txhash;
+    return { txhash };
 }
 
 void ChainServer::fake_mine(const Address& address)
