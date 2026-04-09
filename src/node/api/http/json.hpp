@@ -218,5 +218,5 @@ inline std::string serialize(T&& e)
 }
 
 std::string endpoints(const Eventloop&);
-std::string header_download(const Eventloop&);
+// std::string header_download(const Eventloop&);
 }

@@ -1,14 +1,65 @@
-#include "glaze_convert.hpp"
+#include "glz_convert.hpp"
 #include "api/types/all.hpp"
 #include "block/header/header_impl.hpp"
 #include "chainserver/transaction_ids.hpp"
 #include "crypto/hash.hpp"
+#include "eventloop/eventloop.hpp"
 #include "general/funds.hpp"
 #include "general/hex.hpp"
 #include "general/is_testnet.hpp"
 #include "global/globals.hpp"
 #include "transport/helpers/peer_addr.hpp"
 #include <ranges>
+
+struct Inspector {
+    static api::glaze::HeaderDownload header_download(const Eventloop& e)
+    {
+        auto& d { e.headerDownload };
+        api::glaze::HeaderDownload out {
+            .minWork = d.minWork.to_string(),
+            .verifierMapSize = d.verifierMap.size(),
+            .leaderListSize = d.leaderList.size(),
+            .config = {
+                .maxLeaders = d.maxLeaders,
+                .pendingDepth = d.pendingDepth },
+            .queuedBatches {}
+        };
+        for (auto& [header, node] : d.queuedBatches) {
+            out.queuedBatches.try_emplace(serialize_hex(header), api::glaze::HeaderDownload::QueuedBatch { .batchSize = node.batch.size(), .originId = node.originId, .probeRefsSize = node.probeRefs.size(), .leaderRefsSize = node.leaderRefs.size() });
+        }
+        return out;
+    }
+    // static std::string endpoint_timers(const Eventloop& c)
+    // {
+    //     auto now = steady_clock::now();
+    //     auto& m = c.connections;
+    //     using VerIter = decltype(c.connections)::VerIter;
+    //     using PinIter = decltype(c.connections)::PinIter;
+    //     json j;
+    //     json verifiers = json::array();
+    //     json pins = json::array();
+    //     for (auto& [t, v] : m.timer) {
+    //         json e;
+    //         e["expiresSeconds"] = duration_cast<seconds>(t - now).count();
+    //         if (std::holds_alternative<VerIter>(v)) {
+    //             auto& iter = std::get<VerIter>(v);
+    //             auto& n = iter->second;
+    //             e["endpoint"] = iter->first.to_string();
+    //             e["seenSecondsAgo"] = n.outboundConnection ? 0 : duration_cast<seconds>(now - n.lastVerified).count();
+    //             verifiers.push_back(e);
+    //         } else {
+    //             assert(std::holds_alternative<PinIter>(v));
+    //             auto& iter = std::get<PinIter>(v);
+    //             e["endpoint"] = iter->first.to_string();
+    //             e["sleepOnFailedSeconds"] = iter->second.sleepSeconds;
+    //             pins.push_back(e);
+    //         }
+    //     }
+    //     j["verifiers"] = verifiers;
+    //     j["pins"] = pins;
+    //     return j.dump(1);
+    // }
+};
 
 namespace api {
 namespace glaze {
@@ -1199,6 +1250,10 @@ TCPConnectionSchedule from(const api::TCPConnectionSchedule& tcs)
         out.feelers.push_back(convert_schedule(e));
     }
     return out;
+}
+HeaderDownload extract_header_download(const Eventloop& e)
+{
+    return Inspector::header_download(e);
 }
 }
 }

@@ -16,64 +16,6 @@
 
 using namespace std::chrono;
 using namespace nlohmann;
-struct Inspector {
-    static auto header_download(const Eventloop& e)
-    {
-        auto& d { e.headerDownload };
-        json j;
-        j["minWork"] = d.minWork.to_string();
-        j["verifierMapSize"] = d.verifierMap.size();
-        j["leaderListSize"] = d.leaderList.size();
-        j["config"] = json {
-            { "maxLeaders", d.maxLeaders },
-            { "pendingDepth", d.pendingDepth }
-        };
-        {
-            json qb;
-            for (auto& [header, node] : d.queuedBatches) {
-                qb[serialize_hex(header)]
-                    = json {
-                          { "batchSize", node.batch.size() },
-                          { "originId", node.originId },
-                          { "probeRefsSize", node.probeRefs.size() },
-                          { "leaderRefsSize", node.leaderRefs.size() }
-                      };
-            }
-            j["queuedBatches"] = qb;
-        }
-        return j.dump(1);
-    }
-    // static std::string endpoint_timers(const Eventloop& c)
-    // {
-    //     auto now = steady_clock::now();
-    //     auto& m = c.connections;
-    //     using VerIter = decltype(c.connections)::VerIter;
-    //     using PinIter = decltype(c.connections)::PinIter;
-    //     json j;
-    //     json verifiers = json::array();
-    //     json pins = json::array();
-    //     for (auto& [t, v] : m.timer) {
-    //         json e;
-    //         e["expiresSeconds"] = duration_cast<seconds>(t - now).count();
-    //         if (std::holds_alternative<VerIter>(v)) {
-    //             auto& iter = std::get<VerIter>(v);
-    //             auto& n = iter->second;
-    //             e["endpoint"] = iter->first.to_string();
-    //             e["seenSecondsAgo"] = n.outboundConnection ? 0 : duration_cast<seconds>(now - n.lastVerified).count();
-    //             verifiers.push_back(e);
-    //         } else {
-    //             assert(std::holds_alternative<PinIter>(v));
-    //             auto& iter = std::get<PinIter>(v);
-    //             e["endpoint"] = iter->first.to_string();
-    //             e["sleepOnFailedSeconds"] = iter->second.sleepSeconds;
-    //             pins.push_back(e);
-    //         }
-    //     }
-    //     j["verifiers"] = verifiers;
-    //     j["pins"] = pins;
-    //     return j.dump(1);
-    // }
-};
 
 namespace jsonmsg {
 namespace {
@@ -1104,10 +1046,10 @@ json to_json(const api::TransactionMinedData& mined)
 // {
 //     return Inspector::endpoint_timers(e);
 // }
-std::string header_download(const Eventloop& e)
-{
-    return Inspector::header_download(e);
-}
+// std::string header_download(const Eventloop& e)
+// {
+//     return Inspector::header_download(e);
+// }
 
 // SubscriptionAction parse_subscribe_throw(std::string_view s)
 // {

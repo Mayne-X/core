@@ -43,10 +43,6 @@ struct HashResult {
     struct glaze {
         static constexpr const char* name = "HashResult";
     };
-    // struct glaze {
-    //     using mimic = std::string;
-    //     static constexpr auto value = &HashResult::hash;
-    // };
 };
 struct BanEntry {
     std::string ip;
@@ -852,6 +848,22 @@ struct HashrateInfo {
 struct AccountHistory {
     uint64_t fromId;
     std::vector<Block> perBlock;
+};
+struct HeaderDownload {
+    std::string minWork;
+    size_t verifierMapSize;
+    size_t leaderListSize;
+    struct Config {
+        size_t maxLeaders;
+        size_t pendingDepth;
+    } config;
+    struct QueuedBatch {
+        size_t batchSize;
+        uint64_t originId;
+        size_t probeRefsSize;
+        size_t leaderRefsSize;
+    };
+    std::map<std::string, QueuedBatch> queuedBatches;
 };
 
 using Candle = std::tuple<uint32_t, uint32_t, double, double, double, double, double, double>;

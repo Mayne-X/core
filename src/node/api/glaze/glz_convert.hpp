@@ -3,7 +3,7 @@
 // #include "api/interface.hpp"
 #include "api/types/all_impl.hpp"
 #include "block/header/batch.hpp"
-#include "glaze_types.hpp"
+#include "glz_types.hpp"
 #include "peerserver/db/peer_db.hpp"
 namespace api {
 namespace glaze {
@@ -81,6 +81,11 @@ std::vector<PeerinfoConnection> from(const api::PeerinfoConnections&);
 WSConnectionSchedule from(const api::WSConnectionSchedule&);
 TCPConnectionSchedule from(const api::TCPConnectionSchedule&);
 
+HeaderDownload extract_header_download(const Eventloop& e);
+
+// identity maps (if the function already returns glaze type)
+inline const HeaderDownload& from(const HeaderDownload& h) { return h; }
+
 template <typename T>
 auto from(const api::block::WithHistoryId<T>& tx);
 
@@ -90,7 +95,7 @@ auto from(const ReversibleVector<T> v);
 template <typename T>
 auto from(const std::vector<T>& v);
 
-template<typename ...Ts>
+template <typename... Ts>
 auto from(const wrt::variant<Ts...>& v);
 
 template <typename T>
@@ -144,10 +149,11 @@ auto from(const ::Result<T>& res)
         }
     }
 }
-template<typename ...Ts>
-auto from(const wrt::variant<Ts...>& v){
+template <typename... Ts>
+auto from(const wrt::variant<Ts...>& v)
+{
     using Res = std::variant<std::remove_cvref_t<decltype(from(std::declval<const Ts&>()))>...>;
-    return v.visit([&](auto& e)->Res{return from(e);});
+    return v.visit([&](auto& e) -> Res { return from(e); });
 }
 
 // auto from(const ::Result<void>& res){

@@ -2,7 +2,7 @@
 #include "api/http/json.hpp"
 #include "general/static_string.hpp"
 #include "glaze/glaze.hpp"
-#include "http/glaze_convert.hpp"
+#include "glaze/glz_convert.hpp"
 #include "tools/try_parse.hpp"
 #include "types/opt_param.hpp"
 // #include "general/funds.hpp"
@@ -243,10 +243,13 @@ class RouterHook {
     static std::string serialize(const R& r)
     {
         auto tmp { api::glaze::from(r) };
-        auto out = glz::write<Opts>(
+        return glz::write<Opts>(
             api::glaze::Success<std::remove_cvref_t<decltype(tmp)>&> { 0, tmp })
-                  .value();
-        return out;
+            .value();
+    }
+    static std::string serialize_error(Error e)
+    {
+        return glz::write<Opts>(api::glaze::from(e)).value();
     }
 
 public:
@@ -268,7 +271,7 @@ public:
             t.indexGenerator.get(std::string(s.value));
         constexpr size_t ARGC = count_fnptr_args<std::remove_cvref_t<decltype(asyncfun)>>;
         t.router().get(std::string(args.pattern),
-            [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun), serializer, args](auto* res, auto* req) {
+            [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun), extractor = std::move(serializer), args](auto* res, auto* req) {
                 constexpr UrlArgsCount argsCount { UrlArgs { s.value } };
                 spdlog::debug("GET {}", req->getUrl());
                 try {
@@ -276,13 +279,13 @@ public:
 
                     [&]<size_t... Ids>(std::index_sequence<Ids...>) {
                         asyncfun(ParameterParser(args.get<argsCount.get_index(Ids)>(req))...,
-                            [&t, res, serializer](auto& data) {
-                                t.async_reply(res, serializer(data));
+                            [&t, res, extractor](auto& data) {
+                                t.async_reply(res, serialize(extractor(data)));
                             });
                     }(std::make_index_sequence<ARGC - 1>());
                     t.insert_pending(res);
                 } catch (Error e) {
-                    t.reply_json(res, jsonmsg::serialize_error(e));
+                    t.reply_json(res, serialize_error(e));
                 }
             });
     }
@@ -312,7 +315,7 @@ public:
                     }(std::make_index_sequence<ARGC - 1>());
                     t.insert_pending(res);
                 } catch (Error e) {
-                    t.reply_json(res, jsonmsg::serialize_error(e));
+                    t.reply_json(res, serialize_error(e));
                 }
             });
     }
@@ -374,7 +377,7 @@ public:
                                         t.async_reply(res, serialize(data));
                                     });
                             } catch (Error e) {
-                                auto ser = jsonmsg::serialize_error(e);
+                                auto ser = serialize_error(e);
                                 t.async_reply(res, ser);
                             }
                         }
@@ -472,7 +475,7 @@ public:
         GET_PUB<"/tools/sample_verified_peers/:number">(sample_verified_peers);
 
         SECTION("Debug Endpoints");
-        GET_PRIV<"/debug/header_download">(inspect_eventloop, jsonmsg::header_download);
+        GET_PRIV<"/debug/header_download">(inspect_eventloop, api::glaze::extract_header_download);
         GET_PRIV<"/loadtest/block_request/:conn_id">(loadtest_block);
         GET_PRIV<"/loadtest/header_request/:conn_id">(loadtest_header);
         GET_PRIV<"/loadtest/disable/:conn_id">(loadtest_disable);
