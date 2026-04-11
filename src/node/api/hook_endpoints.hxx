@@ -2,9 +2,11 @@
 // #include "api/http/json.hpp"
 #include "api/interface.hpp"
 #include "chainserver/server.hpp"
+#include "general/function_traits.hpp"
 #include "general/static_string.hpp"
 #include "glaze/glaze.hpp"
 #include "glaze/glz_convert.hpp"
+#include "glaze/schema_aggregator.hpp"
 #include "tools/try_parse.hpp"
 #include "types/opt_param.hpp"
 // #include "general/funds.hpp"
@@ -232,6 +234,25 @@ struct UrlArgsRetriever {
 };
 
 template <typename T>
+struct SuccessType {
+    using type = std::remove_cvref_t<decltype(api::glaze::from(std::declval<T>()))>;
+};
+template <>
+struct SuccessType<void> {
+    using type = void;
+};
+template <typename T>
+struct SuccessType<Result<T>> {
+    using type = SuccessType<T>::type;
+};
+template <>
+struct SuccessType<Error> {
+    using type = void; // if callbacks only take Error, then it means that no value is returned on success
+};
+template <typename T>
+using success_type = SuccessType<T>::type;
+
+template <typename T>
 class RouterHook {
     T& t;
 
@@ -263,17 +284,19 @@ public:
     };
 
     template <StaticString s>
-    void GET_INTERNAL(Options opts, auto asyncfun, auto serializer)
+    void GET_INTERNAL(Options opts, auto asyncfun, auto extractor)
     {
         constexpr UrlArgs args { s.value };
         auto& t { this->t };
         if (opts.priv && t.isPublic)
             return;
-        if (!opts.hidden)
-            t.indexGenerator.get(std::string(s.value));
         constexpr size_t ARGC = count_fnptr_args<std::remove_cvref_t<decltype(asyncfun)>>;
+        using res_t = std::remove_cvref_t<typename function_traits<decltype(extractor)>::result_type>;
+        std::string schemaName { t.schemaAggregator.template add_type<success_type<res_t>>() };
+        if (!opts.hidden)
+            t.indexGenerator.get(std::string(s.value), schemaName);
         t.router().get(std::string(args.pattern),
-            [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun), extractor = std::move(serializer), args](auto* res, auto* req) {
+            [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun), extractor = std::move(extractor), args](auto* res, auto* req) {
                 constexpr UrlArgsCount argsCount { UrlArgs { s.value } };
                 spdlog::debug("GET {}", req->getUrl());
                 try {
@@ -299,9 +322,12 @@ public:
         auto& t { this->t };
         if (opts.priv && t.isPublic)
             return;
-        if (!opts.hidden)
-            t.indexGenerator.get(std::string(s.value));
         constexpr size_t ARGC = count_fnptr_args<std::remove_cvref_t<decltype(asyncfun)>>;
+        using cb_t = function_traits<decltype(asyncfun)>::last_arg_type;
+        using res_t = std::remove_cvref_t<typename function_traits<cb_t>::last_arg_type>;
+        auto schemaName { t.schemaAggregator.template add_type<success_type<res_t>>() };
+        if (!opts.hidden)
+            t.indexGenerator.get(std::string(s.value), schemaName);
         t.router().get(std::string(args.pattern),
             [&t, asyncfun = std::forward<decltype(asyncfun)>(asyncfun), args](auto* res, auto* req) {
                 constexpr UrlArgsCount argsCount { UrlArgs { s.value } };
@@ -319,6 +345,18 @@ public:
                 } catch (Error e) {
                     t.reply_json(res, serialize_error(e));
                 }
+            });
+    }
+    template <StaticString s>
+    void GET_SCHEMA()
+    {
+        t.indexGenerator.get(std::string(s.value), "JSON");
+        constexpr UrlArgs args { s.value };
+        auto& t { this->t };
+        t.router().get(std::string(args.pattern),
+            [&t](auto* res, auto* /*req*/) {
+                t.insert_pending(res);
+                t.async_reply(res, t.schemaAggregator.to_string());
             });
     }
     template <StaticString s, typename... Ts>
@@ -363,7 +401,10 @@ public:
         auto& t { this->t };
         if (priv && t.isPublic)
             return;
-        t.indexGenerator.post(pattern);
+        using cb_t = function_traits<decltype(asyncfun)>::last_arg_type;
+        using res_t = std::remove_cvref_t<typename function_traits<cb_t>::last_arg_type>;
+        auto schemaName { t.schemaAggregator.template add_type<success_type<res_t>>() };
+        t.indexGenerator.post(pattern, schemaName);
         t.router().post(pattern,
             [&t, parser = std::move(parser), asyncfun = std::move(asyncfun)](auto* res, auto* req) {
                 spdlog::debug("POST {}", req->getUrl());
@@ -484,6 +525,7 @@ public:
         GET_PRIV<"/debug/fakemine">(api_call<FakeMineToZero>);
         GET_PRIV<"/debug/rollback">(api_call<Rollback>);
         GET_PRIV<"/debug/fakemine/:address">(api_call<FakeMine>);
+        GET_SCHEMA<"/debug/json_schema">();
     }
 };
 

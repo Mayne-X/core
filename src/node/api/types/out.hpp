@@ -57,7 +57,7 @@ struct TCPConnectionSchedule {
         std::optional<uint32_t> expiresIn;
     };
     struct VerifiedSchedule {
-        uint32_t lastVerified;
+        uint32_t secondsSinceVerified;
         Schedule schedule;
     };
     std::vector<VerifiedSchedule> connectedVerified;

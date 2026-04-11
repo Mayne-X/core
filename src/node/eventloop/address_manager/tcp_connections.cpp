@@ -191,7 +191,7 @@ std::vector<api::TCPConnectionSchedule::VerifiedSchedule> VerifiedVector::api_sc
 api::TCPConnectionSchedule::VerifiedSchedule VerifiedEntry::api_schedule() const
 {
     return {
-        .lastVerified = uint32_t(seconds_from_now(lastVerified)),
+        .secondsSinceVerified = uint32_t(seconds_from_now(lastVerified)),
         .schedule = EntryWithTimer::api_schedule(),
     };
 }

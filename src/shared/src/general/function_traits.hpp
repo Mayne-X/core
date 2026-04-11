@@ -1,11 +1,20 @@
 #pragma once
 #include <cstddef>
 #include <tuple>
+
 template <typename T>
 struct function_traits : function_traits<decltype(&std::remove_cvref_t<T>::operator())> { };
 
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType (ClassType::*)(Args...) const> {
+template <typename... Args>
+struct ReportLast {
+    using last_arg_type = std::tuple_element_t<sizeof...(Args) - 1, std::tuple<Args...>>;
+};
+
+template <>
+struct ReportLast<> { };
+
+template <typename ReturnType, typename... Args>
+struct ReportTypes : public ReportLast<Args...> {
     using result_type = ReturnType;
     template <size_t i>
     struct arg {
@@ -13,3 +22,9 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
     };
     static constexpr size_t arity = sizeof...(Args);
 };
+
+template <typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType (ClassType::*)(Args...) const> : public ReportTypes<ReturnType, Args...> { };
+
+template <typename ReturnType, typename... Args>
+struct function_traits<ReturnType (*)(Args...)> : public ReportTypes<ReturnType, Args...> { };

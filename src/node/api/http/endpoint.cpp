@@ -13,15 +13,30 @@ void send_html(uWS::HttpResponse<false>* res, const std::string_view& s)
     res->writeHeader("Content-type", "text/html; charset=utf-8");
     res->end(s, true);
 }
-} // namespace
 
-void IndexGenerator::get(std::string s)
-{
-    inner += "            <li>GET <a href=" + s + ">" + s + "</a></li>";
+std::string html_escape(std::string_view data){
+    std::string buffer;
+    buffer.reserve(data.size());
+    for(size_t pos = 0; pos != data.size(); ++pos) {
+        switch(data[pos]) {
+            case '&':  buffer.append("&amp;");       break;
+            case '\"': buffer.append("&quot;");      break;
+            case '\'': buffer.append("&apos;");      break;
+            case '<':  buffer.append("&lt;");        break;
+            case '>':  buffer.append("&gt;");        break;
+            default:   buffer.append(&data[pos], 1); break;
+        }
+    }
+    return buffer;
 }
-void IndexGenerator::post(std::string s)
+} // namespace
+void IndexGenerator::get(std::string s, std::string_view schemaName)
 {
-    inner += "            <li>POST <a href=" + s + ">" + s + "</a></li>";
+    inner += "            <li>GET <a href=" + s + ">" + s + "</a> -> " + html_escape(schemaName) + "</li>";
+}
+void IndexGenerator::post(std::string s, std::string_view schemaName)
+{
+    inner += "            <li>POST <a href=" + s + ">" + s + "</a> ->" + html_escape(schemaName) +"</li>";
 }
 void IndexGenerator::section(std::string s)
 {
@@ -67,7 +82,7 @@ struct SubscriptionData : public std::enable_shared_from_this<SubscriptionData> 
 struct WSData : public std::shared_ptr<SubscriptionData> {
     WSData()
         : std::shared_ptr<SubscriptionData>(
-            std::make_shared<SubscriptionData>())
+              std::make_shared<SubscriptionData>())
     {
     }
 };
@@ -149,7 +164,7 @@ void HTTPEndpoint::on_event(event_t&& e)
         auto txt { nlohmann::json {
             { "type", event.eventName },
             { "data", jsonmsg::to_json(event) } }
-                       .dump() };
+                .dump() };
         app.publish(event.eventName, txt, uWS::OpCode::TEXT);
     } };
     std::visit([&](auto&& e) {

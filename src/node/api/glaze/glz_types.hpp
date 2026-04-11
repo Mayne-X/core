@@ -9,9 +9,33 @@
 
 namespace api {
 namespace glaze {
+#define MIMIC(structname, stringname, type)                 \
+    struct structname {                                     \
+        type v;                                             \
+        structname(type d)                                  \
+            : v(d)                                          \
+        {                                                   \
+        }                                                   \
+        struct glaze {                                      \
+            using mimic = type;                             \
+            static constexpr auto value = &structname::v;   \
+            static constexpr const char* name = stringname; \
+        };                                                  \
+    };
+
+MIMIC(Timestamp, "Timestamp", uint32_t);
+MIMIC(Height, "Height", uint32_t);
+MIMIC(Open, "Open", double);
+MIMIC(High, "High", double);
+MIMIC(Low, "Low", double);
+MIMIC(Close, "Close", double);
+MIMIC(Base, "Base", double);
+MIMIC(Quote, "Quote", double);
+#undef MIMIC
+
 struct Timepoint {
     std::string UTC;
-    uint32_t timestamp;
+    Timestamp timestamp;
     struct glaze {
         static constexpr const char* name = "Timepoint";
     };
@@ -46,7 +70,7 @@ struct TransactionAddResult {
 };
 struct BanEntry {
     std::string ip;
-    uint32_t banuntil;
+    Timestamp banuntil;
     std::string reason;
     struct glaze {
         static constexpr const char* name = "BanEntry";
@@ -531,6 +555,9 @@ struct SignedSnapshot {
     std::string signature;
     uint32_t priorityHeight;
     uint32_t priorityImportance;
+    struct glaze {
+        static constexpr const char* name = "SignedSnapshot";
+    };
 };
 
 struct LiquidityPool {
@@ -647,6 +674,9 @@ struct Peerinfo {
         };
         Priority ack;
         Priority theirs;
+        struct glaze {
+            static constexpr const char* name = "Peerinfo.LeaderPriority";
+        };
     };
     struct Chain {
         uint32_t length;
@@ -656,6 +686,9 @@ struct Peerinfo {
         double worksum;
         std::string worksumHex;
         std::vector<std::string> grid;
+        struct glaze {
+            static constexpr const char* name = "Peerinfo.Chain";
+        };
     };
     PeerinfoConnection connection;
     ThrottleState throttle;
@@ -826,6 +859,9 @@ struct NodeInfoResult {
         Timepoint since;
         uint32_t seconds;
         std::string formatted;
+        struct glaze {
+            static constexpr const char* name = "Uptime";
+        };
     };
     size_t dbSize;
     std::string chainDBPath;
@@ -840,14 +876,17 @@ struct NodeInfoResult {
 struct HeaderInfo {
     uint32_t height;
     BlockHeader header;
+    static constexpr const char* name = "HeaderInfo";
 };
 struct HashrateInfo {
     size_t nBlocks;
     uint64_t estimate;
+    static constexpr const char* name = "HashrateInfo";
 };
 struct AccountHistory {
     uint64_t fromId;
     std::vector<Block> perBlock;
+    static constexpr const char* name = "AccountHistory";
 };
 struct HeaderDownload {
     std::string minWork;
@@ -864,10 +903,11 @@ struct HeaderDownload {
         size_t leaderRefsSize;
     };
     std::map<std::string, QueuedBatch> queuedBatches;
+    static constexpr const char* name = "HeaderDownload";
 };
 
-using Candle = std::tuple<uint32_t, uint32_t, double, double, double, double, double, double>;
-using Trade = std::tuple<uint32_t, uint32_t, double, double>;
+using Candle = std::tuple<Timestamp, Height, Open, High, Low, Close, Base, Quote>;
+using Trade = std::tuple<Timestamp, Height, Base, Quote>;
 
 struct TCPConnectionSchedule {
     struct Schedule {
@@ -877,14 +917,16 @@ struct TCPConnectionSchedule {
         std::optional<uint32_t> expiresIn;
     };
     struct VerifiedSchedule {
-        uint32_t lastVerified;
+        uint32_t secondsSinceVerified;
         Schedule schedule;
     };
     std::vector<VerifiedSchedule> connectedVerified;
     std::vector<VerifiedSchedule> disconnectedVerified;
     std::vector<Schedule> feelers;
+    static constexpr const char* name = "TCPConnectionSchedule";
 };
 struct WSConnectionSchedule {
+    static constexpr const char* name = "WSConnectionSchedule";
 };
 using ConnectionSchedule = std::variant<TCPConnectionSchedule, WSConnectionSchedule>;
 
@@ -905,9 +947,16 @@ struct Success<void> {
 struct Error {
     int code;
     std::string error;
+    struct glaze {
+        static constexpr const char* name = "ErrorInfo";
+    };
 };
 template <typename T>
 using Result = std::variant<Success<T>, Error>;
+}
+}
 
-}
-}
+template <>
+struct glz::meta<api::glaze::ConnectionSchedule> {
+    static constexpr const char* name = "ConnectionSchedule";
+};

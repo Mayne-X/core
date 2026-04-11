@@ -706,8 +706,8 @@ Candle from(const api::Candle& c)
 Trade from(const api::Trade& t)
 {
     return {
-        t.height.value(),
         t.timestamp.value(),
+        t.height.value(),
         t.base,
         t.quote,
     };
@@ -1241,7 +1241,7 @@ TCPConnectionSchedule from(const api::TCPConnectionSchedule& tcs)
         };
     auto convert_vschedule = [&](const api::TCPConnectionSchedule::VerifiedSchedule& c) {
         return TCPConnectionSchedule::VerifiedSchedule {
-            .lastVerified = c.lastVerified,
+            .secondsSinceVerified = c.secondsSinceVerified,
             .schedule = convert_schedule(c.schedule)
         };
     };

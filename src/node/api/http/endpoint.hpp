@@ -3,6 +3,7 @@
 #define UWS_NO_ZLIB
 #include "api/events/events.hpp"
 #include "api/events/subscription_fwd.hpp"
+#include "api/glaze/schema_aggregator.hpp"
 #include "api/types/shared.hpp"
 #include "block/block.hpp"
 #include "transport/helpers/tcp_sockaddr.hpp"
@@ -13,10 +14,11 @@
 struct ConfigParams;
 class IndexGenerator {
 public:
-    void get(std::string s);
-    void post(std::string s);
+    void get(std::string s, std::string_view schemaName);
+    void post(std::string s, std::string_view schemaName);
     void section(std::string s);
     std::string result(bool isPublic) const;
+    
 
 private:
     bool fresh { true };
@@ -83,6 +85,7 @@ private:
     //////////////////////////////
     // variables
     IndexGenerator indexGenerator;
+    SchemaAggregator schemaAggregator;
     std::set<uWS::HttpResponse<false>*> pendingRequests;
     TCPPeeraddr bind;
     bool isPublic;
