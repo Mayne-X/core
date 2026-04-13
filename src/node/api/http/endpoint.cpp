@@ -1,42 +1,23 @@
 #include "endpoint.hpp"
+#include "../html_escape.hpp"
 #include "api/events/subscription.hpp"
 #include "api/hook_endpoints.hxx"
 #include "api/http/json.hpp"
 #include "libusockets.h"
 using namespace std::placeholders;
 
-namespace {
-
-void send_html(uWS::HttpResponse<false>* res, const std::string_view& s)
-{
-    res->writeHeader("Access-Control-Allow-Origin", "*");
-    res->writeHeader("Content-type", "text/html; charset=utf-8");
-    res->end(s, true);
+void IndexGenerator::on_method(std::string_view method, std::string_view s, std::string_view schemaName){
+    auto es { html_escape(schemaName) };
+    // inner += "            <li>GET <a href=" + s + ">" + s + "</a> -> " + html_escape(schemaName) + "</li>";
+    inner += std::format("            <li>{} <a href=\"{}\">{}</a> -> <a href=\"{}#{}\">{}</a></li>", method, s, s, HTML_SCHEMAS_URL.to_string(), es, es);
 }
-
-std::string html_escape(std::string_view data){
-    std::string buffer;
-    buffer.reserve(data.size());
-    for(size_t pos = 0; pos != data.size(); ++pos) {
-        switch(data[pos]) {
-            case '&':  buffer.append("&amp;");       break;
-            case '\"': buffer.append("&quot;");      break;
-            case '\'': buffer.append("&apos;");      break;
-            case '<':  buffer.append("&lt;");        break;
-            case '>':  buffer.append("&gt;");        break;
-            default:   buffer.append(&data[pos], 1); break;
-        }
-    }
-    return buffer;
-}
-} // namespace
-void IndexGenerator::get(std::string s, std::string_view schemaName)
+void IndexGenerator::get(std::string_view s, std::string_view schemaName)
 {
-    inner += "            <li>GET <a href=" + s + ">" + s + "</a> -> " + html_escape(schemaName) + "</li>";
+    on_method("GET",s,schemaName);
 }
-void IndexGenerator::post(std::string s, std::string_view schemaName)
+void IndexGenerator::post(std::string_view s, std::string_view schemaName)
 {
-    inner += "            <li>POST <a href=" + s + ">" + s + "</a> ->" + html_escape(schemaName) +"</li>";
+    on_method("POST",s,schemaName);
 }
 void IndexGenerator::section(std::string s)
 {
@@ -47,9 +28,9 @@ void IndexGenerator::section(std::string s)
     inner += R"(        <h2>)" + s + R"(</h2>
         <ul>)";
 }
-std::string IndexGenerator::result(bool isPublic) const
+APIReply IndexGenerator::result(bool isPublic) const
 {
-    return R"HTML(
+    return APIReply::HTML(R"HTML(
 <!doctype html>
 <html>
     <head>
@@ -63,14 +44,15 @@ std::string IndexGenerator::result(bool isPublic) const
         +
         R"HTML(</ul>
     </body>
-</html>)HTML";
+</html>)HTML");
 }
 
-void HTTPEndpoint::reply_json(uWS::HttpResponse<false>* res, const std::string& s)
+void HTTPEndpoint::reply(uWS::HttpResponse<false>* res, const APIReply& r)
 {
     res->writeHeader("Access-Control-Allow-Origin", "*");
-    res->writeHeader("Content-type", "application/json; charset=utf-8");
-    res->end(s, true);
+    std::string contentType { r.content_type() };
+    res->writeHeader("Content-type", contentType);
+    res->end(r.raw(), true);
 }
 
 struct WSData;
@@ -104,7 +86,7 @@ void HTTPEndpoint::send_event(std::vector<subscription_ptr> subscribers, subscri
 void HTTPEndpoint::work()
 {
     app.get("/", [&](uWS::HttpResponse<false>* res, uWS::HttpRequest*) {
-        send_html(res, indexGenerator.result(isPublic));
+        reply(res, indexGenerator.result(isPublic));
     });
 #include "./guifiles.cpp"
 
@@ -173,11 +155,11 @@ void HTTPEndpoint::on_event(event_t&& e)
         std::move(e));
 }
 
-void HTTPEndpoint::send_reply(uWS::HttpResponse<false>* res, const std::string& s)
+void HTTPEndpoint::reply_pending(uWS::HttpResponse<false>* res, const APIReply& r)
 {
     auto iter = pendingRequests.find(res);
     if (iter != pendingRequests.end()) {
-        reply_json(res, s);
+        reply(res, r);
         pendingRequests.erase(iter);
     }
 }

@@ -9,17 +9,21 @@ struct StaticString {
         for (size_t i { 0 }; i < N; ++i)
             value[i] = str[i];
     }
-    std::string to_string() const
-    {
-        if (N == 0)
-            return {};
-        return std::string { value, N - 1 };
-    }
-    operator std::string_view() const
+    std::string to_string_view() const
     {
         if (N == 0)
             return {};
         return { value, N - 1 };
+    }
+    std::string to_string() const
+    {
+        if (N == 0)
+            return {};
+        return { value, N - 1 };
+    }
+    operator std::string_view() const
+    {
+        return to_string_view();
     }
 
     char value[N];

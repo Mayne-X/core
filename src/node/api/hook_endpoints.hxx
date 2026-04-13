@@ -1,6 +1,7 @@
 #pragma once
 // #include "api/http/json.hpp"
 #include "api/interface.hpp"
+#include "api/reply.hpp"
 #include "chainserver/server.hpp"
 #include "general/function_traits.hpp"
 #include "general/static_string.hpp"
@@ -41,6 +42,7 @@ static constexpr size_t getArgumentCount(R (*)(Types...))
 {
     return sizeof...(Types);
 }
+inline constexpr const StaticString HTML_SCHEMAS_URL = "/debug/html_schemas";
 
 struct ParameterParser {
     std::string_view sv;
@@ -258,19 +260,19 @@ class RouterHook {
 
     static constexpr const glz::opts Opts = glz::opts { .skip_null_members = false };
     template <typename R>
-    static std::string serialize(const Result<R>& r)
+    static JSONString serialize(const Result<R>& r)
     {
         return glz::write<Opts>(api::glaze::from(r)).value();
     }
     template <typename R>
-    static std::string serialize(const R& r)
+    static JSONString serialize(const R& r)
     {
         auto tmp { api::glaze::from(r) };
         return glz::write<Opts>(
             api::glaze::Success<std::remove_cvref_t<decltype(tmp)>&> { 0, tmp })
             .value();
     }
-    static std::string serialize_error(Error e)
+    static JSONString serialize_error(Error e)
     {
         return glz::write<Opts>(api::glaze::from(e)).value();
     }
@@ -310,7 +312,7 @@ public:
                     }(std::make_index_sequence<ARGC - 1>());
                     t.insert_pending(res);
                 } catch (Error e) {
-                    t.reply_json(res, serialize_error(e));
+                    t.async_reply(res, serialize_error(e));
                 }
             });
     }
@@ -343,12 +345,24 @@ public:
                     }(std::make_index_sequence<ARGC - 1>());
                     t.insert_pending(res);
                 } catch (Error e) {
-                    t.reply_json(res, serialize_error(e));
+                    t.reply(res, serialize_error(e));
                 }
             });
     }
     template <StaticString s>
-    void GET_SCHEMA()
+    void GET_JSON_SCHEMA()
+    {
+        t.indexGenerator.get(std::string(s.value), "JSON");
+        constexpr UrlArgs args { s.value };
+        auto& t { this->t };
+        t.router().get(std::string(args.pattern),
+            [&t](auto* res, [[maybe_unused]] auto* req) {
+                t.insert_pending(res);
+                t.async_reply(res, t.schemaAggregator.to_string());
+            });
+    }
+    template <StaticString s>
+    void GET_HTML_SCHEMA()
     {
         t.indexGenerator.get(std::string(s.value), "JSON");
         constexpr UrlArgs args { s.value };
@@ -356,7 +370,7 @@ public:
         t.router().get(std::string(args.pattern),
             [&t](auto* res, auto* /*req*/) {
                 t.insert_pending(res);
-                t.async_reply(res, t.schemaAggregator.to_string());
+                t.async_reply(res, t.schemaAggregator.to_html_list());
             });
     }
     template <StaticString s, typename... Ts>
@@ -421,7 +435,7 @@ public:
                                     });
                             } catch (Error e) {
                                 auto ser = serialize_error(e);
-                                t.async_reply(res, ser);
+                                t.reply(res, ser);
                             }
                         }
                     });
@@ -525,7 +539,8 @@ public:
         GET_PRIV<"/debug/fakemine">(api_call<FakeMineToZero>);
         GET_PRIV<"/debug/rollback">(api_call<Rollback>);
         GET_PRIV<"/debug/fakemine/:address">(api_call<FakeMine>);
-        GET_SCHEMA<"/debug/json_schema">();
+        GET_JSON_SCHEMA<"/debug/json_schemas">();
+        GET_HTML_SCHEMA<HTML_SCHEMAS_URL>();
     }
 };
 

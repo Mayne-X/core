@@ -4,6 +4,7 @@
 #include "api/events/events.hpp"
 #include "api/events/subscription_fwd.hpp"
 #include "api/glaze/schema_aggregator.hpp"
+#include "api/reply.hpp"
 #include "api/types/shared.hpp"
 #include "block/block.hpp"
 #include "transport/helpers/tcp_sockaddr.hpp"
@@ -12,23 +13,23 @@
 #include <variant>
 
 struct ConfigParams;
+
 class IndexGenerator {
 public:
-    void get(std::string s, std::string_view schemaName);
-    void post(std::string s, std::string_view schemaName);
+    void get(std::string_view s, std::string_view schemaName);
+    void post(std::string_view s, std::string_view schemaName);
     void section(std::string s);
-    std::string result(bool isPublic) const;
-    
+    APIReply result(bool isPublic) const;
 
 private:
+    void on_method(std::string_view method, std::string_view s, std::string_view schemaName);
     bool fresh { true };
     std::string inner;
 };
 
-
 class HTTPEndpoint {
-    template<typename T>
-        friend class RouterHook;
+    template <typename T>
+    friend class RouterHook;
 
 public:
     static constexpr bool SSL = false;
@@ -57,9 +58,9 @@ public:
 
 private:
     void dispatch(std::vector<subscription_ptr> subscribers, std::string&& serialized);
-    void async_reply(uWS::HttpResponse<false>* res, std::string reply)
+    void async_reply(uWS::HttpResponse<false>* res, APIReply r)
     {
-        lc.loop->defer(std::bind(&HTTPEndpoint::send_reply, this, res, std::move(reply)));
+        lc.loop->defer([&, r = std::move(r)] { reply_pending(res, std::move(r)); });
     }
     auto& router()
     {
@@ -74,8 +75,8 @@ private:
     void shutdown();
     void on_event(event_t&& e);
 
-    void send_reply(uWS::HttpResponse<false>* res, const std::string& s);
-    static void reply_json(uWS::HttpResponse<false>* res, const std::string& s);
+    void reply_pending(uWS::HttpResponse<false>* res, const APIReply& r);
+    static void reply(uWS::HttpResponse<false>* res, const APIReply& r);
 
     //////////////////////////////
     // handlers

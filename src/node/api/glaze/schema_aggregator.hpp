@@ -1,5 +1,7 @@
 #pragma once
 #include "glaze/json/schema.hpp"
+#include "api/reply.hpp"
+#include "api/reply.hpp"
 #include <map>
 #include <string>
 struct SchemaAggregator {
@@ -17,7 +19,8 @@ public:
         }
         return name;
     }
-    auto to_string() const
+    HTMLString to_html_list() const;
+    JSONString to_string() const
     {
         constexpr glz::opts Opts;
         static constexpr glz::opts options = glz::opts_write_type_info_off<decltype(Opts)> { { Opts } };

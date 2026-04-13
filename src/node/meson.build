@@ -25,6 +25,7 @@ src= [
   './api/http/json.cpp',
   './api/http/parse.cpp',
   './api/glaze/glz_convert.cpp',
+  './api/glaze/schema_aggregator.cpp',
   './api/interface.cpp',
   './api/stratum/stratum_server.cpp',
   './block/body/primitives.cpp',

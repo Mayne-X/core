@@ -12,6 +12,7 @@ namespace glaze {
 #define MIMIC(structname, stringname, type)                 \
     struct structname {                                     \
         type v;                                             \
+        structname() = default;                             \
         structname(type d)                                  \
             : v(d)                                          \
         {                                                   \
