@@ -45,7 +45,11 @@ HTMLString SchemaAggregator::to_html_list() const
                         if (val.ref) {
                             auto n { normalize_name(*val.ref) };
                             table += std::format("<tr><td>{}</td><td>{}</td></tr>", key, gen_link(n));
-                        } else {
+                        } else if(val.type.has_value() && std::holds_alternative<std::string_view>(val.type.value())){
+                            auto n { std::get<std::string_view>(val.type.value()) };
+                            table += std::format("<tr><td>{}</td><td>{}</td></tr>", key, n);
+                        }
+                        else{
                             table += std::format("<tr><td>{}</td><td>{}</td></tr>", key, html_escape(glz::write<options>(schematic).value()));
                         }
                     }
