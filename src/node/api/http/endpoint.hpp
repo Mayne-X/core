@@ -60,7 +60,7 @@ private:
     void dispatch(std::vector<subscription_ptr> subscribers, std::string&& serialized);
     void async_reply(uWS::HttpResponse<false>* res, APIReply r)
     {
-        lc.loop->defer([&, r = std::move(r)] { reply_pending(res, std::move(r)); });
+        lc.loop->defer([this, res, r = std::move(r)] { reply_pending(res, std::move(r)); });
     }
     auto& router()
     {
