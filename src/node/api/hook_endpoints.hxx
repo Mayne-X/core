@@ -541,6 +541,7 @@ public:
         GET_PRIV<"/debug/fakemine/:address">(api_call<FakeMine>);
         GET_JSON_SCHEMA<"/debug/json_schemas">();
         GET_HTML_SCHEMA<HTML_SCHEMAS_URL>();
+        t.schemaAggregator.inline_by_refcount();
     }
 };
 

@@ -23,6 +23,7 @@
 
 namespace glz
 {
+
    namespace detail
    {
       enum struct defined_formats : uint32_t;
@@ -34,6 +35,10 @@ namespace glz
          constexpr bool operator==(const ExtUnits&) const noexcept = default;
       };
    }
+
+   struct schema;
+   using schema_map_t = std::map<std::string_view, schema, std::less<>>;
+
    struct schema final
    {
       bool reflection_helper{}; // needed to support automatic reflection, because ref is a std::optional
@@ -83,11 +88,11 @@ namespace glz
       // structural keywords (used internally by schema generation, not typically set by users)
       std::optional<std::variant<std::string_view, std::vector<std::string_view>>> type{};
       std::optional<std::string_view> ref{};
-      std::optional<std::map<std::string_view, schema, std::less<>>> properties{};
+      std::optional<schema_map_t> properties{};
       std::optional<std::vector<schema>> prefixItems{};
       std::optional<std::variant<bool, std::shared_ptr<schema>>> items{};
       std::optional<std::variant<bool, std::shared_ptr<schema>>> additionalProperties{};
-      std::optional<std::map<std::string_view, schema, std::less<>>> defs{};
+      std::optional<schema_map_t> defs{};
       std::optional<std::vector<schema>> oneOf{};
       std::optional<std::vector<std::string_view>> required{};
 
@@ -905,19 +910,29 @@ namespace glz
          }
       };
 
-      // Count $ref occurrences in a schema tree.
+      // Count $ref occurrences in a schema tree starting on the specified schema
       // Note: map keys are string_views pointing to ref values, which are compile-time static storage
       // (from join_v<...>). If runtime-constructed ref strings are ever introduced, these keys could
       // dangle after try_inline_ref moves the source schema.
+      void count_schema_refs(const schema& s, std::map<std::string_view, size_t>& counts);
+
+      // Count $ref occurrences in all schema tree in the specified schema map
+      // Note: map keys are string_views pointing to ref values, which are compile-time static storage
+      // (from join_v<...>). If runtime-constructed ref strings are ever introduced, these keys could
+      // dangle after try_inline_ref moves the source schema.
+      inline void count_schema_refs(const schema_map_t& m, std::map<std::string_view, size_t>& counts){
+            for (const auto& [_, prop] : m) {
+               count_schema_refs(prop, counts);
+            }
+      }
+
       inline void count_schema_refs(const schema& s, std::map<std::string_view, size_t>& counts)
       {
          if (s.ref) {
             ++counts[*s.ref];
          }
          if (s.properties) {
-            for (const auto& [_, prop] : *s.properties) {
-               count_schema_refs(prop, counts);
-            }
+            count_schema_refs(*s.properties, counts);
          }
          if (s.items) {
             if (auto* ptr = std::get_if<std::shared_ptr<schema>>(&*s.items)) {
@@ -940,15 +955,14 @@ namespace glz
             }
          }
          if (s.defs) {
-            for (const auto& [_, def] : *s.defs) {
-               count_schema_refs(def, counts);
-            }
+            count_schema_refs(*s.defs, counts);
          }
       }
 
+
       // Try to inline a single-use $ref node by moving the definition from defs.
       // Returns true if the node was inlined.
-      inline bool try_inline_ref(schema& node, std::map<std::string_view, schema, std::less<>>& defs,
+      inline bool try_inline_ref(schema& node, schema_map_t& defs,
                                  const std::map<std::string_view, size_t>& counts)
       {
          static constexpr std::string_view prefix = "#/$defs/";
@@ -974,7 +988,7 @@ namespace glz
       }
 
       // Inline single-use $ref entries by moving the definition from $defs into the reference site.
-      inline void inline_single_use_refs(schema& s, std::map<std::string_view, schema, std::less<>>& defs,
+      inline void inline_single_use_refs(schema& s, schema_map_t& defs,
                                          const std::map<std::string_view, size_t>& counts)
       {
          if (s.properties) {
@@ -1024,24 +1038,30 @@ namespace glz
          }
       }
 
-      // Remove inlined (single-use) entries from $defs
-      inline void prune_inlined_defs(schema& s, const std::map<std::string_view, size_t>& counts)
+      // Remove inlined (single-use) entries from schema map
+      inline void prune_inlined_defs(schema_map_t& defs, const std::map<std::string_view, size_t>& counts)
       {
-         if (!s.defs) return;
          static constexpr std::string_view prefix = "#/$defs/";
-         for (auto it = s.defs->begin(); it != s.defs->end();) {
+         for (auto it = defs.begin(); it != defs.end();) {
             // Build the full $ref path for this def entry
             // Use a local string since string_view concatenation isn't possible
             std::string full_ref{prefix};
             full_ref += it->first;
             auto count_it = counts.find(std::string_view{full_ref});
             if (count_it != counts.end() && count_it->second == 1) {
-               it = s.defs->erase(it);
+               it = defs.erase(it);
             }
             else {
                ++it;
             }
          }
+      }
+
+      // Remove inlined (single-use) entries from schema $defs
+      inline void prune_inlined_defs(schema& s, const std::map<std::string_view, size_t>& counts)
+      {
+         if (!s.defs) return;
+         prune_inlined_defs(*s.defs, counts);
          if (s.defs->empty()) {
             s.defs.reset();
          }
@@ -1091,3 +1111,4 @@ namespace glz
       return {buffer};
    }
 }
+

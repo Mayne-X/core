@@ -18,6 +18,7 @@ class WasmEndpoint {
     using Response = router::Response;
 
     static constexpr bool isPublic { true };
+    SchemaAggregator schemaAggregator;
     IndexGenerator indexGenerator;
     Router r;
     Router& router() { return r; }
