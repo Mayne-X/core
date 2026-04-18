@@ -23,6 +23,98 @@
 
 namespace glz
 {
+   // Heap-allocated nullable wrapper. Same API as std::optional<T> but stores the value
+   // behind a unique_ptr (8 bytes inline) instead of inline (sizeof(T) + padding).
+   // Used by schema to reduce its per-instance size for sparsely populated fields.
+   template <class T>
+   struct boxed final
+   {
+      using value_type = T;
+
+      std::unique_ptr<T> ptr{};
+
+      boxed() noexcept = default;
+
+      boxed(const boxed& other) : ptr(other.ptr ? std::make_unique<T>(*other.ptr) : nullptr) {}
+      boxed& operator=(const boxed& other)
+      {
+         if (this != &other) {
+            ptr = other.ptr ? std::make_unique<T>(*other.ptr) : nullptr;
+         }
+         return *this;
+      }
+
+      boxed(boxed&&) noexcept = default;
+      boxed& operator=(boxed&&) noexcept = default;
+
+      // Converting constructor: accepts any type constructible to T
+      template <class U>
+         requires(!std::same_as<std::decay_t<U>, boxed> && std::is_constructible_v<T, U &&>)
+      boxed(U&& val) : ptr(std::make_unique<T>(std::forward<U>(val)))
+      {}
+
+      // Converting assignment
+      template <class U>
+         requires(!std::same_as<std::decay_t<U>, boxed> && std::is_constructible_v<T, U &&>)
+      boxed& operator=(U&& val)
+      {
+         ptr = std::make_unique<T>(std::forward<U>(val));
+         return *this;
+      }
+
+      explicit operator bool() const noexcept { return ptr != nullptr; }
+      bool has_value() const noexcept { return ptr != nullptr; }
+
+      T& operator*() noexcept { return *ptr; }
+      const T& operator*() const noexcept { return *ptr; }
+      T* operator->() noexcept { return ptr.get(); }
+      const T* operator->() const noexcept { return ptr.get(); }
+
+      T& value() { return *ptr; }
+      const T& value() const { return *ptr; }
+
+      void reset() noexcept { ptr.reset(); }
+
+      template <class... Args>
+      T& emplace(Args&&... args)
+      {
+         ptr = std::make_unique<T>(std::forward<Args>(args)...);
+         return *ptr;
+      }
+
+      T value_or(T default_val) const { return ptr ? *ptr : std::move(default_val); }
+   };
+
+   // Nullable string view: 16 bytes instead of optional<string_view>'s 24 bytes.
+   // Null when data == nullptr. Satisfies nullable_t so Glaze skips it with skip_null_members.
+   struct sv_opt final
+   {
+      const char* data{};
+      size_t size{};
+
+      constexpr sv_opt() noexcept = default;
+      constexpr sv_opt(const char* str) noexcept : data(str), size(str ? std::char_traits<char>::length(str) : 0) {}
+      constexpr sv_opt(std::string_view sv) noexcept : data(sv.data()), size(sv.size()) {}
+      constexpr sv_opt(const char* str, size_t len) noexcept : data(str), size(len) {}
+      constexpr sv_opt& operator=(std::string_view sv) noexcept
+      {
+         data = sv.data();
+         size = sv.size();
+         return *this;
+      }
+
+      explicit constexpr operator bool() const noexcept { return data != nullptr; }
+      constexpr bool has_value() const noexcept { return data != nullptr; }
+      constexpr operator std::string_view() const noexcept { return {data, size}; }
+      constexpr std::string_view operator*() const noexcept { return {data, size}; }
+      constexpr std::string_view value() const noexcept { return {data, size}; }
+
+      constexpr void reset() noexcept
+      {
+         data = {};
+         size = {};
+      }
+   };
 
    namespace detail
    {
@@ -35,31 +127,27 @@ namespace glz
          constexpr bool operator==(const ExtUnits&) const noexcept = default;
       };
    }
-
-   struct schema;
-   using schema_map_t = std::map<std::string_view, schema, std::less<>>;
-
    struct schema final
    {
-      bool reflection_helper{}; // needed to support automatic reflection, because ref is a std::optional
+      bool reflection_helper{}; // needed to support automatic reflection
 
-      using schema_number = std::optional<std::variant<int64_t, uint64_t, double>>;
+      using schema_number = boxed<std::variant<int64_t, uint64_t, double>>;
       using schema_any = std::variant<std::monostate, bool, int64_t, uint64_t, double, std::string_view>;
 
       // meta data keywords, ref: https://www.learnjsonschema.com/2020-12/meta-data/
-      std::optional<std::string_view> title{};
-      std::optional<std::string_view> description{};
-      std::optional<schema_any> defaultValue{};
+      sv_opt title{};
+      sv_opt description{};
+      boxed<schema_any> defaultValue{};
       std::optional<bool> deprecated{};
-      std::optional<std::vector<std::string_view>> examples{};
+      boxed<std::vector<std::string_view>> examples{};
       std::optional<bool> readOnly{};
       std::optional<bool> writeOnly{};
       // validation keywords, ref: https://www.learnjsonschema.com/2020-12/validation/
-      std::optional<schema_any> constant{};
+      boxed<schema_any> constant{};
       // string only keywords
-      std::optional<uint64_t> minLength{};
-      std::optional<uint64_t> maxLength{};
-      std::optional<std::string_view> pattern{};
+      boxed<uint64_t> minLength{};
+      boxed<uint64_t> maxLength{};
+      sv_opt pattern{};
       // https://www.learnjsonschema.com/2020-12/format-annotation/format/
       std::optional<detail::defined_formats> format{};
       // number only keywords
@@ -69,32 +157,33 @@ namespace glz
       schema_number exclusiveMaximum{};
       schema_number multipleOf{};
       // object only keywords
-      std::optional<uint64_t> minProperties{};
-      std::optional<uint64_t> maxProperties{};
+      boxed<uint64_t> minProperties{};
+      boxed<uint64_t> maxProperties{};
       // std::optional<std::map<std::string_view, std::vector<std::string_view>>> dependent_required{};
       // array only keywords
-      std::optional<uint64_t> minItems{};
-      std::optional<uint64_t> maxItems{};
-      std::optional<uint64_t> minContains{};
-      std::optional<uint64_t> maxContains{};
+      boxed<uint64_t> minItems{};
+      boxed<uint64_t> maxItems{};
+      boxed<uint64_t> minContains{};
+      boxed<uint64_t> maxContains{};
       std::optional<bool> uniqueItems{};
-      std::optional<std::vector<std::string_view>> enumeration{}; // enum
+      boxed<std::vector<std::string_view>> enumeration{}; // enum
 
       // out of json schema specification
-      std::optional<detail::ExtUnits> ExtUnits{};
+      boxed<detail::ExtUnits> ExtUnits{};
       std::optional<bool>
          ExtAdvanced{}; // flag to indicate that the parameter is advanced and can be hidden in default views
 
       // structural keywords (used internally by schema generation, not typically set by users)
-      std::optional<std::variant<std::string_view, std::vector<std::string_view>>> type{};
-      std::optional<std::string_view> ref{};
-      std::optional<schema_map_t> properties{};
-      std::optional<std::vector<schema>> prefixItems{};
-      std::optional<std::variant<bool, std::shared_ptr<schema>>> items{};
-      std::optional<std::variant<bool, std::shared_ptr<schema>>> additionalProperties{};
-      std::optional<schema_map_t> defs{};
-      std::optional<std::vector<schema>> oneOf{};
-      std::optional<std::vector<std::string_view>> required{};
+      boxed<std::variant<std::string_view, std::vector<std::string_view>>> type{};
+      sv_opt ref{};
+      boxed<std::map<std::string_view, schema, std::less<>>> properties{};
+      boxed<std::vector<schema>> prefixItems{};
+      boxed<std::variant<bool, std::shared_ptr<schema>>> items{};
+      boxed<std::variant<bool, std::shared_ptr<schema>>> additionalProperties{};
+      boxed<std::map<std::string_view, schema, std::less<>>> defs{};
+      boxed<std::vector<schema>> oneOf{};
+      boxed<std::vector<schema>> anyOf{};
+      boxed<std::vector<std::string_view>> required{};
 
       static constexpr auto schema_attributes{true}; // allowance flag to indicate metadata within glz::object(...)
    };
@@ -177,6 +266,7 @@ struct glz::meta<glz::schema>
                                     "additionalProperties", //
                                     "$defs", //
                                     "oneOf", //
+                                    "anyOf", //
                                     "examples", //
                                     "required", //
                                     "title", //
@@ -219,6 +309,7 @@ struct glz::meta<glz::schema>
                                                       &T::additionalProperties, //
                                                       &T::defs, //
                                                       &T::oneOf, //
+                                                      &T::anyOf, //
                                                       glz::unquoted<&T::examples>, //
                                                       &T::required, //
                                                       &T::title, //
@@ -476,9 +567,11 @@ namespace glz
          }
       };
 
-      // Whether a type can be represented as an inline JSON Schema primitive
+      // Whether a type can be represented as an inline JSON Schema primitive.
+      // Numeric types are excluded so they always use $ref to named definitions,
+      // keeping min/max ranges from being repeated at every use site.
       template <class V>
-      constexpr bool schema_primitive = std::same_as<V, bool> || num_t<V> || str_t<V> || char_t<V>;
+      constexpr bool schema_primitive = std::same_as<V, bool> || str_t<V> || char_t<V>;
 
       // Unwrap nested nullable types (e.g. std::optional<std::optional<std::string>> → std::string)
       template <class T>
@@ -528,6 +621,21 @@ namespace glz
          return s;
       }
 
+      // Build an anyOf pair wrapping a $ref to `ref` together with a null type.
+      // Canonicalizes std::optional<T> so the optional itself is never added to $defs.
+      inline std::vector<schema> make_nullable_ref_anyof(std::string_view ref)
+      {
+         std::vector<schema> vec;
+         vec.reserve(2);
+         schema ref_s{};
+         ref_s.ref = ref;
+         vec.emplace_back(std::move(ref_s));
+         schema null_s{};
+         null_s.type = sv{"null"};
+         vec.emplace_back(std::move(null_s));
+         return vec;
+      }
+
       template <array_t T>
       struct to_json_schema<T>
       {
@@ -541,6 +649,23 @@ namespace glz
                s.type = sv{"object"};
                if constexpr (schema_primitive<ValueType>) {
                   s.additionalProperties = make_primitive_schema<ValueType>();
+               }
+               else if constexpr (nullable_t<ValueType>) {
+                  using InnerVT = unwrap_nullable_t<ValueType>;
+                  if constexpr (schema_primitive<InnerVT>) {
+                     auto inner = make_primitive_schema<InnerVT>();
+                     inner->type = std::vector<sv>{std::get<sv>(*inner->type), sv{"null"}};
+                     s.additionalProperties = std::move(inner);
+                  }
+                  else {
+                     auto& def = defs[name_v<InnerVT>];
+                     if (!def.type) {
+                        to_json_schema<InnerVT>::template op<Opts>(def, defs);
+                     }
+                     auto wrapper = std::make_shared<schema>();
+                     wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"#/$defs/">, name_v<InnerVT>>);
+                     s.additionalProperties = std::move(wrapper);
+                  }
                }
                else {
                   auto& def = defs[name_v<ValueType>];
@@ -557,6 +682,23 @@ namespace glz
                }
                if constexpr (schema_primitive<V>) {
                   s.items = make_primitive_schema<V>();
+               }
+               else if constexpr (nullable_t<V>) {
+                  using InnerV = unwrap_nullable_t<V>;
+                  if constexpr (schema_primitive<InnerV>) {
+                     auto inner = make_primitive_schema<InnerV>();
+                     inner->type = std::vector<sv>{std::get<sv>(*inner->type), sv{"null"}};
+                     s.items = std::move(inner);
+                  }
+                  else {
+                     auto& def = defs[name_v<InnerV>];
+                     if (!def.type) {
+                        to_json_schema<InnerV>::template op<Opts>(def, defs);
+                     }
+                     auto wrapper = std::make_shared<schema>();
+                     wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"#/$defs/">, name_v<InnerV>>);
+                     s.items = std::move(wrapper);
+                  }
                }
                else {
                   auto& def = defs[name_v<V>];
@@ -579,6 +721,23 @@ namespace glz
             s.type = sv{"object"};
             if constexpr (schema_primitive<V>) {
                s.additionalProperties = make_primitive_schema<V>();
+            }
+            else if constexpr (nullable_t<V>) {
+               using InnerV = unwrap_nullable_t<V>;
+               if constexpr (schema_primitive<InnerV>) {
+                  auto inner = make_primitive_schema<InnerV>();
+                  inner->type = std::vector<sv>{std::get<sv>(*inner->type), sv{"null"}};
+                  s.additionalProperties = std::move(inner);
+               }
+               else {
+                  auto& def = defs[name_v<InnerV>];
+                  if (!def.type) {
+                     to_json_schema<InnerV>::template op<Opts>(def, defs);
+                  }
+                  auto wrapper = std::make_shared<schema>();
+                  wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"#/$defs/">, name_v<InnerV>>);
+                  s.additionalProperties = std::move(wrapper);
+               }
             }
             else {
                auto& def = defs[name_v<V>];
@@ -889,6 +1048,18 @@ namespace glz
                      }
                   }
                }
+               else if constexpr (nullable_t<val_t>) {
+                  // Canonicalize std::optional<T> (and other nullables) so the wrapper itself
+                  // is never placed in $defs. Inner type T is referenced via anyOf + null.
+                  validate_ref<name_v<inner_val_t>>();
+                  auto& def = defs[name_v<inner_val_t>];
+                  if (!def.type) {
+                     to_json_schema<inner_val_t>::template op<Opts>(def, defs);
+                  }
+                  if (!prop.ref) {
+                     prop.anyOf = make_nullable_ref_anyof(join_v<chars<"#/$defs/">, name_v<inner_val_t>>);
+                  }
+               }
                else {
                   if (!prop.ref) {
                      validate_ref<name_v<val_t>>();
@@ -910,29 +1081,34 @@ namespace glz
          }
       };
 
-      // Count $ref occurrences in a schema tree starting on the specified schema
-      // Note: map keys are string_views pointing to ref values, which are compile-time static storage
-      // (from join_v<...>). If runtime-constructed ref strings are ever introduced, these keys could
-      // dangle after try_inline_ref moves the source schema.
-      void count_schema_refs(const schema& s, std::map<std::string_view, size_t>& counts);
-
-      // Count $ref occurrences in all schema tree in the specified schema map
-      // Note: map keys are string_views pointing to ref values, which are compile-time static storage
-      // (from join_v<...>). If runtime-constructed ref strings are ever introduced, these keys could
-      // dangle after try_inline_ref moves the source schema.
-      inline void count_schema_refs(const schema_map_t& m, std::map<std::string_view, size_t>& counts){
-            for (const auto& [_, prop] : m) {
-               count_schema_refs(prop, counts);
-            }
+      // Whether a schema definition represents a numeric type (integer or number).
+      // Used to exempt numeric definitions from single-use inlining.
+      inline bool is_numeric_schema(const schema& s)
+      {
+         if (!s.type) return false;
+         auto is_num = [](sv t) { return t == "integer" || t == "number"; };
+         if (auto* str = std::get_if<sv>(&*s.type)) {
+            return is_num(*str);
+         }
+         if (auto* vec = std::get_if<std::vector<sv>>(&*s.type)) {
+            return std::any_of(vec->begin(), vec->end(), is_num);
+         }
+         return false;
       }
 
+      // Count $ref occurrences in a schema tree.
+      // Note: map keys are string_views pointing to ref values, which are compile-time static storage
+      // (from join_v<...>). If runtime-constructed ref strings are ever introduced, these keys could
+      // dangle after try_inline_ref moves the source schema.
       inline void count_schema_refs(const schema& s, std::map<std::string_view, size_t>& counts)
       {
          if (s.ref) {
             ++counts[*s.ref];
          }
          if (s.properties) {
-            count_schema_refs(*s.properties, counts);
+            for (const auto& [_, prop] : *s.properties) {
+               count_schema_refs(prop, counts);
+            }
          }
          if (s.items) {
             if (auto* ptr = std::get_if<std::shared_ptr<schema>>(&*s.items)) {
@@ -949,20 +1125,26 @@ namespace glz
                count_schema_refs(entry, counts);
             }
          }
+         if (s.anyOf) {
+            for (const auto& entry : *s.anyOf) {
+               count_schema_refs(entry, counts);
+            }
+         }
          if (s.prefixItems) {
             for (const auto& entry : *s.prefixItems) {
                count_schema_refs(entry, counts);
             }
          }
          if (s.defs) {
-            count_schema_refs(*s.defs, counts);
+            for (const auto& [_, def] : *s.defs) {
+               count_schema_refs(def, counts);
+            }
          }
       }
 
-
       // Try to inline a single-use $ref node by moving the definition from defs.
       // Returns true if the node was inlined.
-      inline bool try_inline_ref(schema& node, schema_map_t& defs,
+      inline bool try_inline_ref(schema& node, std::map<std::string_view, schema, std::less<>>& defs,
                                  const std::map<std::string_view, size_t>& counts)
       {
          static constexpr std::string_view prefix = "#/$defs/";
@@ -974,6 +1156,9 @@ namespace glz
          auto def_name = ref.substr(prefix.size());
          auto def_it = defs.find(def_name);
          if (def_it == defs.end()) return false;
+
+         // Never inline numeric definitions — keeps min/max ranges in a single named $defs entry
+         if (is_numeric_schema(def_it->second)) return false;
 
          // Save sibling metadata before overwriting
          schema saved_metadata = std::move(node);
@@ -988,7 +1173,7 @@ namespace glz
       }
 
       // Inline single-use $ref entries by moving the definition from $defs into the reference site.
-      inline void inline_single_use_refs(schema& s, schema_map_t& defs,
+      inline void inline_single_use_refs(schema& s, std::map<std::string_view, schema, std::less<>>& defs,
                                          const std::map<std::string_view, size_t>& counts)
       {
          if (s.properties) {
@@ -1028,6 +1213,14 @@ namespace glz
                }
             }
          }
+         if (s.anyOf) {
+            for (auto& entry : *s.anyOf) {
+               inline_single_use_refs(entry, defs, counts);
+               if (try_inline_ref(entry, defs, counts)) {
+                  inline_single_use_refs(entry, defs, counts);
+               }
+            }
+         }
          if (s.prefixItems) {
             for (auto& entry : *s.prefixItems) {
                inline_single_use_refs(entry, defs, counts);
@@ -1038,17 +1231,15 @@ namespace glz
          }
       }
 
-      // Remove inlined (single-use) entries from schema map
-      inline void prune_inlined_defs(schema_map_t& defs, const std::map<std::string_view, size_t>& counts)
-      {
-         static constexpr std::string_view prefix = "#/$defs/";
+      // Remove inlined (single-use) entries from $defs
+      inline void prune_inlined_defs(std::map<std::string_view, schema, std::less<>>& defs, const std::map<std::string_view, size_t>& counts, std::string_view prefix){
          for (auto it = defs.begin(); it != defs.end();) {
             // Build the full $ref path for this def entry
             // Use a local string since string_view concatenation isn't possible
             std::string full_ref{prefix};
             full_ref += it->first;
             auto count_it = counts.find(std::string_view{full_ref});
-            if (count_it != counts.end() && count_it->second == 1) {
+            if (count_it != counts.end() && count_it->second == 1 && !is_numeric_schema(it->second)) {
                it = defs.erase(it);
             }
             else {
@@ -1061,12 +1252,12 @@ namespace glz
       inline void prune_inlined_defs(schema& s, const std::map<std::string_view, size_t>& counts)
       {
          if (!s.defs) return;
-         prune_inlined_defs(*s.defs, counts);
+         static constexpr std::string_view prefix = "#/$defs/";
+         prune_inlined_defs(*s.defs, counts, prefix);
          if (s.defs->empty()) {
             s.defs.reset();
          }
       }
-
    }
 
    // Moved definition outside of write_json_schema to fix MSVC bug
@@ -1110,5 +1301,19 @@ namespace glz
       }
       return {buffer};
    }
-}
 
+   // Custom reader for sv_opt: delegates to string_view reader, then assigns to sv_opt.
+   template <>
+   struct from<JSON, sv_opt>
+   {
+      template <auto Opts>
+      static void op(sv_opt& value, is_context auto&& ctx, auto&& it, auto end)
+      {
+         std::string_view sv;
+         from<JSON, std::string_view>::template op<Opts>(sv, ctx, std::forward<decltype(it)>(it), end);
+         if (!bool(ctx.error)) {
+            value = sv;
+         }
+      }
+   };
+}
