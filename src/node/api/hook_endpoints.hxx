@@ -473,7 +473,7 @@ public:
         SECTION("Chain Endpoints");
         GET_PUB<"/chain/head">(get_block_head);
         GET_PRIV<"/chain/grid">(api_call<GetGrid>);
-        GET_PUB<"/chain/block/:id/hash">(api_call<GetBlockHash>);
+        GET_PUB<"/chain/block/:height/hash">(api_call<GetBlockHash>);
         GET_PUB<"/chain/block/:id/header">(api_call<GetHeader>);
         GET_PUB<"/chain/block/:id/binary">(api_call<GetBlockBinary>);
         GET_PUB<"/chain/block/:id">(api_call<GetBlock>);
@@ -488,7 +488,7 @@ public:
         GET_PUB<"/asset/lookup/:asset">(api_call<LookupAsset>);
 
         SECTION("DEX Endpoints");
-        GET_PUB<"/dex/market/:market">(api_call<MarketDetail>);
+        GET_PUB<"/dex/market/:asset">(api_call<MarketDetail>);
         // GET_PUB<"/dex/open_order/:txhash">(api_call<GetOpenOrder>);
         //
         SECTION("Account Endpoints");

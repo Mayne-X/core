@@ -559,9 +559,7 @@ void Eventloop::handle_event(IpCounterCb&& cb)
 
 void Eventloop::handle_event(GetHashrate&& e)
 {
-    e.cb(api::HashrateInfo {
-        .nBlocks = e.n,
-        .estimate = consensus().headers().hashrate(e.n) });
+    e.cb(consensus().headers().hashrate(e.n));
 }
 
 void Eventloop::handle_event(GetHashrateBlockChart&& e)
@@ -1498,9 +1496,9 @@ void Eventloop::handle_msg(Conref cr, TxreqMsg&& m)
     log_communication("{} handle TxreqMsg", cr.str());
     TxrepMsg::vector_t out;
     for (auto& e : m.txids()) {
-        if (auto p{mempool[e]}){
+        if (auto p { mempool[e] }) {
             out.push_back(*p);
-        }else{
+        } else {
             out.push_back({});
         }
     }

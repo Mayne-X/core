@@ -1,14 +1,13 @@
 #include "header_chain.hpp"
 #include "api/types/shared.hpp"
-#include "eventloop/types/conndata.hpp"
 #include "block/chain/binary_forksearch.hpp"
 #include "block/header/view_inline.hpp"
 #include "crypto/hasher_sha256.hpp"
+#include "eventloop/types/conndata.hpp"
 #include "general/is_testnet.hpp"
 #include <algorithm>
 #include <stdexcept>
 using namespace std;
-
 
 wrt::optional<HeaderView> HeaderchainSkeleton::inefficient_search_header(NonzeroHeight h) const
 {
@@ -107,25 +106,28 @@ void Headerchain::shrink(Height shrinkLength)
     assert(worksum < prevWorksum);
 }
 
-uint64_t Headerchain::hashrate(uint32_t nblocks) const
+auto Headerchain::hashrate(uint32_t nblocks) const -> Result<api::HashrateInfo>
 {
     return hashrate_at(length(), nblocks);
 }
 
-uint64_t Headerchain::hashrate_at(Height h, uint32_t nblocks) const
+auto Headerchain::hashrate_at(Height h, uint32_t nblocks) const -> Result<api::HashrateInfo>
 {
-    if (h < Height(2) || h > length())
-        return 0;
-    NonzeroHeight lower { h.value() > nblocks ? (h - nblocks).nonzero_assert() : NonzeroHeight { 1u } };
+    if (h > length())
+        return Error(EBADHEIGHT);
+    NonzeroHeight lower { h.value() > nblocks ? (h + 1 - nblocks).nonzero_assert() : NonzeroHeight { 1u } };
     NonzeroHeight upper(h.nonzero_assert());
     auto ltime { operator[](lower).timestamp() };
     auto utime { operator[](upper).timestamp() };
+    auto nBlocks { upper + 1 - lower };
+    if (nBlocks < 2)
+        return Error(EHASHRATEINTERVAL);
     if (ltime >= utime)
-        return std::numeric_limits<uint64_t>::max();
+        return api::HashrateInfo { .nBlocks = nBlocks, .estimate = std::numeric_limits<uint64_t>::max() };
     auto seconds { utime - ltime };
-    auto nBlocks { upper - lower };
     assert(nBlocks > 0);
-    return sum_work(lower + 1, upper + 1).getdouble() / seconds;
+    auto hr { uint64_t(sum_work(lower + 1, upper + 1).getdouble() / seconds) };
+    return api::HashrateInfo { .nBlocks = nBlocks, .estimate = hr };
 }
 
 api::HashrateBlockChart Headerchain::hashrate_block_chart(NonzeroHeight reqmin, NonzeroHeight reqmax, const uint32_t nblocks) const
@@ -226,7 +228,7 @@ api::HashrateTimeChart Headerchain::hashrate_time_chart(uint32_t min, uint32_t m
     auto h1 { bisect_height_before(t1, height1, l) + 1 };
     assert(h1 <= length());
     while (true) {
-        res.chartReversed.push_back({ t1, h1, hashrate_at(h1, windowBlocks) });
+        res.chartReversed.push_back({ t1, h1, hashrate_at(h1, windowBlocks).value().estimate });
         auto t0 { t1 >= interval ? t1 - interval : 0 };
         if (t0 == 0 || t0 < min)
             return res;
@@ -237,7 +239,7 @@ api::HashrateTimeChart Headerchain::hashrate_time_chart(uint32_t min, uint32_t m
 
 HeaderBatch Headerchain::get_headers(HeaderRange range) const
 {
-    auto end { std::min(*range.end(),length().add1()) };
+    auto end { std::min(*range.end(), length().add1()) };
     Height h { range.first() };
 
     if (end <= h)
@@ -329,7 +331,8 @@ Headerchain::Headerchain(const Headerchain& from, Height subheight)
     initialize_worksum();
 }
 
-void Headerchain::throw_out_of_bounds(Height h)const{
+void Headerchain::throw_out_of_bounds(Height h) const
+{
     throw std::out_of_range("Headerchain has length " + to_string(length()) + ". Cannot access index " + to_string(h));
 }
 

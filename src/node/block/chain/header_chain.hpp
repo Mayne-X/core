@@ -97,8 +97,12 @@ public:
     [[nodiscard]] ForkMsg apply_fork(HeaderchainFork&& fork);
 
     void shrink(Height shrinkLength);
-    uint64_t hashrate_at(Height h, uint32_t nblocks) const;
-    uint64_t hashrate(uint32_t nblocks) const;
+    // struct HashrateEstimate{
+    //     uint64_t estimate;
+    //     uint32_t nBlocks;
+    // };
+    Result<api::HashrateInfo> hashrate_at(Height h, uint32_t nblocks) const;
+    Result<api::HashrateInfo> hashrate(uint32_t nblocks) const;
     api::HashrateBlockChart hashrate_block_chart(NonzeroHeight min, NonzeroHeight max, uint32_t nblocks) const;
     api::HashrateTimeChart hashrate_time_chart(uint32_t min, uint32_t max, uint32_t interval) const;
 

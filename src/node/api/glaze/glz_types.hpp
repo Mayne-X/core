@@ -375,7 +375,7 @@ struct MempoolEntry {
         cancelation::TransactionUnprocessed>;
 
     Transaction transaction;
-    std::string tag = "none";
+    std::string type;
     struct glaze {
         static constexpr const char* name = "MempoolEntry";
     };

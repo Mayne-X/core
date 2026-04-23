@@ -789,13 +789,13 @@ MempoolEntry from(const api::MempoolEntry& e)
         [&](const block::WartTransfer& tx) -> MempoolEntry {
             return {
                 .transaction = api::glaze::from(tx),
-                .tag = tx.data.label
+                .type = tx.data.label
             };
         },
         [&](const block::TokenTransfer& tx) -> MempoolEntry {
             return {
                 .transaction = api::glaze::from(tx),
-                .tag = tx.data.label
+                .type = tx.data.label
             };
         },
         [&](const block::NewOrder& tx) -> MempoolEntry {
@@ -809,7 +809,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                         .buy = d.buy },
                     .hash { from(tx.hash) },
                     .signedCommon { from(tx.signedData) } },
-                .tag = tx.data.label,
+                .type = tx.data.label,
             };
         },
         [&](const block::LiquidityDeposit& tx) -> MempoolEntry {
@@ -822,7 +822,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                         .deposited { make_base_quote(bq, d.assetInfo.decimals) } },
                     .hash { from(tx.hash) },
                     .signedCommon { from(tx.signedData) } },
-                .tag = d.label,
+                .type = d.label,
             };
         },
         [&](const block::LiquidityWithdrawal& tx) -> MempoolEntry {
@@ -835,7 +835,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                         .sharesRedeemed { from(fd) } },
                     .hash { from(tx.hash) },
                     .signedCommon { from(tx.signedData) } },
-                .tag = d.label,
+                .type = d.label,
             };
         },
         [&](const block::AssetCreation& t) -> MempoolEntry {
@@ -847,7 +847,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                         .supply = from(t.data.supply) },
                     .hash { from(t.hash) },
                     .signedCommon { from(t.signedData) } },
-                .tag = d.label,
+                .type = d.label,
             };
         },
         // cancelation::TransactionUnprocessed
@@ -858,7 +858,7 @@ MempoolEntry from(const api::MempoolEntry& e)
                     .data { .cancelTxid = from(d.cancelTxid) },
                     .hash { from(t.hash) },
                     .signedCommon { from(t.signedData) } },
-                .tag = d.label,
+                .type = d.label,
             };
         });
 }
