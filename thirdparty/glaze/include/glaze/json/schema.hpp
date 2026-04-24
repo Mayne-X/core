@@ -663,7 +663,7 @@ namespace glz
                         to_json_schema<InnerVT>::template op<Opts>(def, defs);
                      }
                      auto wrapper = std::make_shared<schema>();
-                     wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"#/$defs/">, name_v<InnerVT>>);
+                     wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"">, name_v<InnerVT>>);
                      s.additionalProperties = std::move(wrapper);
                   }
                }
@@ -672,7 +672,7 @@ namespace glz
                   if (!def.type) {
                      to_json_schema<ValueType>::template op<Opts>(def, defs);
                   }
-                  s.additionalProperties = make_ref_schema(join_v<chars<"#/$defs/">, name_v<ValueType>>);
+                  s.additionalProperties = make_ref_schema(join_v<chars<"">, name_v<ValueType>>);
                }
             }
             else {
@@ -696,7 +696,7 @@ namespace glz
                         to_json_schema<InnerV>::template op<Opts>(def, defs);
                      }
                      auto wrapper = std::make_shared<schema>();
-                     wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"#/$defs/">, name_v<InnerV>>);
+                     wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"">, name_v<InnerV>>);
                      s.items = std::move(wrapper);
                   }
                }
@@ -705,7 +705,7 @@ namespace glz
                   if (!def.type) {
                      to_json_schema<V>::template op<Opts>(def, defs);
                   }
-                  s.items = make_ref_schema(join_v<chars<"#/$defs/">, name_v<V>>);
+                  s.items = make_ref_schema(join_v<chars<"">, name_v<V>>);
                }
             }
          }
@@ -735,7 +735,7 @@ namespace glz
                      to_json_schema<InnerV>::template op<Opts>(def, defs);
                   }
                   auto wrapper = std::make_shared<schema>();
-                  wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"#/$defs/">, name_v<InnerV>>);
+                  wrapper->anyOf = make_nullable_ref_anyof(join_v<chars<"">, name_v<InnerV>>);
                   s.additionalProperties = std::move(wrapper);
                }
             }
@@ -744,7 +744,7 @@ namespace glz
                if (!def.type) {
                   to_json_schema<V>::template op<Opts>(def, defs);
                }
-               s.additionalProperties = make_ref_schema(join_v<chars<"#/$defs/">, name_v<V>>);
+               s.additionalProperties = make_ref_schema(join_v<chars<"">, name_v<V>>);
             }
          }
       };
@@ -826,7 +826,7 @@ namespace glz
                   if (!def.type) {
                      to_json_schema<V>::template op<Opts>(def, defs);
                   }
-                  schema_val.ref = join_v<chars<"#/$defs/">, name_v<V>>;
+                  schema_val.ref = join_v<chars<"">, name_v<V>>;
                }
                else {
                   to_json_schema<V>::template op<Opts>(schema_val, defs);
@@ -1057,13 +1057,13 @@ namespace glz
                      to_json_schema<inner_val_t>::template op<Opts>(def, defs);
                   }
                   if (!prop.ref) {
-                     prop.anyOf = make_nullable_ref_anyof(join_v<chars<"#/$defs/">, name_v<inner_val_t>>);
+                     prop.anyOf = make_nullable_ref_anyof(join_v<chars<"">, name_v<inner_val_t>>);
                   }
                }
                else {
                   if (!prop.ref) {
                      validate_ref<name_v<val_t>>();
-                     prop.ref = join_v<chars<"#/$defs/">, name_v<val_t>>;
+                     prop.ref = join_v<chars<"">, name_v<val_t>>;
                   }
 
                   auto& def = defs[name_v<val_t>];
@@ -1147,7 +1147,7 @@ namespace glz
       inline bool try_inline_ref(schema& node, std::map<std::string_view, schema, std::less<>>& defs,
                                  const std::map<std::string_view, size_t>& counts)
       {
-         static constexpr std::string_view prefix = "#/$defs/";
+         static constexpr std::string_view prefix = "";
          if (!node.ref) return false;
          auto ref = *node.ref;
          if (!ref.starts_with(prefix)) return false;
@@ -1232,7 +1232,7 @@ namespace glz
       }
 
       // Remove inlined (single-use) entries from $defs
-      inline void prune_inlined_defs(std::map<std::string_view, schema, std::less<>>& defs, const std::map<std::string_view, size_t>& counts, std::string_view prefix = "#/$defs/"){
+      inline void prune_inlined_defs(std::map<std::string_view, schema, std::less<>>& defs, const std::map<std::string_view, size_t>& counts, std::string_view prefix = ""){
          for (auto it = defs.begin(); it != defs.end();) {
             // Build the full $ref path for this def entry
             // Use a local string since string_view concatenation isn't possible

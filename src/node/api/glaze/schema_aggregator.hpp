@@ -1,18 +1,19 @@
 #pragma once
+#include "api/reply.hpp"
 #include "glaze/json/schema.hpp"
-#include "api/reply.hpp"
-#include "api/reply.hpp"
 #include <map>
 #include <string>
 struct SchemaAggregator {
 private:
     std::map<std::string_view, glz::schema, std::less<>> defs;
+    std::map<std::string_view, size_t> ref_counts;
 
 public:
     template <typename T>
     std::string_view add_type()
     {
         auto name { glz::name_v<T> };
+        ref_counts[name] += 2; // to make the original types appear in the final list they need ref_count >= 2
         auto& def = defs[name];
         if (!def.type) {
             glz::detail::to_json_schema<std::decay_t<T>>::template op<glz::opts {}>(def, defs);
@@ -20,12 +21,13 @@ public:
         return name;
     }
     HTMLString to_html_list() const;
-    void inline_by_refcount(){
+    void inline_by_refcount()
+    {
 
         // Inline single-use $defs entries at their reference sites
-        std::map<std::string_view, size_t> ref_counts;
-        for (auto& [_,def] : defs) 
-            glz::detail::count_schema_refs(def,ref_counts);
+        for (auto& [name, def] : defs) {
+            glz::detail::count_schema_refs(def, ref_counts);
+        }
 
         // First inline refs within defs entries (for chained single-use types)
         for (auto& [_, def] : defs) {

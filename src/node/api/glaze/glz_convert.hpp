@@ -65,7 +65,7 @@ HashrateInfo from(const api::HashrateInfo&);
 AssetSearchResult from(const api::AssetSearchResult&);
 MarketDetail from(const api::MarketDetail&);
 MarketOrders from(const api::MarketOrders&);
-AccountHistory from(const api::AccountHistory&);
+ActionsByBlock from(const api::AccountHistory&);
 RichlistResult from(const api::RichlistInfo&);
 OffenseEntry from(const api::OffenseEntry&);
 Peerinfo from(const api::Peerinfo&);

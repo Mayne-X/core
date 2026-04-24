@@ -1927,7 +1927,6 @@ auto State::api_get_history(const api::AccountIdOrAddress& a,
     -> wrt::optional<api::AccountHistory>
 {
     auto p = a.map_alternative([&](const Address& a) { return db.lookup_account(a); });
-    ;
     if (!p)
         return {};
     auto& accountId(*p);

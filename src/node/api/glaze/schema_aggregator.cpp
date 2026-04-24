@@ -179,7 +179,7 @@ struct HTMLAggregator {
                     p = &v[0];
                 }
                 if (p) {
-                    data << "either null or ";
+                    data << "Either null or ";
                     add_inner_entry(*p);
                     handled = true;
                 }

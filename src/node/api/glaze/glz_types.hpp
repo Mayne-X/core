@@ -382,18 +382,6 @@ struct MempoolEntry {
 };
 using MempoolEntries = std::vector<MempoolEntry>;
 
-struct ActionsByBlock {
-    struct BlockEntry {
-        uint32_t height;
-        uint32_t confirmations;
-        BlockActions actions;
-    };
-    std::vector<BlockEntry> perBlock;
-    uint64_t fromId;
-    struct glaze {
-        static constexpr const char* name = "ActionsByBlock";
-    };
-};
 
 struct AddressCount {
     std::string address;
@@ -884,10 +872,10 @@ struct HashrateInfo {
     uint64_t estimate;
     static constexpr const char* name = "HashrateInfo";
 };
-struct AccountHistory {
+struct ActionsByBlock {
     uint64_t fromId;
     std::vector<Block> perBlock;
-    static constexpr const char* name = "AccountHistory";
+    static constexpr const char* name = "ActionsByBlock";
 };
 struct HeaderDownload {
     std::string minWork;

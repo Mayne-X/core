@@ -46,7 +46,7 @@ METHOD| PATH | DESCRIPTION
 `GET`   |`/chain/hashrate/chart/:from/:to/:window`| 
 `POST`  |`/chain/append`| Append mined block
 `GET`   |`/account/:account/balance`| Show balance of specific account
-`GET`   |`/account/:account/history/:beforeTxIndex`| Show transaction history of specific account
+`GET`   |`/account/:account/history/:beforeId`| Show transaction history of specific account
 `GET`   |`/peers/ip_count`| Show peer IPs
 `GET`   |`/peers/banned`| Show banned peers
 `GET`   |`/peers/unban`| Unban all peers
@@ -438,7 +438,7 @@ Send transactions in JSON format, returns transaction hash in hex format:
 }
 ```
 
-### `GET /account/:account/history/:beforeTxIndex`
+### `GET /account/:account/history/:beforeId`
 
  Show transaction history of specific account
  Example output:

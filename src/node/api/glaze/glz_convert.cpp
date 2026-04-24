@@ -582,16 +582,12 @@ BlockActions from(const api::block::Actions& actions)
 ActionsByBlock from(const api::TransactionsByBlocks& f)
 {
     ActionsByBlock out {
-        .perBlock {},
         .fromId = from(f.fromId),
+        .perBlock {},
     };
 
     for (auto& b : std::ranges::reverse_view(f.blocks_reversed)) {
-        out.perBlock.push_back(ActionsByBlock::BlockEntry {
-            .height = b.height.value(),
-            .confirmations = b.confirmations,
-            .actions = from(b.actions),
-        });
+        out.perBlock.push_back(from(b));
     }
     return out;
 }
@@ -1088,7 +1084,7 @@ MarketOrders from(const api::MarketOrders& e)
         .assetToWartSwaps = make_swap_orders(e.sells, dec),
     };
 }
-AccountHistory from(const api::AccountHistory& ah)
+ActionsByBlock from(const api::AccountHistory& ah)
 {
     std::vector<Block> blocks;
     for (auto& b : std::ranges::reverse_view(ah.blocks_reversed)) {

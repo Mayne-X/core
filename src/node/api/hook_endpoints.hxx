@@ -497,7 +497,7 @@ public:
         GET_PUB<"/account/:account/open_orders/:asset">(api_call<GetAccountOrdersAsset>);
         GET_PUB<"/account/:account/balance/:tokenspec">(api_call<GetTokenBalance>);
         GET_PUB<"/account/:account/wart_balance">(api_call<GetWartBalance>);
-        GET_PUB<"/account/:account/history/:beforeTxIndex">(api_call<GetAccountHistory>);
+        GET_PUB<"/account/:account/history/:beforeId">(api_call<GetAccountHistory>);
         GET_PUB<"/account/richlist/:tokenspec">(get_token_richlist);
 
         SECTION("Peers Endpoints");
