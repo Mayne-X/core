@@ -909,9 +909,9 @@ void ChainDB::insert_unguarded(const TokenForkBalanceData& b)
 //         });
 // }
 
-wrt::optional<std::pair<NonzeroHeight, Funds_uint64>> ChainDB::get_balance_snapshot_after(TokenId tokenId, NonzeroHeight minHegiht) const
+wrt::optional<std::pair<NonzeroHeight, Funds_uint64>> ChainDB::get_balance_snapshot_after(TokenId tokenId, NonzeroHeight minHeight) const
 {
-    auto res { stmtTokenForkBalanceSelect.one(tokenId, minHegiht) };
+    auto res { stmtTokenForkBalanceSelect.one(tokenId, minHeight) };
     if (!res.has_value())
         return {};
     return std::pair<NonzeroHeight, Funds_uint64> { res[0], res[1] };

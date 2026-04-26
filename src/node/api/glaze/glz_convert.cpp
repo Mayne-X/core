@@ -391,7 +391,7 @@ TransactionDetails from(const api::TransactionDetails& d)
                 .mined { TransactionDetails::Mined {
                     .historyId = from(m.hid),
                     .block {
-                        .hegiht = m.block.height.value(),
+                        .height = m.block.height.value(),
                         .hash = from(m.block.hash),
                         .timestamp = m.block.timestamp,
                     },
@@ -1162,7 +1162,7 @@ Peerinfo from(const api::Peerinfo& pi)
             .worksum = pi.chainstate.descripted()->worksum().getdouble(),
             .worksumHex = pi.chainstate.descripted()->worksum().to_string(),
             .grid = std::move(grid) },
-        .leaderPriority = { .ack { .importance = pi.acknowledgedSnapshotPriority.importance, .hegiht = pi.acknowledgedSnapshotPriority.height.value() }, .theirs { .importance = pi.theirSnapshotPriority.importance, .hegiht = pi.theirSnapshotPriority.height.value() } }
+        .leaderPriority = { .ack { .importance = pi.acknowledgedSnapshotPriority.importance, .height = pi.acknowledgedSnapshotPriority.height.value() }, .theirs { .importance = pi.theirSnapshotPriority.importance, .height = pi.theirSnapshotPriority.height.value() } }
     };
 }
 HashrateBlockChart from(const api::HashrateBlockChart& chart)

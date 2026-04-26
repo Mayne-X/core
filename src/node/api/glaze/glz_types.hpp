@@ -658,7 +658,7 @@ struct Peerinfo {
     struct LeaderPriority {
         struct Priority {
             int importance;
-            uint32_t hegiht;
+            uint32_t height;
         };
         Priority ack;
         Priority theirs;
@@ -759,7 +759,7 @@ struct TransactionDetails {
     struct Mined {
         uint64_t historyId;
         struct Block {
-            uint32_t hegiht;
+            uint32_t height;
             std::string hash;
             uint32_t timestamp;
         } block;
