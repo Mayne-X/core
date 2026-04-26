@@ -150,7 +150,7 @@ struct TokenTransferData {
     FundsDecimal amount_decimal() const { return { amount, isLiquidity ? TokenDecimals::LIQUIDITY : assetInfo.decimals }; }
 };
 
-struct NewOrderData {
+struct LimitSwapData {
     static constexpr const char* label = ::block::labels::limitSwap;
     AssetBasic assetInfo;
     Funds_uint64 amount;
@@ -210,7 +210,7 @@ struct Actions {
     std::vector<WithHistoryId<block::WartTransfer>> wartTransfers;
     std::vector<WithHistoryId<block::TokenTransfer>> tokenTransfers;
     std::vector<WithHistoryId<block::AssetCreation>> assetCreations;
-    std::vector<WithHistoryId<block::NewOrder>> newOrders;
+    std::vector<WithHistoryId<block::LimitSwap>> limitSwaps;
     std::vector<WithHistoryId<block::Match>> matches;
     std::vector<WithHistoryId<block::LiquidityDeposit>> liquidityDeposits;
     std::vector<WithHistoryId<block::LiquidityWithdrawal>> liquidityWithdrawals;
@@ -222,7 +222,7 @@ struct MempoolEntry : public wrt::variant<
                           block::WartTransfer,
                           block::TokenTransfer,
                           block::AssetCreation,
-                          block::NewOrder,
+                          block::LimitSwap,
                           block::LiquidityDeposit,
                           block::LiquidityWithdrawal,
                           block::Cancelation> {

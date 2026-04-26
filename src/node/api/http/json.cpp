@@ -125,7 +125,7 @@ json header_json(const Header& header, NonzeroHeight height)
     } };
     j["wartTransfers"] = gen_arr(actions.wartTransfers);
     j["tokenTransfers"] = gen_arr(actions.tokenTransfers);
-    j["newOrders"] = gen_arr(actions.newOrders);
+    j["newOrders"] = gen_arr(actions.limitSwaps);
     j["matches"] = gen_arr(actions.matches);
     j["liquidityDeposits"] = gen_arr(actions.liquidityDeposits);
     j["liquidityWithdrawals"] = gen_arr(actions.liquidityWithdrawals);
@@ -262,7 +262,7 @@ json to_json(const api::block::AssetCreationData& d)
     };
 }
 
-json to_json(const api::block::NewOrderData& tx)
+json to_json(const api::block::LimitSwapData& tx)
 {
     return {
         { "baseAsset", jsonmsg::to_json(tx.assetInfo) },

@@ -246,20 +246,20 @@ using TransactionMaybeProcessed = SignedTransactionMaybeProcessed<Data, Processe
 using WithHistoryId = WithHistoryId<TransactionProcessed>;
 }
 
-namespace new_order {
+namespace limit_swap {
 struct Data {
     AssetBasic baseAsset;
     FundsDecimal amount;
     PriceDetail limit;
     bool buy;
     struct glaze {
-        static constexpr const char* name = "NewOrderProcessed";
+        static constexpr const char* name = "LimitSwapData";
     };
 };
 struct Processed {
     FundsDecimal remaining;
     struct glaze {
-        static constexpr const char* name = "NewOrderProcessed";
+        static constexpr const char* name = "LimitSwapProcessed";
     };
 };
 using TransactionUnprocessed = SignedTransaction<Data>;
@@ -351,14 +351,14 @@ using WithHistoryId = WithHistoryId<TransactionProcessed>;
 
 struct BlockActions {
     std::optional<reward::WithHistoryId> reward;
-    std::vector<wart_transfer::WithHistoryId> wartTransfers;
-    std::vector<token_transfer::WithHistoryId> tokenTransfers;
-    std::vector<new_order::WithHistoryId> newOrders;
-    std::vector<match::WithHistoryId> matches;
-    std::vector<liquidity_deposit::WithHistoryId> liquidityDeposits;
-    std::vector<liquidity_withdrawal::WithHistoryId> liquidityWithdrawals;
-    std::vector<asset_creation::WithHistoryId> assetCreations;
-    std::vector<cancelation::WithHistoryId> cancelations;
+    std::vector<wart_transfer::WithHistoryId> wartTransfer;
+    std::vector<token_transfer::WithHistoryId> tokenTransfer;
+    std::vector<limit_swap::WithHistoryId> limitSwap;
+    std::vector<match::WithHistoryId> match;
+    std::vector<liquidity_deposit::WithHistoryId> liquidityDeposit;
+    std::vector<liquidity_withdrawal::WithHistoryId> liquidityWithdrawal;
+    std::vector<asset_creation::WithHistoryId> assetCreation;
+    std::vector<cancelation::WithHistoryId> cancelation;
     struct glaze {
         static constexpr const char* name = "BlockActions";
     };
@@ -368,7 +368,7 @@ struct MempoolEntry {
     using Transaction = std::variant<
         wart_transfer::Transaction,
         token_transfer::Transaction,
-        new_order::TransactionUnprocessed,
+        limit_swap::TransactionUnprocessed,
         liquidity_deposit::TransactionUnprocessed,
         liquidity_withdrawal::TransactionUnprocessed,
         asset_creation::TransactionUnprocessed,
@@ -381,7 +381,6 @@ struct MempoolEntry {
     };
 };
 using MempoolEntries = std::vector<MempoolEntry>;
-
 
 struct AddressCount {
     std::string address;
@@ -749,7 +748,7 @@ struct TransactionDetails {
         reward::Transaction,
         wart_transfer::Transaction,
         token_transfer::Transaction,
-        new_order::TransactionMaybeProcessed,
+        limit_swap::TransactionMaybeProcessed,
         match::Transaction,
         liquidity_deposit::TransactionMaybeProcessed,
         liquidity_withdrawal::TransactionMaybeProcessed,

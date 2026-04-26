@@ -335,7 +335,7 @@ struct MatchProcessor {
     OnSellSwap on_sell_swap;
 };
 
-struct NewOrdersInternal : UnsortedOrderbook {
+struct LimitSwapsInternal : UnsortedOrderbook {
     bool empty() const { return buys.empty() && sells.empty(); }
     void push_back(VerifiedOrderWithId o)
     {
@@ -1256,14 +1256,14 @@ private:
                 hist.historyId });
         }
     }
-    [[nodiscard]] std::pair<NewOrdersInternal, HistoryId> generate_new_orders(const AssetHandle& asset, const std::vector<block_apply::Order::Internal>& orders)
+    [[nodiscard]] std::pair<LimitSwapsInternal, HistoryId> generate_new_orders(const AssetHandle& asset, const std::vector<block_apply::Order::Internal>& orders)
     {
-        NewOrdersInternal res;
+        LimitSwapsInternal res;
         const auto beginOrdersHistoryId { history.get_next_history_id() };
         for (auto& o : orders) {
             auto verified { o.verify(txVerifier, asset.hash()) };
             auto& hist { history.push_order(verified) };
-            api.newOrders.push_back(
+            api.limitSwaps.push_back(
                 { { hist.he.hash,
                       {
                           .assetInfo { asset.info() },
@@ -1310,8 +1310,8 @@ private:
                 if (historyId >= beginOrdersHistoryId) { // this is a new order from this block
                     // we must update the filled amount.
                     auto index { historyId - beginOrdersHistoryId };
-                    assert(api.newOrders.size() > index);
-                    auto& apiOrder { api.newOrders[index] };
+                    assert(api.limitSwaps.size() > index);
+                    auto& apiOrder { api.limitSwaps[index] };
                     assert(apiOrder.historyId == historyId);
                     apiOrder.transaction.data.remaining = o.newFillState.filled;
                 } },

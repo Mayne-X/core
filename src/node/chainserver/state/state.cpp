@@ -445,7 +445,7 @@ void push_history(api::Block& b, const std::pair<HistoryId, history::Entry>& p,
             if (auto o { c.db.select_open_order(hid) }) {
                 remaining = o->remaining();
             }
-            b.actions.newOrders.push_back(
+            b.actions.limitSwaps.push_back(
                 { { e.hash,
                       {
                           .assetInfo { assetData },
@@ -592,7 +592,7 @@ api::MempoolEntry State::api_dispatch_mempool(const TxHash& txHash,
         },
         [&](const LimitSwapMessage& o) -> api::MempoolEntry {
             return { txHash,
-                api::block::NewOrderData {
+                api::block::LimitSwapData {
                     .assetInfo { get_asset(o.asset_hash()) },
                     .amount { o.amount() },
                     .remaining {},
@@ -689,7 +689,7 @@ api::TransactionDetails State::api_dispatch_history(const TxHash& txHash,
             wrt::optional<Funds_uint64> remaining;
             if (auto openOrder { db.select_open_order(hid) })
                 remaining = openOrder->remaining();
-            return api::MaybeMinedNewOrder { minedData, confirmations,
+            return api::MaybeMinedLimitSwap { minedData, confirmations,
                 { txHash,
                     {
                         .assetInfo { a },

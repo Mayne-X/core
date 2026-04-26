@@ -311,9 +311,9 @@ TransactionDetails from(const api::TransactionDetails& d)
             }
             return out;
         },
-        [&](const block::NewOrder& t) -> new_order::TransactionMaybeProcessed {
+        [&](const block::LimitSwap& t) -> limit_swap::TransactionMaybeProcessed {
             auto& d { t.data };
-            new_order::TransactionMaybeProcessed out {
+            limit_swap::TransactionMaybeProcessed out {
                 .data {
                     .baseAsset { from(d.assetInfo) },
                     .amount { from(d.amount_decimal()) },
@@ -324,7 +324,7 @@ TransactionDetails from(const api::TransactionDetails& d)
                 .signedCommon { from(t.signedData) }
             };
             if (d.remaining) {
-                out.processed = new_order::Processed {
+                out.processed = limit_swap::Processed {
                     .remaining = from(::FundsDecimal(*d.remaining, d.assetInfo.decimals))
                 };
             }
@@ -501,13 +501,13 @@ BlockActions from(const api::block::Actions& actions)
 {
     BlockActions a;
     a.reward = from(actions.reward);
-    a.wartTransfers = from(actions.wartTransfers);
-    a.tokenTransfers = from(actions.tokenTransfers);
+    a.wartTransfer = from(actions.wartTransfers);
+    a.tokenTransfer = from(actions.tokenTransfers);
     for (auto& e : actions.assetCreations) {
         auto& t = e.transaction;
         auto& aid { t.data.assetId };
         assert(aid);
-        a.assetCreations.push_back(
+        a.assetCreation.push_back(
             { .transaction = asset_creation::TransactionProcessed {
                   .data {
                       .name = t.data.name.to_string(),
@@ -517,11 +517,11 @@ BlockActions from(const api::block::Actions& actions)
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
     }
-    for (auto& e : actions.newOrders) {
+    for (auto& e : actions.limitSwaps) {
         auto& t = e.transaction;
         auto& d { t.data };
-        a.newOrders.push_back(
-            { .transaction = new_order::TransactionProcessed {
+        a.limitSwap.push_back(
+            { .transaction = limit_swap::TransactionProcessed {
                   .data {
                       .baseAsset { from(d.assetInfo) },
                       .amount { from(d.amount_decimal()) },
@@ -533,13 +533,13 @@ BlockActions from(const api::block::Actions& actions)
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
     }
-    a.matches = from(actions.matches);
+    a.match = from(actions.matches);
     for (auto& e : actions.liquidityDeposits) {
         auto& t = e.transaction;
         auto& d { t.data };
         assert(d.sharesReceived);
         defi::BaseQuote bq { d.baseDeposited, d.quoteDeposited };
-        a.liquidityDeposits.push_back(
+        a.liquidityDeposit.push_back(
             { .transaction {
                   .data {
                       .baseAsset { from(d.assetInfo) },
@@ -554,7 +554,7 @@ BlockActions from(const api::block::Actions& actions)
         auto& d { t.data };
         assert(d.received);
         ::FundsDecimal fd(d.sharesRedeemed, TokenDecimals::LIQUIDITY);
-        a.liquidityWithdrawals.push_back(
+        a.liquidityWithdrawal.push_back(
             { .transaction = {
                   .data {
                       .baseAsset { from(d.assetInfo) },
@@ -568,7 +568,7 @@ BlockActions from(const api::block::Actions& actions)
         auto& t = e.transaction;
         auto& d { t.data };
         assert(d.canceledTxHash);
-        a.cancelations.push_back(
+        a.cancelation.push_back(
             { .transaction = {
                   .data { .cancelTxid = from(t.data.cancelTxid) },
                   .processed { .canceledTxHash = from(*d.canceledTxHash) },
@@ -794,10 +794,10 @@ MempoolEntry from(const api::MempoolEntry& e)
                 .type = tx.data.label
             };
         },
-        [&](const block::NewOrder& tx) -> MempoolEntry {
+        [&](const block::LimitSwap& tx) -> MempoolEntry {
             auto& d { tx.data };
             return {
-                .transaction = new_order::TransactionUnprocessed {
+                .transaction = limit_swap::TransactionUnprocessed {
                     .data {
                         .baseAsset { from(d.assetInfo) },
                         .amount { from(d.amount_decimal()) },

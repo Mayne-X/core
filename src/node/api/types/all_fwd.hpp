@@ -40,7 +40,7 @@ using MinedReward = Mined<block::Reward>;
 using MaybeMinedWartTransfer = MaybeMined<block::WartTransfer>;
 using MaybeMinedTokenTransfer = MaybeMined<block::TokenTransfer>;
 using MaybeMinedAssetCreation = MaybeMined<block::AssetCreation>;
-using MaybeMinedNewOrder = MaybeMined<block::NewOrder>;
+using MaybeMinedLimitSwap = MaybeMined<block::LimitSwap>;
 using MinedMatch = Mined<block::Match>;
 using MaybeMinedLiquidityDeposit = MaybeMined<block::LiquidityDeposit>;
 using MaybeMinedLiquidityWithdrawal = MaybeMined<block::LiquidityWithdrawal>;
@@ -52,7 +52,7 @@ using TransactionDetails = wrt::variant<
     MaybeMinedWartTransfer,
     MaybeMinedTokenTransfer,
     MaybeMinedAssetCreation,
-    MaybeMinedNewOrder,
+    MaybeMinedLimitSwap,
     MinedMatch, // <-- always mined, not in mempool
     MaybeMinedLiquidityDeposit,
     MaybeMinedLiquidityWithdrawal,

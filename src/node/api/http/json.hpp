@@ -78,7 +78,7 @@ json to_json(const api::block::RewardData&);
 json to_json(const api::block::WartTransferData&);
 json to_json(const api::block::TokenTransferData&);
 json to_json(const api::block::AssetCreationData&);
-json to_json(const api::block::NewOrderData& tx);
+json to_json(const api::block::LimitSwapData& tx);
 json to_json(const api::block::MatchData&);
 json to_json(const api::block::LiquidityDepositData&);
 json to_json(const api::block::LiquidityWithdrawalData&);
