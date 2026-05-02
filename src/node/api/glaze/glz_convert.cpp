@@ -149,7 +149,7 @@ TransactionSignedCommon from(const api::block::TransactionSignedData& d)
 {
     return {
         .originId = from(d.originId),
-        .originAddress { serialize_hex(d.originAddress) },
+        .originAddress { d.originAddress.to_string() },
         .fee { from(d.fee) },
         .nonceId = from(d.nonceId),
         .pinHeight = from(d.pinHeight),
