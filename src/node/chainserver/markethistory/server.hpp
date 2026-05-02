@@ -193,8 +193,8 @@ public:
         events.push_back(std::move(e));
         cv.notify_all();
     }
-    template <typename T>
 
+    template <typename T>
     static constexpr bool supports = ReaderThreadpool::supports<T>;
 
     struct InitData {

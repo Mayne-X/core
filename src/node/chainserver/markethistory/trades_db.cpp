@@ -210,7 +210,7 @@ void MarketDB::clear()
 {
     rollback(RollbackBounds {
         .assetIdDeleteFrom { 0 },
-        .length { Height(0).add1() },
+        .length { Height(0) },
         .timestamp { 0 },
     });
 }
