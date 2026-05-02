@@ -74,7 +74,7 @@ wrt::optional<Asset> MarketReaderDB::get_asset(AssetHash hash) const
 template <typename... Args>
 inline std::vector<api::Trade> MarketReaderDB::extract_trades(AssetId assetId, std::string_view condition, Args&&... args) const
 {
-    auto table{trades_table(assetId)};
+    auto table { trades_table(assetId) };
     auto query = std::format("SELECT {}.height AS height, timestamp, base, quote FROM {} JOIN Blocks ON {}.height = Blocks.height {}", table, table, table, condition);
     Statement stmt(db, query);
     return stmt.all([](const sqlite::Row& row) {
@@ -465,6 +465,7 @@ wrt::optional<BlockHash> MarketDB::select_block(NonzeroHeight height)
 
 void MarketDB::delete_assets_from(AssetId assetId, NonzeroHeight fromHeight)
 {
+    std::vector<AssetId> dropTables;
     stmtSelectAssetsFrom.for_each([&](auto& row) {
         AssetId assetId = row[0];
         Height latestHeight = row[1];
@@ -472,11 +473,13 @@ void MarketDB::delete_assets_from(AssetId assetId, NonzeroHeight fromHeight)
             // There were trades inserted for this assetId.
             // Any trades must have happened after asset was created.
             assert(latestHeight >= fromHeight);
-
-            asset_drop_tables(assetId);
+            dropTables.push_back(assetId);
         }
     },
         assetId);
+    for (auto& assetId : dropTables) {
+        asset_drop_tables(assetId);
+    }
     stmtDeleteAssets.run(assetId);
 }
 }
