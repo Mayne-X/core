@@ -113,6 +113,8 @@ auto Headerchain::hashrate(uint32_t nblocks) const -> Result<api::HashrateInfo>
 
 auto Headerchain::hashrate_at(Height h, uint32_t nblocks) const -> Result<api::HashrateInfo>
 {
+    if (h.is_zero())
+        return api::HashrateInfo { .nBlocks = 0, .estimate = 0 };
     if (h > length())
         return Error(EBADHEIGHT);
     NonzeroHeight lower { h.value() > nblocks ? (h + 1 - nblocks).nonzero_assert() : NonzeroHeight { 1u } };
