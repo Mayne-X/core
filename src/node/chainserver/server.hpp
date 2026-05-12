@@ -63,7 +63,7 @@ class ChainServer : public std::enable_shared_from_this<ChainServer>, public ena
 public:
     // can be called concurrently
     HeaderBatch get_headers(HeaderBatchSelector selector);
-    wrt::optional<HeaderView> get_descriptor_header(Descriptor descriptor, Height height);
+    std::optional<HeaderView> get_descriptor_header(Descriptor descriptor, Height height);
     ConsensusSlave get_chainstate();
 
     void shutdown();
@@ -170,8 +170,8 @@ private:
     struct Token { };
 
 public:
-    ChainServer(ChainDB& b, MarketDb* tdb, BatchRegistry&, wrt::optional<SnapshotSigner> snapshotSigner, Token);
-    static auto make_chain_server(ChainDB& b, MarketDb* tdb, BatchRegistry& br, wrt::optional<SnapshotSigner> snapshotSigner)
+    ChainServer(ChainDB& b, MarketDb* tdb, BatchRegistry&, std::optional<SnapshotSigner> snapshotSigner, Token);
+    static auto make_chain_server(ChainDB& b, MarketDb* tdb, BatchRegistry& br, std::optional<SnapshotSigner> snapshotSigner)
     {
         return std::make_shared<ChainServer>(b, tdb, br, snapshotSigner, Token {});
     }

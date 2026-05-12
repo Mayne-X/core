@@ -51,7 +51,7 @@ JSONConverter::operator CancelNonceEl() const { return cancel_nonce_id(); }
 CompactUInt JSONConverter::fee() const
 {
     try {
-        wrt::optional<Wart> fee;
+        std::optional<Wart> fee;
         auto iter = json.find("feeStr");
         if (iter != json.end()) {
             fee = { Wart::parse_throw(iter->get<std::string>()) };
@@ -97,7 +97,7 @@ JSONConverter::operator PinHeightEl() const
 Wart JSONConverter::wart() const
 {
     try {
-        wrt::optional<Wart> o;
+        std::optional<Wart> o;
         auto iter = json.find("wartStr");
         if (iter != json.end()) {
             auto w{Wart::try_parse(iter->get<std::string>())};

@@ -64,7 +64,7 @@ SharedBatch::SharedBatch(iter_type iter) noexcept
     nd.refcount += 1;
 }
 
-wrt::optional<HeaderView> SharedBatch::search_header_recursive(NonzeroHeight h) const
+std::optional<HeaderView> SharedBatch::search_header_recursive(NonzeroHeight h) const
 {
     return HeaderSearchRecursive(prev(), getBatch()).find_prev(h);
 }
@@ -125,7 +125,7 @@ SharedBatchView BatchRegistry::find_last_template(const T& t)
     }
 }
 
-wrt::optional<SharedBatch> BatchRegistry::find_last(const Grid g, const wrt::optional<SignedSnapshot>& ss)
+std::optional<SharedBatch> BatchRegistry::find_last(const Grid g, const std::optional<SignedSnapshot>& ss)
 {
     std::unique_lock l(m);
     auto res { find_last_template(g) };
@@ -169,7 +169,7 @@ Nodedata::~Nodedata()
     assert(refcount == 0);
 }
 
-wrt::optional<Hash> Nodedata::hash_at(NonzeroHeight h)
+std::optional<Hash> Nodedata::hash_at(NonzeroHeight h)
 {
     auto uh { upper_height() };
     if (uh == h) {

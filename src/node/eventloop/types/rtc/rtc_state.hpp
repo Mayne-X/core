@@ -5,7 +5,7 @@
 #include "transport/webrtc/rtc_connection.hpp"
 #include "transport/webrtc/sdp_util.hpp"
 #include <list>
-#include "wrt/optional.hpp"
+
 
 class RTCConnection;
 namespace rtc_state {
@@ -20,10 +20,10 @@ public:
     void add(Conref c);
     void erase(Conref c);
     bool empty() const { return offset >= queue.size(); }
-    wrt::optional<PopResult> pop(IdentityIps::Pattern);
+    std::optional<PopResult> pop(IdentityIps::Pattern);
 
 private:
-    wrt::optional<Conref> pop_front();
+    std::optional<Conref> pop_front();
     std::vector<Conref> queue;
     size_t offset = 0;
     static constexpr size_t pruneOffset = 10;
@@ -45,12 +45,12 @@ private:
 
 struct RTCState {
 
-    [[nodiscard]] wrt::optional<IP> get_ip(IpType t) const;
+    [[nodiscard]] std::optional<IP> get_ip(IpType t) const;
     void erase(Conref);
     size_t total { 0 };
     // size_t hardMax { 100 };
     // size_t
-    wrt::optional<IdentityIps> ips;
+    std::optional<IdentityIps> ips;
     Connections connections;
     VerificationSchedule verificationSchedule;
 };

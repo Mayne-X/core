@@ -1,6 +1,6 @@
 #pragma once
 #include "timer.hpp"
-#include "wrt/optional.hpp"
+
 
 class TimerElement {
     using key_t = eventloop::TimerSystem::key_t;
@@ -25,5 +25,5 @@ public:
     ~TimerElement();
 
 private:
-    wrt::optional<key_t> key;
+    std::optional<key_t> key;
 };

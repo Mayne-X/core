@@ -1,6 +1,8 @@
 #pragma once
 #include "block/body/body_fwd.hpp"
+#include "block/chain/height.hpp"
 #include "crypto/hash.hpp"
+#include <vector>
 struct MerkleLeaves {
     void add_hash(Hash hash)
     {

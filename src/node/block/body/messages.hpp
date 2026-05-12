@@ -208,7 +208,7 @@ public:
         struct Result : public AltToken {
             const AssetHash& assetHash;
         };
-        return visit([]<typename T>(const T& m) -> wrt::optional<Result> {
+        return visit([]<typename T>(const T& m) -> std::optional<Result> {
             if constexpr (T::has_asset_hash) {
                 return Result { m.alt_token(), m.asset_hash() };
             } else {
@@ -216,9 +216,9 @@ public:
             }
         });
     }
-    [[nodiscard]] wrt::optional<AssetHash> asset_hash() const
+    [[nodiscard]] std::optional<AssetHash> asset_hash() const
     {
-        return visit([]<typename T>(const T& m) -> wrt::optional<AssetHash> {
+        return visit([]<typename T>(const T& m) -> std::optional<AssetHash> {
             if constexpr (T::has_asset_hash) {
                 return m.asset_hash();
             } else {

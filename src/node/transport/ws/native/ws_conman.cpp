@@ -18,7 +18,7 @@ extern "C" {
 }
 namespace {
 
-wrt::optional<IP> forwarded_for(lws* wsi)
+std::optional<IP> forwarded_for(lws* wsi)
 {
     if (int i { lws_hdr_total_length(wsi, WSI_TOKEN_X_FORWARDED_FOR) }; i >= 0) {
         size_t len(i);
@@ -30,7 +30,7 @@ wrt::optional<IP> forwarded_for(lws* wsi)
     }
     return {};
 }
-wrt::optional<Sockaddr> peer_ip_port(lws* wsi)
+std::optional<Sockaddr> peer_ip_port(lws* wsi)
 {
     auto fd { lws_get_socket_fd(wsi) };
     assert(fd > 0);

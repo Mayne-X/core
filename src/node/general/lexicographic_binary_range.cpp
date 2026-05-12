@@ -1,6 +1,6 @@
 #include "lexicographic_binary_range.hpp"
 #include "general/hex_digit.hpp"
-wrt::optional<LexicographicByteRange> LexicographicByteRange::from_hex(std::string_view hexPrefix)
+std::optional<LexicographicByteRange> LexicographicByteRange::from_hex(std::string_view hexPrefix)
 {
     size_t l { hexPrefix.length() };
     LexicographicByteRange res;

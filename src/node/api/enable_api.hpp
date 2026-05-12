@@ -69,7 +69,7 @@ struct enable_api_methods;
 template <typename Host, typename... Requests>
 struct enable_api_methods<Host, TypeCollection<Requests...>> {
 
-    wrt::optional<logging::TimingSession> timing;
+    std::optional<logging::TimingSession> timing;
     template <typename T>
     using object_t = T::Object;
     template <typename... T>
@@ -84,7 +84,7 @@ protected:
         visit([&]<typename E>(E&& e) {
             Host* phost { static_cast<Host*>(this) };
             if constexpr (IsAPIObject<std::remove_cvref_t<E>>) {
-                tl::optional<logging::TimingObject> t;
+                std::optional<logging::TimingObject> t;
                 if (timing) {
                     t.emplace(timing->time(E::Request::name));
                 }

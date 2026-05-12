@@ -5,9 +5,9 @@ OrderLoaderBase::OrderLoaderBase(sqlite::Statement& stmt)
     : stmt(&stmt)
 {
 }
-wrt::optional<OrderData> OrderLoaderBase::operator()() const
+std::optional<OrderData> OrderLoaderBase::operator()() const
 {
-    wrt::optional<OrderData> res;
+    std::optional<OrderData> res;
     auto r { stmt->next_row() };
     if (r.has_value()) {
         TransactionId txid {
@@ -35,9 +35,9 @@ OrderLoaderTxhashBase::OrderLoaderTxhashBase(sqlite::Statement& stmt)
     : stmt(&stmt)
 {
 }
-wrt::optional<OrderDataWithTxhash> OrderLoaderTxhashBase::operator()() const
+std::optional<OrderDataWithTxhash> OrderLoaderTxhashBase::operator()() const
 {
-    wrt::optional<OrderDataWithTxhash> res;
+    std::optional<OrderDataWithTxhash> res;
     auto r { stmt->next_row() };
     if (r.has_value()) {
         TransactionId txid {

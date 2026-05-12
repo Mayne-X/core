@@ -9,7 +9,7 @@ class OrderLoaderBase {
     OrderLoaderBase(sqlite::Statement& stmt);
 
 public:
-    [[nodiscard]] wrt::optional<OrderData> operator()() const;
+    [[nodiscard]] std::optional<OrderData> operator()() const;
     OrderLoaderBase(const OrderLoaderBase&) = delete;
     OrderLoaderBase& operator=(const OrderLoaderBase&) = delete;
     OrderLoaderBase(OrderLoaderBase&& other);
@@ -17,7 +17,7 @@ public:
 
 private:
     sqlite::Statement* stmt;
-    wrt::optional<OrderData> loaded;
+    std::optional<OrderData> loaded;
 };
 
 struct OrderDataWithTxhash: public OrderData {
@@ -36,7 +36,7 @@ class OrderLoaderTxhashBase {
     OrderLoaderTxhashBase(sqlite::Statement& stmt);
 
 public:
-    [[nodiscard]] wrt::optional<OrderDataWithTxhash> operator()() const;
+    [[nodiscard]] std::optional<OrderDataWithTxhash> operator()() const;
     OrderLoaderTxhashBase(const OrderLoaderTxhashBase&) = delete;
     OrderLoaderTxhashBase& operator=(const OrderLoaderTxhashBase&) = delete;
     OrderLoaderTxhashBase(OrderLoaderTxhashBase&& other);
@@ -44,7 +44,7 @@ public:
 
 private:
     sqlite::Statement* stmt;
-    wrt::optional<OrderDataWithTxhash> loaded;
+    std::optional<OrderDataWithTxhash> loaded;
 };
 
 template <bool ASCENDING>

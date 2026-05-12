@@ -51,7 +51,7 @@ public:
 
     //////////////////////////////
     // Getters
-    [[nodiscard]] wrt::optional<stage_operation::Operation> pop_stage();
+    [[nodiscard]] std::optional<stage_operation::Operation> pop_stage();
     void do_block_requests(RequestSender);
     void do_probe_requests(RequestSender);
     const Worksum& get_reachable_totalwork() const { return reachableWork; }
@@ -75,7 +75,7 @@ private:
     bool can_do_requests();
 
     void check_upgrade_descripted(Conref cr);
-    wrt::optional<Height> reachable_length();
+    std::optional<Height> reachable_length();
 
 private:
     Attorney attorney; // access chain

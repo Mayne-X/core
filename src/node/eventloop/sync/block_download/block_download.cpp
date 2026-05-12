@@ -76,7 +76,7 @@ stage_operation::StageSetOperation Downloader::pop_stage_set() // OK
     return { headers() };
 }
 
-wrt::optional<Height> Downloader::reachable_length()
+std::optional<Height> Downloader::reachable_length()
 {
     return forks.reachable_length();
 }
@@ -280,7 +280,7 @@ void Downloader::do_block_requests(RequestSender s) // OK?
     }
 }
 
-wrt::optional<stage_operation::Operation> Downloader::pop_stage()
+std::optional<stage_operation::Operation> Downloader::pop_stage()
 {
     switch (next_stage_call()) {
     case STAGE_ADD:

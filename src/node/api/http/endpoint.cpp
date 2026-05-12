@@ -114,12 +114,12 @@ void HTTPEndpoint::work()
     lc.loop->run();
 }
 
-wrt::optional<HTTPEndpoint> HTTPEndpoint::make_public_endpoint(const ConfigParams&)
+std::optional<HTTPEndpoint> HTTPEndpoint::make_public_endpoint(const ConfigParams&)
 {
     auto& pAPI { config().publicAPI };
     if (!pAPI)
         return {};
-    return wrt::optional<HTTPEndpoint> { wrt::in_place, *pAPI, true };
+    return std::optional<HTTPEndpoint> { std::in_place, *pAPI, true };
 };
 
 HTTPEndpoint::HTTPEndpoint(TCPPeeraddr bind, bool isPublic)

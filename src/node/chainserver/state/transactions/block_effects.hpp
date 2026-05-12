@@ -182,7 +182,7 @@ public:
         entries.insert(AccountInsert { newId, address });
         return newId;
     }
-    BalanceId insert_new_balance(const chain_db::BalanceDataWithoutId& b, wrt::optional<BalanceId> oid = {})
+    BalanceId insert_new_balance(const chain_db::BalanceDataWithoutId& b, std::optional<BalanceId> oid = {})
     {
         if (oid) {
             entries.insert(BalanceInsertUnguarded({ b, *oid }));

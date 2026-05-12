@@ -1,6 +1,6 @@
 #include "chainstate.hpp"
 
-ConsensusSlave::ConsensusSlave(wrt::optional<SignedSnapshot> sp, Descriptor descriptor, Headerchain headerchain)
+ConsensusSlave::ConsensusSlave(std::optional<SignedSnapshot> sp, Descriptor descriptor, Headerchain headerchain)
     : signedSnapshot(sp)
     , descriptor_(descriptor)
     , headerchain(std::make_shared<Headerchain>(std::move(headerchain)))
@@ -48,9 +48,9 @@ ForkMsg ConsensusSlave::apply(Fork&& fork)
     return res;
 };
 
-auto ConsensusSlave::apply(const SignedSnapshotApply& rd) -> wrt::optional<SignedPinRollbackMsg>
+auto ConsensusSlave::apply(const SignedSnapshotApply& rd) -> std::optional<SignedPinRollbackMsg>
 {
-    wrt::optional<SignedPinRollbackMsg> res;
+    std::optional<SignedPinRollbackMsg> res;
 
     // signed snapshot
     signedSnapshot = rd.signedSnapshot;

@@ -90,7 +90,7 @@ struct TransactionCreateCombine : wrt::variant<Ts...> {
     template <typename T>
     static TransactionCreateCombine parse_from(std::string_view type, T&& from)
     {
-        wrt::optional<TransactionCreateCombine> result;
+        std::optional<TransactionCreateCombine> result;
         ([&]() {
             if (type == Ts::tag())
                 result = Ts::parse_from(std::forward<T>(from));

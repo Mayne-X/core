@@ -3,7 +3,8 @@
 #include "general/byte_order.hpp"
 #include "serializer_fwd.hxx"
 #include "view_fwd.hpp"
-#include "wrt/optional.hpp"
+
+#include <optional>
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -22,7 +23,6 @@ struct MerkleByteCounter {
     ByteCounter writer;
     Dummy hook() { return {}; }
 };
-
 
 template <typename S, typename T>
 concept MerkleSerializing = MerkleSerializer<S> && requires(S& s, const T& t) {
@@ -53,7 +53,7 @@ constexpr auto& operator<<(ByteCounter& s, ByteSwappable auto v)
 }
 
 template <typename T>
-auto&& operator<<(RawSerializer auto&& s, const wrt::optional<T>& o)
+auto&& operator<<(RawSerializer auto&& s, const std::optional<T>& o)
 {
     if (o)
         return std::forward<decltype(s)>(s << uint8_t(1) << *o);
@@ -61,7 +61,7 @@ auto&& operator<<(RawSerializer auto&& s, const wrt::optional<T>& o)
         return std::forward<decltype(s)>(s << uint8_t(0));
 }
 template <typename T>
-auto&& operator<<(ByteCounter& s, const wrt::optional<T>& o)
+auto&& operator<<(ByteCounter& s, const std::optional<T>& o)
 {
     s.add_size(1);
     if (o)

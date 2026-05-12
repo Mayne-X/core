@@ -121,7 +121,7 @@ public:
     api::ConnectionSchedule api_connection_schedule() const;
 
     void verify(std::vector<TCPPeeraddr>, IPv4 source);
-    [[nodiscard]] wrt::optional<Conref> find(uint64_t id) const;
+    [[nodiscard]] std::optional<Conref> find(uint64_t id) const;
     size_t size() const { return conndatamap.size(); }
     size_t ip_count(const IP& ip) const { return ipCounter.count(ip); };
     void erase(Conref);
@@ -142,11 +142,11 @@ public:
     void garbage_collect();
 
     void start_scheduled_connections();
-    [[nodiscard]] wrt::optional<time_point> pop_scheduled_connect_time();
+    [[nodiscard]] std::optional<time_point> pop_scheduled_connect_time();
 
 private:
     bool is_own_endpoint(Peeraddr a);
-    wrt::optional<Conref> eviction_candidate() const;
+    std::optional<Conref> eviction_candidate() const;
 
 #ifndef DISABLE_LIBUV
 #endif

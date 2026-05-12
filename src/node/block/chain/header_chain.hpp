@@ -39,7 +39,7 @@ public:
         : finalPin(std::move(finalPin))
         , incompleteBatch(std::move(incompleteBatch)) { };
 
-    wrt::optional<HeaderView> inefficient_search_header(NonzeroHeight h) const;
+    std::optional<HeaderView> inefficient_search_header(NonzeroHeight h) const;
     Height length() const { return finalPin.upper_height() + incompleteBatch.size(); };
     HeaderSearchRecursive header_search_recursive() const
     {
@@ -109,7 +109,7 @@ public:
     size_t nonempty_batch_size() const { return completeBatches.size() + (incompleteBatch.size() > 0 ? 1 : 0); }
     HeaderBatch get_headers(HeaderRange) const;
     GridView grid_view() const { return completeBatches; }
-    wrt::optional<HeaderView> get_header(Height) const;
+    std::optional<HeaderView> get_header(Height) const;
     [[nodiscard]] Height length() const
     {
         return finalPin.upper_height() + incompleteBatch.size();
@@ -137,7 +137,7 @@ public:
     Worksum total_work() const { return worksum; }
     const std::vector<SharedBatchView>& complete_batches() const { return completeBatches; }
     [[nodiscard]] Worksum total_work_at(Height) const;
-    [[nodiscard]] wrt::optional<BlockHash> get_hash(Height h) const
+    [[nodiscard]] std::optional<BlockHash> get_hash(Height h) const
     {
         if (h > length())
             return {};
@@ -147,7 +147,7 @@ public:
             return static_cast<HeaderView>(operator[](h.nonzero_assert())).hash();
         return BlockHash(operator[]((h + 1).nonzero_assert()).prevhash());
     };
-    [[nodiscard]] wrt::optional<PinHash> get_hash(PinHeight ph) const
+    [[nodiscard]] std::optional<PinHash> get_hash(PinHeight ph) const
     {
         if (auto h { get_hash(Height(ph)) })
             return PinHash { *h };
@@ -167,7 +167,7 @@ public:
 
     void clear();
     friend ForkHeight fork_height(const Headerchain& h1, const Headerchain& h2, NonzeroHeight startHeight);
-    wrt::optional<NonzeroHeight> max_match_height(const HeaderSpan&) const;
+    std::optional<NonzeroHeight> max_match_height(const HeaderSpan&) const;
 
 protected: // methods
     void initialize_worksum();

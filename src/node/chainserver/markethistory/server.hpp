@@ -236,7 +236,7 @@ private:
 
 private:
     MarketDb& db;
-    wrt::optional<NonzeroHeight> scheduledRollbackHeight; // has value if we are still initializing
+    std::optional<NonzeroHeight> scheduledRollbackHeight; // has value if we are still initializing
     ChainServer& chainServer;
     Headerchain consensusCopy;
     Descriptor consensusDescriptor;

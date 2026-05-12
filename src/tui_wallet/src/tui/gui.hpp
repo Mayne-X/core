@@ -145,7 +145,7 @@ struct GUI : public std::enable_shared_from_this<GUI> {
 
 public:
     ScreenInteractive screen;
-    wrt::optional<AssetInfo> selectedAsset;
+    std::optional<AssetInfo> selectedAsset;
 
 private:
     using duration = std::chrono::steady_clock::duration;

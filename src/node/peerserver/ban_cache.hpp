@@ -38,7 +38,7 @@ protected:
     }
 
 public:
-    [[nodiscard]] wrt::optional<Timepoint> lookup_expiration(key_t k) const
+    [[nodiscard]] std::optional<Timepoint> lookup_expiration(key_t k) const
     {
         auto iter { map.find(k) };
         if (iter != map.end())
@@ -54,7 +54,7 @@ public:
         Timepoint timepoint;
         const mapval_t& val;
     };
-    wrt::optional<FindRes> find(key_t k) {
+    std::optional<FindRes> find(key_t k) {
         if(auto it{ map.find(k)}; it!= map.end()){
             return FindRes{it->second.iter->first,it->second};
         };
@@ -128,18 +128,18 @@ class BanCache {
 public:
     void ban(const IP& ip, ErrorTimepoint);
     using time_point = std::chrono::steady_clock::time_point;
-    wrt::optional<Timepoint> get_expiration(const IP& ipl);
+    std::optional<Timepoint> get_expiration(const IP& ipl);
     void clear();
 
 private:
-    wrt::optional<Timepoint> get_expiration_internal(const IPv4&);
-    wrt::optional<Timepoint> get_expiration_internal(const IPv6&);
+    std::optional<Timepoint> get_expiration_internal(const IPv4&);
+    std::optional<Timepoint> get_expiration_internal(const IPv6&);
     void ban_internal(const IPv4&, ErrorTimepoint);
     void ban_internal(const IPv6&, ErrorTimepoint);
 
 private: // private data
     struct BanHandleData {
-        wrt::optional<time_point> banUntil;
+        std::optional<time_point> banUntil;
         size_t count { 0 };
     };
     SingleBanCache<IPv4> banmapv4;

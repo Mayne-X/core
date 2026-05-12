@@ -221,7 +221,7 @@ void Eventloop::api_loadtest_header(uint64_t conId, ErrorCb cb)
 }
 void Eventloop::api_loadtest_disable(uint64_t conId, ErrorCb cb)
 {
-    defer(Loadtest { conId, wrt::nullopt, std::move(cb) });
+    defer(Loadtest { conId, std::nullopt, std::move(cb) });
 }
 
 void Eventloop::async_forward_blockrep(uint64_t conId, std::vector<BodyData>&& blocks)
@@ -823,7 +823,7 @@ void Eventloop::handle_event(GeneratedVerificationSdpOffer&& m)
 
     auto ips { IdentityIps::from_sdp(m.sdp) };
 
-    wrt::optional<IP> selected { ips.get_ip_with_type(verifyIp.type()) };
+    std::optional<IP> selected { ips.get_ip_with_type(verifyIp.type()) };
     if (!selected.has_value()) {
         rtcCon.close(ERTCNOPEER);
         return;

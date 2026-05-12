@@ -43,7 +43,7 @@ uint16_t WSConnection::listen_port() const
     return 0;
 }
 
-wrt::optional<ConnectRequest> WSConnection::connect_request() const
+std::optional<ConnectRequest> WSConnection::connect_request() const
 {
     return ConnectRequest{connectRequest};
 }

@@ -31,7 +31,7 @@ public:
 
     [[nodiscard]] NonzeroHeight nonzero_assert() const;
     [[nodiscard]] NonzeroHeight nonzero_throw(Error) const;
-    [[nodiscard]] wrt::optional<NonzeroHeight> nonzero() const;
+    [[nodiscard]] std::optional<NonzeroHeight> nonzero() const;
     [[nodiscard]] NonzeroHeight one_if_zero() const;
     [[nodiscard]] NonzeroHeight add1() const;
     // Height& operator--()
@@ -80,7 +80,7 @@ public:
 
     [[nodiscard]] HeightRange latest(uint32_t n) const;
     [[nodiscard]] PinHeight pin_begin() const;
-    [[nodiscard]] wrt::optional<PinHeight> pin_height() const;
+    [[nodiscard]] std::optional<PinHeight> pin_height() const;
     [[nodiscard]] constexpr bool is_pin_height() const;
 
     friend bool operator==(const Height& h1, uint32_t h)
@@ -277,7 +277,7 @@ inline NonzeroHeight Height::nonzero_throw(Error e) const
     return nonzero_assert();
 }
 
-inline wrt::optional<NonzeroHeight> Height::nonzero() const
+inline std::optional<NonzeroHeight> Height::nonzero() const
 {
     if (val == 0)
         return {};
@@ -361,7 +361,7 @@ inline constexpr bool Height::is_pin_height() const
 {
     return (val & 0x0000001F) == 0;
 }
-inline wrt::optional<PinHeight> Height::pin_height() const
+inline std::optional<PinHeight> Height::pin_height() const
 {
     if (!is_pin_height())
         return {};

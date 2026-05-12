@@ -38,7 +38,7 @@ HeaderBatch BlockCache::get_headerbatch_concurrent(const HeaderBatchSelector& s)
         return {};
     return iter->second.headers->get_headers(s.header_range());
 }
-wrt::optional<HeaderView> BlockCache::get_header_concurrent(Descriptor descriptor, Height height) const
+std::optional<HeaderView> BlockCache::get_header_concurrent(Descriptor descriptor, Height height) const
 {
     std::unique_lock l(mutex);
     auto iter = chains.find(descriptor);

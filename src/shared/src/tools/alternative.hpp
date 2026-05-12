@@ -1,7 +1,7 @@
 #pragma once
 
 #include "wrt/variant.hpp"
-#include "wrt/optional.hpp"
+
 
 namespace wrt { // wart tools namesapce
 template <typename Id, typename Alt>
@@ -39,11 +39,11 @@ public:
     {
         return std::move(v).visit_overload(std::forward<U>(u)...);
     }
-    [[nodiscard]] wrt::optional<Id> map_alternative(auto lambda) const
+    [[nodiscard]] std::optional<Id> map_alternative(auto lambda) const
     {
         return visit_overload(
-            [&](Id id) -> wrt::optional<Id> { return id; },
-            [&](const Alt& a) -> wrt::optional<Id> { return lambda(a); });
+            [&](Id id) -> std::optional<Id> { return id; },
+            [&](const Alt& a) -> std::optional<Id> { return lambda(a); });
     }
 
 private:

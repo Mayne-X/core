@@ -3,7 +3,7 @@
 #include "communication/rxtx_server/api_types.hpp"
 #include "general/result.hpp"
 #include "wrt/expected.hpp"
-#include "wrt/optional.hpp"
+
 #include <cstdint>
 #include <functional>
 #include <nlohmann/json_fwd.hpp>
@@ -37,7 +37,7 @@ using PeersCb = std::function<void(const std::vector<api::Peerinfo>&)>;
 using IpCounterCb = std::function<void(const api::IPCounter&)>;
 using ThrottledCb = std::function<void(const std::vector<api::ThrottledPeer>&)>;
 using SyncedCb = std::function<void(bool)>;
-using MempoolTxsCb = std::function<void(std::vector<wrt::optional<TransactionMessage>>&)>;
+using MempoolTxsCb = std::function<void(std::vector<std::optional<TransactionMessage>>&)>;
 using SampledPeersCb = std::function<void(const std::vector<TCPPeeraddr>&)>;
 using TransmissionCb = std::function<void(const api::TransmissionTimeseries&)>;
 using ErrorCb = std::function<void(const Result<void>&)>;

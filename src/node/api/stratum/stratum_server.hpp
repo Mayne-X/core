@@ -59,7 +59,7 @@ private:
     };
     bool fresh { true };
     const std::array<uint8_t, 4> extra2prefix;
-    wrt::optional<Authorized> authorized;
+    std::optional<Authorized> authorized;
     std::string stratumLine;
     std::shared_ptr<uvw::tcp_handle> handle;
     StratumServer& server;
@@ -108,7 +108,7 @@ class StratumServer {
     void link_authorized(const Address&, stratum::Connection*);
     void unlink_authorized(const Address&, stratum::Connection*);
 
-    wrt::optional<Block> get_block(Address, std::string jobId);
+    std::optional<Block> get_block(Address, std::string jobId);
 
 public:
     StratumServer(TCPPeeraddr endpointAddress);

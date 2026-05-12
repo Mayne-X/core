@@ -8,7 +8,7 @@ std::string Hash::hex_string() const
     return serialize_hex(*this);
 }
 
-wrt::optional<Hash> Hash::try_parse(std::string_view hex)
+std::optional<Hash> Hash::try_parse(std::string_view hex)
 {
     auto h { uninitialized() };
     if (HexRef(hex).parse_to(h))

@@ -171,7 +171,7 @@ Funds_uint64 Mempool::locked_balance(AccountId aid, TokenId tid) const
         return Funds_uint64::zero();
     return iter->second.locked();
 }
-auto Mempool::erase_internal(Txset::const_iter_t iter, balance_iterator wartIter, wrt::optional<balance_iterator> tokenIter) -> EraseResult
+auto Mempool::erase_internal(Txset::const_iter_t iter, balance_iterator wartIter, std::optional<balance_iterator> tokenIter) -> EraseResult
 {
 
     EraseResult er { false, false };
@@ -359,7 +359,7 @@ void Mempool::set_allowed_blockversions(const std::set<BlockVersion>& newSet)
 //     }
 // }
 
-// wrt::optional<TokenFunds> Mempool::token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const
+// std::optional<TokenFunds> Mempool::token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const
 // {
 //     if (auto s { pm.nonwart_token_throw() }) {
 //         if (auto pAsset { cache.lookup_asset(s->hash) })
@@ -369,7 +369,7 @@ void Mempool::set_allowed_blockversions(const std::set<BlockVersion>& newSet)
 //     return {};
 // }
 
-auto Mempool::get_balance(AccountToken at, chainserver::DBCache& cache) -> std::pair<LockedBalance, wrt::optional<balance_iterator>>
+auto Mempool::get_balance(AccountToken at, chainserver::DBCache& cache) -> std::pair<LockedBalance, std::optional<balance_iterator>>
 {
     auto balanceIter { lockedBalances.find(at) };
     if (balanceIter == lockedBalances.end()) {
@@ -400,7 +400,7 @@ void Mempool::insert_tx_throw(InsertParams tx)
 
     auto fromId { tx.msg.from_id() };
 
-    wrt::optional<Txset::const_iter_t> match;
+    std::optional<Txset::const_iter_t> match;
     std::vector<Txset::const_iter_t> clear;
     const auto& t { transactions };
     if (auto iter = t.find(tx.msg.txid()); iter != t.end()) {

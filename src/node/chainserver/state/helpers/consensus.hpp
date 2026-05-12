@@ -44,7 +44,7 @@ struct Chainstate {
     };
     struct AppendSingle {
         FreeBalanceUpdates freeBalanceUpdates;
-        wrt::optional<SignedSnapshot>& signedSnapshot;
+        std::optional<SignedSnapshot>& signedSnapshot;
         HeaderVerifier::PreparedAppend prepared;
         TransactionIds&& newTxIds;
         HistoryId newHistoryOffset;
@@ -82,7 +82,7 @@ struct Chainstate {
         return *hash;
     }
 
-    auto prepare_append(const wrt::optional<SignedSnapshot>& sp, HeaderView hv, bool verifyPOW) const { return headerchain.prepare_append(sp, hv, verifyPOW); }
+    auto prepare_append(const std::optional<SignedSnapshot>& sp, HeaderView hv, bool verifyPOW) const { return headerchain.prepare_append(sp, hv, verifyPOW); }
     Height length() const { return headerchain.length(); }
     Descriptor descriptor() const { return dsc; }
     const auto& txids() const { return chainTxIds; }

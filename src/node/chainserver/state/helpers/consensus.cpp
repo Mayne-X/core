@@ -312,7 +312,7 @@ void Chainstate::update_free_balances(const FreeBalanceUpdates& updates)
 TxHash Chainstate::insert_tx_internal_throw(TransactionMessage&& m, TxHash txHash, const Address& fromAddr, DBCache& c)
 {
     auto stateHeight { state_height(m.from_id()) };
-    wrt::optional<AssetId> assetId;
+    std::optional<AssetId> assetId;
 
     // These two variables are set when the transaction uses non-wart token:
     TokenId tokenId { TokenId::WART };

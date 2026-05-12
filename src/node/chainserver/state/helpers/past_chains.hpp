@@ -8,7 +8,7 @@ public:
     [[nodiscard]] std::shared_ptr<Headerchain> add_old_chain(const Chainstate&, DeletionKey); //OK
     void schedule_discard(DeletionKey); 
     HeaderBatch get_headerbatch_concurrent(const HeaderBatchSelector& s) const;
-    wrt::optional<HeaderView> get_header_concurrent(Descriptor descriptor, Height height) const;
+    std::optional<HeaderView> get_header_concurrent(Descriptor descriptor, Height height) const;
     void garbage_collect(ChainDB&);
     std::vector<Hash> get_hashes(const DescriptedBlockRange&) const;
 

@@ -33,9 +33,9 @@ struct Global {
     BatchRegistry* batchRegistry;
     std::shared_ptr<spdlog::logger> connLogger;
     std::shared_ptr<spdlog::logger> communicationLogger;
-    wrt::optional<logging::TimingLogger> timingLogger;
+    std::optional<logging::TimingLogger> timingLogger;
     std::shared_ptr<spdlog::logger> syncdebugLogger;
-    wrt::optional<Config> conf;
+    std::optional<Config> conf;
 };
 extern std::atomic<bool> shutdownSignal;
 

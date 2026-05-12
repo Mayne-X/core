@@ -88,7 +88,7 @@ inline json to_json(const Height& h) { return h.value(); }
 inline json to_json(json j) { return j; }
 
 template <typename T>
-inline json to_json(const wrt::optional<T>& v)
+inline json to_json(const std::optional<T>& v)
 {
     if (v) {
         return to_json(*v);

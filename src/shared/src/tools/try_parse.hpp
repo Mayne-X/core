@@ -1,12 +1,12 @@
 #pragma once
-#include "wrt/optional.hpp"
+
 #include <charconv>
 #include <concepts>
 #include <string_view>
 
 template <typename T>
 requires(std::integral<T> || std::floating_point<T>)
-[[nodiscard]] wrt::optional<T> try_parse(std::string_view s)
+[[nodiscard]] std::optional<T> try_parse(std::string_view s)
 {
     T t;
     auto last { s.data() + s.size() };

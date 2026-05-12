@@ -51,7 +51,7 @@ class FundsValidator {
 private:
     TokenDecimals prec;
 
-    wrt::optional<Funds_uint64> parsed;
+    std::optional<Funds_uint64> parsed;
 
 public:
     void set_prec(TokenDecimals prec) { this->prec = prec; }
@@ -85,7 +85,7 @@ class NonzeroFundsValidator {
 private:
     TokenDecimals prec;
 
-    wrt::optional<NonzeroFunds_uint64> parsed;
+    std::optional<NonzeroFunds_uint64> parsed;
 
 public:
     void set_prec(TokenDecimals prec) { this->prec = prec; }

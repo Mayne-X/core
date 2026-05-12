@@ -4,7 +4,7 @@
 namespace chainserver {
 namespace state_update {
     struct StageUpdate {
-        wrt::optional<Height> shrinkLength;
+        std::optional<Height> shrinkLength;
     };
 }
 }

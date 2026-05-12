@@ -3,9 +3,9 @@
 #include "tools/try_parse.hpp"
 #include <regex>
 
-const wrt::optional<IP> WSUrladdr::ip = {};
+const std::optional<IP> WSUrladdr::ip = {};
 namespace {
-wrt::optional<uint16_t> parse_port(std::string_view scheme, std::string_view portStr)
+std::optional<uint16_t> parse_port(std::string_view scheme, std::string_view portStr)
 {
     if (portStr.length() == 0) {
         if (scheme.length() == 3)
@@ -16,7 +16,7 @@ wrt::optional<uint16_t> parse_port(std::string_view scheme, std::string_view por
 }
 }
 
-wrt::optional<WSUrladdr> WSUrladdr::parse(const std::string& url)
+std::optional<WSUrladdr> WSUrladdr::parse(const std::string& url)
 {
     const static std::regex re(
         R"((?:(wss?):)?(?:\/\/(?:\[([\d:]+)\]|([^:\/?#]+))(?::(\d+))?)?([^?#]*(?:\?[^#]*)?)(?:#.*)?)");

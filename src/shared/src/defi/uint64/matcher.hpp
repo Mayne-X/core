@@ -15,7 +15,7 @@ public:
         , pool { std::move(pool) }
     {
     }
-    wrt::optional<NonzeroDelta_uint64> balance_pool_interaction() const;
+    std::optional<NonzeroDelta_uint64> balance_pool_interaction() const;
 
     BaseQuote_uint64 in;
     PoolLiquidity_uint64 pool;
@@ -136,14 +136,14 @@ public:
             v = v1; // save v0 to the reference of `in` member
             pDelta = &*toPool1;
         }
-        auto toPool { [&]() -> wrt::optional<NonzeroDelta_uint64> {
+        auto toPool { [&]() -> std::optional<NonzeroDelta_uint64> {
             return Funds_uint64 { pDelta->amount }.nonzero().transform([&](NonzeroFunds_uint64 nz) {
                 return NonzeroDelta_uint64(pDelta->isQuote, nz);
             });
         }() };
         return { .toPool { toPool }, .filled { in } };
     };
-    wrt::optional<Delta_uint64> toPool0;
-    wrt::optional<Delta_uint64> toPool1;
+    std::optional<Delta_uint64> toPool0;
+    std::optional<Delta_uint64> toPool1;
 };
 }

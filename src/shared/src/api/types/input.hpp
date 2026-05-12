@@ -39,7 +39,7 @@ struct TokenSpec {
         return (isLiquidity ? "liquidity" : "asset") + std::string(":") + assetHash.hex_string();
     }
 
-    static wrt::optional<TokenSpec> parse(std::string_view s)
+    static std::optional<TokenSpec> parse(std::string_view s)
     {
         auto pos { s.find(":") };
         if (pos == s.npos)

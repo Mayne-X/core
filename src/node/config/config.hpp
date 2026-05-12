@@ -63,12 +63,12 @@ struct ConfigParams {
     struct JSONRPC {
         TCPPeeraddr bind { localhost, 3000 };
     } jsonrpc;
-    wrt::optional<TCPPeeraddr> publicAPI;
-    wrt::optional<TCPPeeraddr> stratumPool;
+    std::optional<TCPPeeraddr> publicAPI;
+    std::optional<TCPPeeraddr> stratumPool;
     WebsocketServerConfig websocketServer;
     struct Node {
         static constexpr TCPPeeraddr default_endpoint { localhost, DEFAULT_ENDPOINT_PORT };
-        wrt::optional<SnapshotSigner> snapshotSigner;
+        std::optional<SnapshotSigner> snapshotSigner;
         TCPPeeraddr bind { default_endpoint };
         bool isolated { false };
         bool disableTxsMining { false }; // don't mine transactions
@@ -96,7 +96,7 @@ private:
     void prepare_warthog_dir(const std::string&, bool log);
     int init(const gengetopt_args_info&);
     void process_args(const gengetopt_args_info& ai);
-    wrt::optional<int> process_config_file(const gengetopt_args_info& ai, bool silent);
+    std::optional<int> process_config_file(const gengetopt_args_info& ai, bool silent);
 };
 
 struct Config : public ConfigParams {

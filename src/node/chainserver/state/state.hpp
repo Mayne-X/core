@@ -59,11 +59,11 @@ class State {
 
 public:
     // constructor/destructor
-    State(ChainDB& b, BatchRegistry&, wrt::optional<SnapshotSigner> snapshotSigner);
+    State(ChainDB& b, BatchRegistry&, std::optional<SnapshotSigner> snapshotSigner);
 
     // concurrent methods
     HeaderBatch get_headers_concurrent(HeaderBatchSelector selector) const;
-    wrt::optional<HeaderView> get_header_concurrent(Descriptor descriptor, Height height) const;
+    std::optional<HeaderView> get_header_concurrent(Descriptor descriptor, Height height) const;
     ConsensusSlave get_chainstate_concurrent();
 
     // normal methods
@@ -82,8 +82,8 @@ public:
     auto set_stage(Headerchain&& hc) -> stage_operation::StageSetStatus;
     struct StageActionResult {
         stage_operation::StageAddStatus status;
-        wrt::optional<RogueHeaderData> rogueHeaderData;
-        wrt::optional<state_update::StateUpdateWithAPIBlocks> update;
+        std::optional<RogueHeaderData> rogueHeaderData;
+        std::optional<state_update::StateUpdateWithAPIBlocks> update;
     };
     auto add_stage(const std::vector<Block>& blocks, const Headerchain&) -> StageActionResult;
 
@@ -99,12 +99,12 @@ public:
     }
 
     // general getters
-    [[nodiscard]] auto get_header(Height h) const -> wrt::optional<api::HeaderInfo>;
-    [[nodiscard]] auto get_rollback_bounds(NonzeroHeight h) const -> wrt::optional<market_history::RollbackBounds>;
-    [[nodiscard]] auto get_block_market_history(NonzeroHeight h) const -> wrt::optional<market_history::BlockInfo>;
+    [[nodiscard]] auto get_header(Height h) const -> std::optional<api::HeaderInfo>;
+    [[nodiscard]] auto get_rollback_bounds(NonzeroHeight h) const -> std::optional<market_history::RollbackBounds>;
+    [[nodiscard]] auto get_block_market_history(NonzeroHeight h) const -> std::optional<market_history::BlockInfo>;
     [[nodiscard]] auto get_headers() const { return chainstate.headers(); }
     [[nodiscard]] auto get_descriptor() const { return chainstate.descriptor(); }
-    [[nodiscard]] auto get_hash(Height h) const -> wrt::optional<Hash>;
+    [[nodiscard]] auto get_hash(Height h) const -> std::optional<Hash>;
     [[nodiscard]] auto get_body_data(DescriptedBlockRange) const -> std::vector<BodyData>;
     [[nodiscard]] auto get_mempool_tx(TransactionId) const -> const TransactionMessage*;
 
@@ -114,16 +114,16 @@ public:
     api::MarketOrders api_account_orders_market(api::AccountIdOrAddress a, api::AssetIdOrHash) const;
     Result<api::TokenBalanceLookup> api_get_token_balance_recursive(api::AccountIdOrAddress a, api::TokenIdOrSpec t) const;
     auto api_get_head() const -> api::ChainHead;
-    auto api_get_history(const api::AccountIdOrAddress& a, int64_t beforeId = 0x7fffffffffffffff) const -> wrt::optional<api::AccountHistory>;
+    auto api_get_history(const api::AccountIdOrAddress& a, int64_t beforeId = 0x7fffffffffffffff) const -> std::optional<api::AccountHistory>;
     auto api_get_richlist(api::TokenIdOrSpec token, size_t limit) const -> Result<api::RichlistInfo>;
     auto api_get_account_mempool(api::AccountIdOrAddress, size_t) const -> api::MempoolEntries;
     auto api_get_mempool(size_t) const -> api::MempoolEntries;
-    auto api_get_tx(const TxHash& hash) const -> wrt::optional<api::TransactionDetails>;
+    auto api_get_tx(const TxHash& hash) const -> std::optional<api::TransactionDetails>;
     auto api_get_open_order(const TxHash& hash) const;
     auto api_get_transaction_minfee() -> api::TransactionMinfee;
     auto api_get_latest_txs(size_t N = 100) const -> api::TransactionsByBlocks;
     auto api_get_latest_blocks(size_t N = 100) const -> api::TransactionsByBlocks;
-    auto api_get_miner(NonzeroHeight h) const -> wrt::optional<api::Account>;
+    auto api_get_miner(NonzeroHeight h) const -> std::optional<api::Account>;
     auto api_get_latest_miners(uint32_t N = 1000) const -> std::vector<api::Account>;
     auto api_get_miners(HeightRange) const -> std::vector<api::Account>;
     auto api_get_transaction_range(HistoryId lower, HistoryId upper) const -> api::TransactionsByBlocks;
@@ -133,7 +133,7 @@ public:
 
     auto api_get_block(const api::HeightOrHash& h) const -> Result<api::Block>;
     auto api_market_detail(const api::AssetIdOrHash&, size_t N=100) const -> Result<api::MarketDetail>;
-    auto api_get_block_binary(const api::HeightOrHash& h) const -> wrt::optional<api::BlockBinary>;
+    auto api_get_block_binary(const api::HeightOrHash& h) const -> std::optional<api::BlockBinary>;
     auto api_tx_cache() const -> const TransactionIds;
     size_t api_db_size() const;
 
@@ -143,30 +143,30 @@ private:
     [[nodiscard]] Result<api::Account> normalize(api::AccountIdOrAddress) const;
     [[nodiscard]] Result<AssetDetail> normalize(const api::AssetIdOrHash&) const;
     // delegated getters
-    auto api_get_block(Height h) const -> wrt::optional<api::Block>;
-    auto api_get_block_binary(Height h) const -> wrt::optional<api::BlockBinary>;
+    auto api_get_block(Height h) const -> std::optional<api::Block>;
+    auto api_get_block_binary(Height h) const -> std::optional<api::BlockBinary>;
     struct BalanceLookup {
-        wrt::optional<api::AssetLookupTrace> lookupTrace;
+        std::optional<api::AssetLookupTrace> lookupTrace;
         api::FundsBalance balance;
     };
 
     BalanceLookup api_get_token_balance_recursive(AccountId, TokenId) const;
-    wrt::optional<NonzeroHeight> consensus_height(const Hash&) const;
+    std::optional<NonzeroHeight> consensus_height(const Hash&) const;
     NonzeroHeight next_height() const { return chainlength().add1(); }
 
     // transactions
 
     struct ApplyStageResult {
         stage_operation::StageAddStatus status;
-        wrt::optional<Worksum> errorWorksum; // has value when status is not 0
-        wrt::optional<Header> errorHeader; // has value when status is not 0
-        wrt::optional<state_update::StateUpdateWithAPIBlocks> update;
+        std::optional<Worksum> errorWorksum; // has value when status is not 0
+        std::optional<Header> errorHeader; // has value when status is not 0
+        std::optional<state_update::StateUpdateWithAPIBlocks> update;
     };
     [[nodiscard]] auto apply_stage(ChainDBTransaction&& t) -> ApplyStageResult;
 
 public:
-    [[nodiscard]] auto apply_signed_snapshot(SignedSnapshot&& sp) -> wrt::optional<StateUpdateWithAPIBlocks>;
-    [[nodiscard]] auto api_rollback(Height h) -> wrt::optional<StateUpdateWithAPIBlocks>;
+    [[nodiscard]] auto apply_signed_snapshot(SignedSnapshot&& sp) -> std::optional<StateUpdateWithAPIBlocks>;
+    [[nodiscard]] auto api_rollback(Height h) -> std::optional<StateUpdateWithAPIBlocks>;
     //  stageUpdate;
     [[nodiscard]] auto append_mined_block(const Block&, bool verifyPOW = true) -> StateUpdateWithAPIBlocks;
 
@@ -181,7 +181,7 @@ private:
     // finalize helpers
     [[nodiscard]] auto commit_fork(RollbackResult&& rr, AppendBlocksResult&&) -> StateUpdate;
     [[nodiscard]] auto commit_append(AppendBlocksResult&& abr) -> StateUpdate;
-    wrt::optional<SignedSnapshot> try_sign_locked_chainstate();
+    std::optional<SignedSnapshot> try_sign_locked_chainstate();
     MiningCache::CacheValidity mining_cache_validity() const;
 
 private:
@@ -190,8 +190,8 @@ private:
     mutable DBCache dbcache;
     BatchRegistry& batchRegistry;
 
-    wrt::optional<SnapshotSigner> snapshotSigner;
-    wrt::optional<SignedSnapshot> signedSnapshot;
+    std::optional<SnapshotSigner> snapshotSigner;
+    std::optional<SignedSnapshot> signedSnapshot;
 
     int dbCacheValidity { 0 };
     tp signAfter { tp::max() };

@@ -4,7 +4,7 @@
 #include "general/serializer.hxx"
 #include "secp256k1.h"
 #include "secp256k1_recovery.h"
-#include "wrt/optional.hpp"
+
 #include <array>
 #include <cassert>
 #include <cstring>
@@ -62,7 +62,7 @@ public:
     static constexpr size_t byte_size() { return length; }
     RecoverableSignature(View<65>);
     RecoverableSignature(std::string_view);
-    static wrt::optional<RecoverableSignature> from_view(View<65>);
+    static std::optional<RecoverableSignature> from_view(View<65>);
     std::string to_string() const;
     void write_to(uint8_t* out65) const;
     void serialize(RawSerializer auto&& s) const

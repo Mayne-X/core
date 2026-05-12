@@ -4,7 +4,7 @@
 #ifndef FTXUI_DOM_LINEAR_GRADIENT_HPP
 #define FTXUI_DOM_LINEAR_GRADIENT_HPP
 
-#include "wrt/optional.hpp"
+
 #include <vector>
 
 #include "../screen/color.hpp"  // for Colors
@@ -38,7 +38,7 @@ struct LinearGradient {
   /// and 1.0 is the end of the gradient.
   struct Stop {
     Color color = Color::Default;
-    wrt::optional<float> position;
+    std::optional<float> position;
   };
   std::vector<Stop> stops;
 

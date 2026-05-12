@@ -446,7 +446,7 @@ void ChainDB::set_consensus_work(const Worksum& ws)
     stmtConsensusSetProperty.run(WORKSUMID, ws);
 }
 
-wrt::optional<SignedSnapshot> ChainDB::get_signed_snapshot() const
+std::optional<SignedSnapshot> ChainDB::get_signed_snapshot() const
 {
     auto o { stmtConsensusSelect.one(SIGNEDPINID) };
     if (!o.has_value()) {
@@ -480,7 +480,7 @@ std::vector<BlockId> ChainDB::consensus_block_ids(HeightRange range) const
     return out;
 }
 
-wrt::optional<BlockId> ChainDB::consensus_block_id(Height h) const
+std::optional<BlockId> ChainDB::consensus_block_id(Height h) const
 {
     return stmtConsensusSelectRange.one(h, h.add1()).process([&](const sqlite::Row& r) {
         return BlockId { r[0] };
@@ -534,12 +534,12 @@ DeletionKey ChainDB::delete_consensus_from(NonzeroHeight height)
     return dk;
 }
 
-wrt::optional<Block> ChainDB::get_block(BlockId id) const
+std::optional<Block> ChainDB::get_block(BlockId id) const
 {
-    return get_block_data(id).and_then([&](BlockData&& bd) -> wrt::optional<Block> { return std::move(bd).parse_throw(); });
+    return get_block_data(id).and_then([&](BlockData&& bd) -> std::optional<Block> { return std::move(bd).parse_throw(); });
 }
 
-wrt::optional<BlockData> ChainDB::get_block_data(BlockId id) const
+std::optional<BlockData> ChainDB::get_block_data(BlockId id) const
 {
     auto o { stmtBlockById.one(id) };
     if (!o.has_value())
@@ -551,7 +551,7 @@ wrt::optional<BlockData> ChainDB::get_block_data(BlockId id) const
     }
 }
 
-wrt::optional<BodyData> ChainDB::get_block_body(HashView hash) const
+std::optional<BodyData> ChainDB::get_block_body(HashView hash) const
 {
     auto o = stmtBlockByHash.one(hash);
     if (!o.has_value())
@@ -563,7 +563,7 @@ wrt::optional<BodyData> ChainDB::get_block_body(HashView hash) const
     }
 }
 
-wrt::optional<std::pair<BlockId, Block>> ChainDB::get_block(HashView hash) const
+std::optional<std::pair<BlockId, Block>> ChainDB::get_block(HashView hash) const
 {
     auto o = stmtBlockByHash.one(hash);
     if (!o.has_value())
@@ -594,7 +594,7 @@ std::pair<BlockId, bool> ChainDB::insert_protect(const Block& b)
     }
 }
 
-wrt::optional<BlockUndoData>
+std::optional<BlockUndoData>
 ChainDB::get_block_undo(BlockId id) const
 {
     return stmtBlockGetUndo.one(id).process([](auto& a) {
@@ -624,7 +624,7 @@ void ChainDB::insert_candles_5m(TokenId tid, const Candle& c)
     stmtInsertCandles5m.run(tid, c.timestamp, c.open, c.high, c.low, c.close, c.quantity, c.volume);
 }
 
-wrt::optional<Candle> ChainDB::select_candle_5m(TokenId tid, Timestamp ts)
+std::optional<Candle> ChainDB::select_candle_5m(TokenId tid, Timestamp ts)
 {
     return stmtSelectCandles5m.one(tid, ts, ts).process([](auto& o) {
         return Candle {
@@ -661,7 +661,7 @@ void ChainDB::insert_candles_1h(TokenId tid, const Candle& c)
     stmtInsertCandles1h.run(tid, c.timestamp, c.open, c.high, c.low, c.close, c.quantity, c.volume);
 }
 
-wrt::optional<Candle> ChainDB::select_candle_1h(TokenId tid, Timestamp ts)
+std::optional<Candle> ChainDB::select_candle_1h(TokenId tid, Timestamp ts)
 {
     return stmtSelectCandles1h.one(tid, ts, ts).process([](auto& o) {
         return Candle {
@@ -716,7 +716,7 @@ void ChainDB::delete_order(const chain_db::OrderDelete& od)
         stmtDeleteBaseSellOrder.run(od.id);
 }
 
-wrt::optional<chain_db::OrderData> ChainDB::select_open_order(HistoryId id) const
+std::optional<chain_db::OrderData> ChainDB::select_open_order(HistoryId id) const
 {
     using ret_t = chain_db::OrderData;
     auto res { stmtSelectBaseSellById.one(id).process([&](const sqlite::Row& r) -> ret_t {
@@ -746,11 +746,11 @@ wrt::optional<chain_db::OrderData> ChainDB::select_open_order(HistoryId id) cons
     return res;
 }
 
-wrt::optional<chain_db::OrderData> ChainDB::select_open_order(TransactionId id) const
+std::optional<chain_db::OrderData> ChainDB::select_open_order(TransactionId id) const
 {
     using ret_t = chain_db::OrderData;
 
-    wrt::optional<chain_db::OrderData> res {
+    std::optional<chain_db::OrderData> res {
         stmtSelectBaseSellByTxid.one(id.accountId, id.pinHeight, id.nonceId).process([&](const sqlite::Row& o) {
             return ret_t {
                 .id = o[0],
@@ -782,7 +782,7 @@ wrt::optional<chain_db::OrderData> ChainDB::select_open_order(TransactionId id) 
 std::vector<std::pair<chain_db::OrderData, TxHash>> ChainDB::lookup_account_orders(AccountId accId) const
 {
     std::vector<std::pair<chain_db::OrderData, TxHash>> out;
-    // wrt::optional<chain_db::OrderData> res {
+    // std::optional<chain_db::OrderData> res {
 
     stmtSelectQuoteBuyOrderAccount.for_each([&](const sqlite::Row& o) {
         out.push_back({ chain_db::OrderData {
@@ -879,7 +879,7 @@ void ChainDB::delete_pool(AssetId id)
     stmtDeletePool.run(id);
 }
 
-wrt::optional<PoolData> ChainDB::select_pool(AssetId assetId) const
+std::optional<PoolData> ChainDB::select_pool(AssetId assetId) const
 {
     return stmtSelectPool.one(assetId).process([](auto o) -> PoolData {
         return PoolData {
@@ -909,7 +909,7 @@ void ChainDB::insert_unguarded(const TokenForkBalanceData& b)
 //         });
 // }
 
-wrt::optional<std::pair<NonzeroHeight, Funds_uint64>> ChainDB::get_balance_snapshot_after(TokenId tokenId, NonzeroHeight minHeight) const
+std::optional<std::pair<NonzeroHeight, Funds_uint64>> ChainDB::get_balance_snapshot_after(TokenId tokenId, NonzeroHeight minHeight) const
 {
     auto res { stmtTokenForkBalanceSelect.one(tokenId, minHeight) };
     if (!res.has_value())
@@ -922,7 +922,7 @@ void ChainDB::insert_unguarded(const AssetData& d)
     stmtAssetInsert.run(d.id, d.hash, d.name, d.supply.decimals.value(), d.height, d.ownerAccountId, d.supply.funds.value(), d.groupId, d.parentId, d.data);
 }
 
-wrt::optional<NonzeroHeight> ChainDB::get_latest_fork_height(TokenId tid, Height h)
+std::optional<NonzeroHeight> ChainDB::get_latest_fork_height(TokenId tid, Height h)
 {
     auto res { stmtAssetSelectForkHeight.one(tid, h) };
     if (!res.has_value())
@@ -935,7 +935,7 @@ void ChainDB::insert_unguarded(const BalanceData& b)
     stmtTokenInsertBalance.run(b.id, b.tokenId, b.accountId, b.total, b.locked);
 }
 
-wrt::optional<std::pair<BalanceId, Balance_uint64>> ChainDB::get_balance(AccountId aid, TokenId tid) const
+std::optional<std::pair<BalanceId, Balance_uint64>> ChainDB::get_balance(AccountId aid, TokenId tid) const
 {
     auto res { stmtTokenSelectBalance.one(tid, aid) };
     if (!res.has_value())
@@ -1030,7 +1030,7 @@ void ChainDB::delete_history_from(NonzeroHeight h)
     cache.nextHistoryId = HistoryId { nextHistoryId };
 }
 
-wrt::optional<std::pair<history::HistoryVariant, HistoryId>> ChainDB::lookup_history(const HashView hash) const
+std::optional<std::pair<history::HistoryVariant, HistoryId>> ChainDB::lookup_history(const HashView hash) const
 {
     return stmtHistoryLookupByHash.one(hash).process([](auto& o) {
         return std::pair<history::HistoryVariant, HistoryId> {
@@ -1059,15 +1059,15 @@ std::vector<std::pair<HistoryId, history::Entry>> ChainDB::lookup_history_range(
     }
 }
 
-wrt::optional<history::Entry> ChainDB::lookup_history(HistoryId id) const
+std::optional<history::Entry> ChainDB::lookup_history(HistoryId id) const
 {
     auto v { lookup_history_range(id, id + 1) };
     if (v.size() == 0)
-        return wrt::nullopt;
+        return std::nullopt;
     return std::move(v.front().second);
 }
 
-wrt::optional<TxHash> ChainDB::lookup_history_hash(HistoryId id) const
+std::optional<TxHash> ChainDB::lookup_history_hash(HistoryId id) const
 {
     return stmtHistoryLookupHash.one(id).process([](const sqlite::Row& r) {
         return TxHash(r[0]);
@@ -1079,7 +1079,7 @@ void ChainDB::insertAccountHistory(AccountId accountId, HistoryId historyId)
     stmtAccountHistoryInsert.run(accountId, historyId);
 }
 
-wrt::optional<AccountId> ChainDB::lookup_account(const AddressView address) const
+std::optional<AccountId> ChainDB::lookup_account(const AddressView address) const
 {
     return stmtAddressLookup.one(address).process([](auto& p) {
         return AccountId { p[0] };
@@ -1096,14 +1096,14 @@ std::vector<std::tuple<HistoryId, history::Entry>> ChainDB::lookup_history_100_d
         accountId, beforeId);
 }
 
-wrt::optional<Address> ChainDB::lookup_address(AccountId id) const
+std::optional<Address> ChainDB::lookup_address(AccountId id) const
 {
     return stmtAccountsLookup.one(id).process([](auto& o) {
         return Address { o[0] };
     });
 }
 
-auto ChainDB::get_token_balance(BalanceId id) const -> wrt::optional<BalanceData>
+auto ChainDB::get_token_balance(BalanceId id) const -> std::optional<BalanceData>
 {
     return stmtSelectBalanceId.one(id).process([&](const sqlite::Row& o) {
         return BalanceData {
@@ -1200,12 +1200,12 @@ Result<AssetDetail> ChainDB::lookup_asset(const AssetHash& hash) const
     return Error(EASSETHASHNOTFOUND);
 }
 
-wrt::optional<BlockId> ChainDB::lookup_block_id(const HashView hash) const
+std::optional<BlockId> ChainDB::lookup_block_id(const HashView hash) const
 {
     return stmtBlockIdSelect.one(hash);
 }
 
-wrt::optional<NonzeroHeight> ChainDB::lookup_block_height(const HashView hash) const
+std::optional<NonzeroHeight> ChainDB::lookup_block_height(const HashView hash) const
 {
     return stmtBlockHeightSelect.one(hash).process([](auto& r) {
         return NonzeroHeight { r[0] };

@@ -15,7 +15,7 @@ class WSConnectionSchedule {
             : request(std::move(r))
         {
         }
-        wrt::optional<std::chrono::steady_clock::time_point> expires;
+        std::optional<std::chrono::steady_clock::time_point> expires;
         WSBrowserConnectRequest request;
     };
     using vector_t = std::vector<Element>;
@@ -30,7 +30,7 @@ public:
     void insert(const WSUrladdr& addr);
     void connect_expired(time_point now = steady_clock::now());
     bool erase(const WSUrladdr& addr);
-    [[nodiscard]] wrt::optional<time_point> pop_wakeup_time();
+    [[nodiscard]] std::optional<time_point> pop_wakeup_time();
     auto& state() const { return pinnedRequests; }
 
 private: // private methods

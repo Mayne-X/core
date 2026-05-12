@@ -75,7 +75,7 @@ std::string ConfigParams::get_default_datadir()
 #endif
 
 namespace {
-// wrt::optional<SnapshotSigner> parse_leader_key(std::string privKey)
+// std::optional<SnapshotSigner> parse_leader_key(std::string privKey)
 // {
 //     try {
 //         SnapshotSigner ss { PrivKey(privKey) };
@@ -88,7 +88,7 @@ namespace {
 // }
 
 struct CmdlineParsed {
-    static wrt::optional<CmdlineParsed> parse(int argc, char** argv)
+    static std::optional<CmdlineParsed> parse(int argc, char** argv)
     {
         gengetopt_args_info ai;
         if (cmdline_parser(argc, argv, &ai) != 0)
@@ -164,7 +164,7 @@ std::runtime_error failed_convert(const toml::node& n)
 }
 
 template <typename T>
-wrt::optional<T> config_convert(const toml::node& n)
+std::optional<T> config_convert(const toml::node& n)
 {
     if (auto val = n.value<T>()) {
         return val.value();
@@ -173,7 +173,7 @@ wrt::optional<T> config_convert(const toml::node& n)
 }
 
 template <>
-wrt::optional<TCPPeeraddr> config_convert(const toml::node& n)
+std::optional<TCPPeeraddr> config_convert(const toml::node& n)
 {
     if (auto sv { n.value<std::string_view>() }) {
         if (sv->length() == 0)
@@ -185,7 +185,7 @@ wrt::optional<TCPPeeraddr> config_convert(const toml::node& n)
 }
 
 template <>
-wrt::optional<Endpoints> config_convert(const toml::node& n)
+std::optional<Endpoints> config_convert(const toml::node& n)
 {
     if (n.is_array()) {
         Endpoints endpoints;
@@ -203,7 +203,7 @@ failed:
 }
 
 template <>
-wrt::optional<SnapshotSigner>
+std::optional<SnapshotSigner>
 config_convert(const toml::node& n)
 {
     try {
@@ -247,7 +247,7 @@ struct TableReader : public TableReaderData {
         }
     }
 
-    wrt::optional<TableReader> subtable(std::string_view s)
+    std::optional<TableReader> subtable(std::string_view s)
     {
 
         if (auto it { tbl.find(s) }; it != tbl.end()) {
@@ -258,25 +258,25 @@ struct TableReader : public TableReaderData {
             assert(p != nullptr);
             return TableReader { *p, filepath };
         }
-        return wrt::nullopt;
+        return std::nullopt;
     }
 
     struct Entry {
         const toml::node* v;
 
         template <typename T>
-        wrt::optional<T> get() const
+        std::optional<T> get() const
         {
             return config_convert<T>(*v);
         }
     };
-    wrt::optional<Entry> operator[](std::string_view key) const
+    std::optional<Entry> operator[](std::string_view key) const
     {
         if (auto it { tbl.find(key) }; it != tbl.end()) {
             keyUsed[it->first] = true;
             return { Entry { &it->second } };
         }
-        return wrt::nullopt;
+        return std::nullopt;
     }
 };
 
@@ -304,7 +304,7 @@ void fill_arg(
 template <typename T>
 void fill(
     T& dst,
-    wrt::optional<TableReader>& tblreader,
+    std::optional<TableReader>& tblreader,
     std::string_view tblkey)
 {
     if (tblreader) {
@@ -319,8 +319,8 @@ void fill(
 
 template <typename T>
 void fill(
-    wrt::optional<T>& dst,
-    wrt::optional<TableReader>& tblreader,
+    std::optional<T>& dst,
+    std::optional<TableReader>& tblreader,
     std::string_view tblkey)
 {
     if (tblreader) {
@@ -336,7 +336,7 @@ void fill(
 //
 // template <typename T, typename U>
 // [[nodiscard]] T fill_default(
-//     wrt::optional<TableReader>& tblreader,
+//     std::optional<TableReader>& tblreader,
 //     std::string_view tblkey,
 //     auto default_val,
 //     bool flag_given,
@@ -351,7 +351,7 @@ void fill(
 //
 // template <typename T, typename U>
 // [[nodiscard]] T fill_default(
-//     wrt::optional<TableReader>& tblreader,
+//     std::optional<TableReader>& tblreader,
 //     std::string_view tblkey,
 //     auto default_val,
 //     bool flag_given,
@@ -363,7 +363,7 @@ void fill(
 //
 // template <typename T>
 // [[nodiscard]] T fill_default(
-//     wrt::optional<TableReader>& tblreader,
+//     std::optional<TableReader>& tblreader,
 //     std::string_view tblkey,
 //     auto default_val)
 // {
@@ -433,7 +433,7 @@ void ConfigParams::process_args(const gengetopt_args_info& ai)
 }
 #endif
 
-wrt::optional<int> ConfigParams::process_config_file(const gengetopt_args_info& ai, bool silent)
+std::optional<int> ConfigParams::process_config_file(const gengetopt_args_info& ai, bool silent)
 {
     std::string filename
         = is_testnet() ? "testnet_config.toml" : "config.toml";

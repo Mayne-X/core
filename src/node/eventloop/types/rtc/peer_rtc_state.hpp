@@ -10,7 +10,7 @@
 #include <deque>
 #include <map>
 #include <memory>
-#include "wrt/optional.hpp"
+
 #include <type_traits>
 #include <vector>
 
@@ -18,7 +18,7 @@ class RTCConnection;
 namespace rtc_state {
 using namespace std::chrono;
 class VerificationSchedule;
-using wrt::optional;
+using std::optional;
 
 class Offered {
     struct elem_t {
@@ -26,7 +26,7 @@ class Offered {
         bool used = false;
     };
     struct ret_t {
-        wrt::optional<uint64_t> conId;
+        std::optional<uint64_t> conId;
         bool repeated { false };
     };
     [[nodiscard]] uint32_t begin() const { return offset; }
@@ -86,7 +86,7 @@ public:
         }
     }
 
-    [[nodiscard]] wrt::optional<uint64_t> get_con_id(uint64_t key)
+    [[nodiscard]] std::optional<uint64_t> get_con_id(uint64_t key)
     {
         uint64_t i { key - offset };
         if (i >= entries.size())
@@ -333,7 +333,7 @@ public:
             ipv6 = IpEntry<IPv6>(*id.get_ip6());
     }
 
-    [[nodiscard]] wrt::optional<IP> pop_unverified(IdentityIps::Pattern p)
+    [[nodiscard]] std::optional<IP> pop_unverified(IdentityIps::Pattern p)
     {
         if (p.ipv4 && ipv4 && ipv4->verificationTried == false) {
             ipv4->verificationTried = true;
@@ -372,8 +372,8 @@ public:
     }
 
 private:
-    wrt::optional<IpEntry<IPv4>> ipv4;
-    wrt::optional<IpEntry<IPv6>> ipv6;
+    std::optional<IpEntry<IPv4>> ipv4;
+    std::optional<IpEntry<IPv6>> ipv6;
     bool fresh { true };
 };
 
@@ -396,7 +396,7 @@ public:
     auto& value() { return entry.value(); }
 
 private:
-    wrt::optional<Entry> entry;
+    std::optional<Entry> entry;
 };
 
 class VerificationScheduleData {

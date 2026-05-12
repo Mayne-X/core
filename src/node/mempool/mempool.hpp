@@ -57,7 +57,7 @@ private:
                 bool inserted;
                 bool operator==(const check_t&) const = default;
             };
-            wrt::optional<check_t> prev;
+            std::optional<check_t> prev;
             std::apply([&](auto&... args) {
                 ([&](auto& arg) {
                     auto inserted { arg.insert(iter).second };
@@ -74,7 +74,7 @@ private:
         }
         size_t erase(const_iter_t iter)
         {
-            wrt::optional<size_t> prevErased;
+            std::optional<size_t> prevErased;
             std::apply([&](auto&... args) {
                 ([&](auto& arg) {
                     auto erased { arg.erase(iter) };
@@ -121,7 +121,7 @@ public:
     auto begin() const { return txs().begin(); }
     auto end() const { return txs().end(); }
 
-    [[nodiscard]] auto by_fee_inc_le(AccountId aid, wrt::optional<CompactUInt> threshold = {}) const { return txs.by_fee_inc_le(aid, threshold); }
+    [[nodiscard]] auto by_fee_inc_le(AccountId aid, std::optional<CompactUInt> threshold = {}) const { return txs.by_fee_inc_le(aid, threshold); }
     auto max_size() const { return maxSize; }
     auto size() const { return txs.size(); }
 
@@ -217,7 +217,7 @@ public:
     // Error insert_tx(const TransactionMessage& pm, TxHeight txh, const TxHash& hash, chainserver::DBCache& dbCache);
     struct InsertParams {
         TransactionMessage&& msg;
-        wrt::optional<AssetId> assetId; // if an assetHash parameter was involved, this holds the corresponding asset id
+        std::optional<AssetId> assetId; // if an assetHash parameter was involved, this holds the corresponding asset id
         TxHeight height; // height for pruning on rollback
         const TxHash& hash; // tx hash
         chainserver::DBCache& dbCache;
@@ -251,7 +251,7 @@ public:
             auto& hash() const { return iter->txhash; }
             auto& swap() const { return iter->get<LimitSwapMessage>(); }
         };
-        wrt::optional<Entry> operator()()
+        std::optional<Entry> operator()()
         {
             if (ptr) {
                 if (i >= ptr->size()) {
@@ -333,14 +333,14 @@ private:
         }
         return i;
     }
-    [[nodiscard]] std::pair<LockedBalance, wrt::optional<balance_iterator>> get_balance(AccountToken at, chainserver::DBCache&);
-    // [[nodiscard]] wrt::optional<TokenFunds> token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const;
+    [[nodiscard]] std::pair<LockedBalance, std::optional<balance_iterator>> get_balance(AccountToken at, chainserver::DBCache&);
+    // [[nodiscard]] std::optional<TokenFunds> token_spend_throw(const TransactionMessage& pm, chainserver::DBCache& cache) const;
     void erase_internal(Txset::const_iter_t);
     struct EraseResult {
         bool erasedWart;
         bool erasedToken;
     };
-    EraseResult erase_internal(Txset::const_iter_t, balance_iterator wartIter, wrt::optional<balance_iterator> tokenIter = {});
+    EraseResult erase_internal(Txset::const_iter_t, balance_iterator wartIter, std::optional<balance_iterator> tokenIter = {});
     [[nodiscard]] balance_iterator create_or_get_balance_iter(AccountToken at, chainserver::DBCache& cache);
     void prune();
 

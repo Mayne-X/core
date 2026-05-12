@@ -1,7 +1,7 @@
 #pragma once
 #include "prod.hpp"
 #include "tools/try_parse.hpp"
-#include "wrt/optional.hpp"
+
 #include <bit>
 #include <cassert>
 #include <cmath>
@@ -15,7 +15,7 @@ private:
     {
     }
 
-    [[nodiscard]] static wrt::optional<Price_uint64> compose(auto mantissa, int e)
+    [[nodiscard]] static std::optional<Price_uint64> compose(auto mantissa, int e)
     {
         if (!is_exponent(e) || !is_mantissa(mantissa))
             return {};
@@ -81,14 +81,14 @@ public:
         auto b10e { base10_decimals_exponent(prec) };
         return to_double_raw() * std::pow(10.0, -b10e);
     }
-    [[nodiscard]] static wrt::optional<Price_uint64>
+    [[nodiscard]] static std::optional<Price_uint64>
     from_mantissa_exponent(uint32_t mantissa, int exponent)
     {
         exponent += 63;
         return compose(mantissa, exponent);
     }
 
-    wrt::optional<Price_uint64> prev_step() const
+    std::optional<Price_uint64> prev_step() const
     {
         auto m { _m - 1 };
         if (is_mantissa(m))
@@ -100,7 +100,7 @@ public:
             return {};
         return Price_uint64(m, e);
     }
-    wrt::optional<Price_uint64> next_step() const
+    std::optional<Price_uint64> next_step() const
     {
         auto m { _m + 1 };
         if (is_mantissa(m))
@@ -114,12 +114,12 @@ public:
 
     auto operator<=>(const Price_uint64&) const = default;
 
-    static wrt::optional<Price_uint64> from_double_adjusted(double d, TokenDecimals basePrec, bool ceil = false)
+    static std::optional<Price_uint64> from_double_adjusted(double d, TokenDecimals basePrec, bool ceil = false)
     {
         return from_double(d * std::pow(10.0, 8 - int(basePrec.value())), ceil);
     }
 
-    static wrt::optional<Price_uint64> from_double(double d, bool ceil = false)
+    static std::optional<Price_uint64> from_double(double d, bool ceil = false)
     {
         if (d <= 0.0 || !std::isnormal(d))
             return {};
@@ -137,12 +137,12 @@ public:
         return from_mantissa_exponent(mantissa32, exp);
     }
 
-    static wrt::optional<Price_uint64> from_string(std::string_view s, bool ceil = false)
+    static std::optional<Price_uint64> from_string(std::string_view s, bool ceil = false)
     {
         return try_parse<double>(s)
             .and_then([&](double d) { return from_double(d, ceil); });
     }
-    static wrt::optional<Price_uint64> from_string_adjusted(std::string_view s, TokenDecimals prec, bool ceil = false)
+    static std::optional<Price_uint64> from_string_adjusted(std::string_view s, TokenDecimals prec, bool ceil = false)
     {
         return try_parse<double>(s)
             .and_then([&](double d) { return from_double_adjusted(d, prec, ceil); });
@@ -166,7 +166,7 @@ struct PriceRelative_uint64 { // gives details relative to price grid
         return price.operator<=>(p2);
     }
     const Price_uint64& floor() const { return price; }
-    wrt::optional<Price_uint64> ceil() const
+    std::optional<Price_uint64> ceil() const
     {
         if (exact) {
             return price;
@@ -185,7 +185,7 @@ struct PriceRelative_uint64 { // gives details relative to price grid
         }
         return rel;
     }
-    [[nodiscard]] static wrt::optional<PriceRelative_uint64> from_fraction(uint64_t numerator,
+    [[nodiscard]] static std::optional<PriceRelative_uint64> from_fraction(uint64_t numerator,
         uint64_t denominator)
     { // OK
         if (numerator == 0) {
@@ -243,7 +243,7 @@ private:
     bool exact;
 };
 
-inline wrt::optional<uint64_t> divide(uint64_t a, Price_uint64 p, bool ceil)
+inline std::optional<uint64_t> divide(uint64_t a, Price_uint64 p, bool ceil)
 { // OK
     if (a == 0)
         return 0ull;
@@ -275,20 +275,20 @@ inline wrt::optional<uint64_t> divide(uint64_t a, Price_uint64 p, bool ceil)
     return res;
 }
 
-[[nodiscard]] inline wrt::optional<uint64_t> divide_floor(uint64_t a, Price_uint64 p)
+[[nodiscard]] inline std::optional<uint64_t> divide_floor(uint64_t a, Price_uint64 p)
 {
     return divide(a, p, false);
 }
-[[nodiscard]] inline wrt::optional<uint64_t> divide_ceil(uint64_t a, Price_uint64 p)
+[[nodiscard]] inline std::optional<uint64_t> divide_ceil(uint64_t a, Price_uint64 p)
 {
     return divide(a, p, true);
 }
-inline wrt::optional<uint64_t> multiply_floor(uint64_t a, Price_uint64 p)
+inline std::optional<uint64_t> multiply_floor(uint64_t a, Price_uint64 p)
 {
     return Prod128(p.mantissa_16bit(), a).pow2_64(p.mantissa_exponent2(), false);
 }
 
-inline wrt::optional<uint64_t> multiply_ceil(uint64_t a, Price_uint64 p)
+inline std::optional<uint64_t> multiply_ceil(uint64_t a, Price_uint64 p)
 {
     return Prod128(p.mantissa_16bit(), a).pow2_64(p.mantissa_exponent2(), true);
 }

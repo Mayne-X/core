@@ -4,9 +4,9 @@
 #include "general/logging.hpp"
 
 namespace rtc_state {
-wrt::optional<IP> RTCState::get_ip(IpType t) const
+std::optional<IP> RTCState::get_ip(IpType t) const
 {
-    using res_t = wrt::optional<IP>;
+    using res_t = std::optional<IP>;
     if (!ips)
         return res_t {};
     switch (t) {
@@ -49,7 +49,7 @@ void VerificationSchedule::erase(Conref c)
     offset = 0;
 }
 
-wrt::optional<Conref> VerificationSchedule::pop_front()
+std::optional<Conref> VerificationSchedule::pop_front()
 {
     if (offset >= queue.size())
         return {};
@@ -63,7 +63,7 @@ wrt::optional<Conref> VerificationSchedule::pop_front()
     return res;
 }
 
-auto VerificationSchedule::pop(IdentityIps::Pattern p) -> wrt::optional<PopResult>
+auto VerificationSchedule::pop(IdentityIps::Pattern p) -> std::optional<PopResult>
 {
     while (auto o { pop_front() }) {
         auto& c { *o };

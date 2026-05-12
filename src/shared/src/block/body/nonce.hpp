@@ -1,7 +1,7 @@
 #pragma once
 #include "general/with_uint64.hpp"
 #include <array>
-#include "wrt/optional.hpp"
+
 class Height;
 class NonzeroHeight;
 class PinHeight;
@@ -25,7 +25,7 @@ class NonceId : public IsUint32 {
 public:
     static NonceId random();
     explicit NonceId(Nonce);
-    static wrt::optional<NonceId> try_parse(std::string_view);
+    static std::optional<NonceId> try_parse(std::string_view);
     using IsUint32::IsUint32;
 };
 
@@ -48,7 +48,7 @@ private:
     PinNonce(ReaderCheck<bytesize> r);
 
 public:
-    static wrt::optional<PinNonce> make_pin_nonce(NonceId, NonzeroHeight, PinHeight);
+    static std::optional<PinNonce> make_pin_nonce(NonceId, NonzeroHeight, PinHeight);
     PinNonce(Reader& r);
 
     [[nodiscard]] PinHeight pin_height_from_floored(PinFloor pf) const;

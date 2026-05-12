@@ -16,7 +16,7 @@ namespace events {
 struct AccountState {
     static constexpr auto eventName { "account.state" };
     Address address;
-    wrt::optional<api::AccountHistory> history;
+    std::optional<api::AccountHistory> history;
 };
 
 struct AccountDelta {

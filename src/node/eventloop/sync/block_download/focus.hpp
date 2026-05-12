@@ -59,7 +59,7 @@ struct FocusNode {
     bool activeRequest() const { return c.has_value(); }
     void register_downloader(Conref);
 
-    wrt::optional<Conref> c; // connection downloading this block batch
+    std::optional<Conref> c; // connection downloading this block batch
     std::vector<Conref> refs;
 };
 class Focus {
@@ -96,7 +96,7 @@ public:
             i += 1;
             return *this;
         }
-        wrt::optional<FocusSlot> operator*()
+        std::optional<FocusSlot> operator*()
         {
             auto slot { downloadSlot + i };
             auto iter { focus.map.try_emplace(slot).first };

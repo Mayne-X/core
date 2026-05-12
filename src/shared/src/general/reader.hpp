@@ -4,7 +4,8 @@
 #include "general/byte_order.hpp"
 #include "general/errors.hpp"
 #include "view.hpp"
-#include "wrt/optional.hpp"
+#include <vector>
+// 
 #include <cstring>
 #include <ranges>
 #include <span>
@@ -128,7 +129,7 @@ public:
     struct Optional {
         Reader& r;
         template <typename T>
-        operator wrt::optional<T>()
+        operator std::optional<T>()
         {
             if (r.uint8())
                 return T { r };
@@ -227,7 +228,7 @@ template <typename T>
 }
 
 template <typename T, typename Range>
-requires (!std::is_convertible_v<Range, std::span<std::uint8_t>> && uint8_range<Range>)
+requires(!std::is_convertible_v<Range, std::span<std::uint8_t>> && uint8_range<Range>)
 [[nodiscard]] T from_bytes(Range&& r)
 {
     auto v { std::forward<Range>(r) | std::ranges::to<std::vector>() };
@@ -237,7 +238,7 @@ requires (!std::is_convertible_v<Range, std::span<std::uint8_t>> && uint8_range<
 template <size_t N>
 class ReaderCheck {
 public:
-    ReaderCheck(Reader & r)
+    ReaderCheck(Reader& r)
         : r(r)
         , beginPos(r.cursor())
     {
@@ -255,6 +256,6 @@ public:
     {
         assert(r.cursor() == beginPos + N);
     }
-    Reader & r;
+    Reader& r;
     const uint8_t* const beginPos;
 };

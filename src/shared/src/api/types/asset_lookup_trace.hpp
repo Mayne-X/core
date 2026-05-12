@@ -3,6 +3,6 @@
 namespace api {
 struct AssetLookupTrace { // for debugging
     std::vector<AssetDetail> fails;
-    wrt::optional<Height> snapshotHeight;
+    std::optional<Height> snapshotHeight;
 };
 }

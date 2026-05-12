@@ -1,7 +1,7 @@
 #pragma once
 #include "general/funds.hpp"
 #include "nonzero.hpp"
-#include "wrt/optional.hpp"
+
 #include <bit>
 #include <cassert>
 #include <cstdint>
@@ -63,7 +63,7 @@ public:
         return z;
     }
     bool is_zero() const { return upper == 0 && lower == 0; }
-    wrt::optional<uint64_t> pow2_64(int shiftExp, bool ceil) const
+    std::optional<uint64_t> pow2_64(int shiftExp, bool ceil) const
     { // OK
         if (is_zero())
             return 0;
@@ -134,13 +134,13 @@ public:
             pos -= 1;
         }
     }
-    // returns wrt::nullopt on overflow
-    [[nodiscard]] wrt::optional<uint64_t> divide_floor(Nonzero_uint64 v) const
+    // returns std::nullopt on overflow
+    [[nodiscard]] std::optional<uint64_t> divide_floor(Nonzero_uint64 v) const
     {
         return div(v, false);
     }
-    // returns wrt::nullopt on overflow
-    [[nodiscard]] wrt::optional<uint64_t> divide_ceil(uint64_t v) const
+    // returns std::nullopt on overflow
+    [[nodiscard]] std::optional<uint64_t> divide_ceil(uint64_t v) const
     {
         return div(v, true);
     }
@@ -148,7 +148,7 @@ public:
     auto v1() const { return lower; }
 
 private:
-    [[nodiscard]] wrt::optional<uint64_t> div(uint64_t v, bool ceil) const
+    [[nodiscard]] std::optional<uint64_t> div(uint64_t v, bool ceil) const
     {
         assert(v != 0);
         if (upper == 0)

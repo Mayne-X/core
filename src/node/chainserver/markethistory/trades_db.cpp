@@ -55,13 +55,13 @@ Height MarketReaderDB::chain_length() const
                                     })
         .value_or(Height(0));
 }
-wrt::optional<Asset> MarketReaderDB::get_asset(AssetId id) const
+std::optional<Asset> MarketReaderDB::get_asset(AssetId id) const
 {
     return stmtSelectAssetById.one(id).process([](auto& row) {
         return Asset { .id = row[0], .hash = row[1], .latestHeight = row[2] };
     });
 }
-wrt::optional<Asset> MarketReaderDB::get_asset(AssetHash hash) const
+std::optional<Asset> MarketReaderDB::get_asset(AssetHash hash) const
 {
     return stmtSelectAssetByHash.one(hash).process(
         [](auto& row) { return Asset {
@@ -141,7 +141,7 @@ CandlesVector MarketReaderDB::get_candles_latest(AssetId aid, Interval interval,
     return { .elements = extract_candles(aid, interval, "ORDER BY timestamp DESC LIMIT ?", n), .reverse = true };
 }
 
-wrt::optional<BlockHash> MarketReaderDB::get_block_hash(NonzeroHeight height) const
+std::optional<BlockHash> MarketReaderDB::get_block_hash(NonzeroHeight height) const
 {
     return stmtSelectBlock.one(height).process([](const sqlite::Row& row) {
         return BlockHash(row[0]);
@@ -394,7 +394,7 @@ void MarketDB::insert_candle(AssetId assetId, Interval interval, const Candle& c
     stmt.run(c.timestamp, c.height, c.open, c.high, c.low, c.close, c.base, c.quote);
 }
 
-wrt::optional<Candle> MarketDB::get_latest_candle(AssetId aid, Interval interval) const
+std::optional<Candle> MarketDB::get_latest_candle(AssetId aid, Interval interval) const
 {
     auto tableName { candles_table(aid, interval) };
     std::string query { std::format("SELECT timestamp, height, open, high, low, close, base, quote FROM {} ORDER BY timestamp DESC LIMIT 1", tableName) };
@@ -456,7 +456,7 @@ void MarketDB::delete_block_from(NonzeroHeight height)
 {
     stmtDeleteBlockFrom.run(height);
 }
-wrt::optional<BlockHash> MarketDB::select_block(NonzeroHeight height)
+std::optional<BlockHash> MarketDB::select_block(NonzeroHeight height)
 {
     return stmtInsertBlock.one(height).process([](const sqlite::Row& row) {
         return BlockHash(row[0]);

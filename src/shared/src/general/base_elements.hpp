@@ -82,14 +82,14 @@ struct CombineElements : public enumerated::CombineElementsEnumerated<0, Element
 };
 
 template <typename T>
-class OptionalElement : public wrt::optional<T> {
+class OptionalElement : public std::optional<T> {
     OptionalElement() { }
-    OptionalElement(wrt::optional<T> o)
-        : wrt::optional<T>(std::move(o))
+    OptionalElement(std::optional<T> o)
+        : std::optional<T>(std::move(o))
     {
     }
     OptionalElement(T t)
-        : wrt::optional<T>(std::move(t))
+        : std::optional<T>(std::move(t))
     {
     }
     OptionalElement(Reader& r)

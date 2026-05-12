@@ -37,7 +37,7 @@ struct BaseQuote64 {
     bool operator==(const BaseQuote64&) const = default;
 };
 struct FillResult_uint64 {
-    wrt::optional<NonzeroDelta_uint64> toPool;
+    std::optional<NonzeroDelta_uint64> toPool;
     BaseQuote64 filled;
     bool operator==(const FillResult_uint64&) const = default;
 };

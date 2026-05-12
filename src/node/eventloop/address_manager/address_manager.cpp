@@ -98,7 +98,7 @@ void AddressManager::outbound_failed(const WSBrowserConnectRequest& r, Error)
 }
 #endif
 
-wrt::optional<Conref> AddressManager::find(uint64_t id) const
+std::optional<Conref> AddressManager::find(uint64_t id) const
 {
     auto iter = conndatamap.find(id);
     if (iter == conndatamap.end())
@@ -176,7 +176,7 @@ void AddressManager::garbage_collect()
     delayedDelete.clear();
 }
 
-wrt::optional<std::chrono::steady_clock::time_point> AddressManager::pop_scheduled_connect_time()
+std::optional<std::chrono::steady_clock::time_point> AddressManager::pop_scheduled_connect_time()
 {
     if (config().node.isolated)
         return {};
@@ -196,7 +196,7 @@ template <typename T>
     return out;
 }
 
-auto AddressManager::eviction_candidate() const -> wrt::optional<Conref>
+auto AddressManager::eviction_candidate() const -> std::optional<Conref>
 {
     if (conndatamap.size() < 200)
         return {};

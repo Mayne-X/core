@@ -1,6 +1,6 @@
 #pragma once
 #include "SQLiteCpp/Column.h"
-#include "wrt/optional.hpp"
+
 #include <cassert>
 #include <cstdint>
 #include <vector>
@@ -9,8 +9,8 @@ namespace sqlite {
 
 struct Column;
 template <typename T>
-struct Nullable : public wrt::optional<T> {
-    using wrt::optional<T>::optional;
+struct Nullable : public std::optional<T> {
+    using std::optional<T>::optional;
     Nullable(Column c);
 };
 
@@ -44,7 +44,7 @@ public:
     std::array<uint8_t, N> get_array(int index) const;
     std::vector<uint8_t> get_vector(int index) const;
     template <typename T>
-    operator wrt::optional<T>();
+    operator std::optional<T>();
     bool has_value() const { return hasValue; }
     [[nodiscard]] auto process(auto lambda) const;
 

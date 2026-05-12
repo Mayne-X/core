@@ -1,7 +1,8 @@
 #pragma once
 #include "general/errors.hpp"
 #include "wrt/expected.hpp"
-#include "wrt/optional.hpp"
+#include <optional>
+
 template <typename T>
 struct Result;
 namespace result {
@@ -28,7 +29,7 @@ struct Result : public wrt::expected<T, Error> {
         : parent(std::move(t))
     {
     }
-    Result(wrt::optional<T> t)
+    Result(std::optional<T> t)
         : Result(
               [&]() -> Result {
                   if (t) {
@@ -69,7 +70,7 @@ struct Result : public wrt::expected<T, Error> {
 
 template <>
 struct Result<void> : public wrt::expected<void, Error> {
-    Result(const wrt::optional<Error>& t)
+    Result(const std::optional<Error>& t)
         : Result(t ? Result(wrt::make_unexpected(*t)) : Result())
     {
     }

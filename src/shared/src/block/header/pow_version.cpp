@@ -1,6 +1,6 @@
 #include "pow_version.hpp"
 #include "block/header/header.hpp"
-wrt::optional<POWVersion> POWVersion::from_params(NonzeroHeight height, BlockVersion version, bool testnet)
+std::optional<POWVersion> POWVersion::from_params(NonzeroHeight height, BlockVersion version, bool testnet)
 {
     if (testnet) {
         if (height.value() <= 2) {

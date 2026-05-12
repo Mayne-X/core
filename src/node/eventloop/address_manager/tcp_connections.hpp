@@ -23,7 +23,7 @@ using steady_clock = std::chrono::steady_clock;
 template <typename addr_t>
 struct WithSource {
     addr_t address;
-    wrt::optional<Source> source;
+    std::optional<Source> source;
     explicit WithSource(addr_t addr)
         : address(std::move(addr)) { };
     WithSource(addr_t addr, Source source)
@@ -102,16 +102,16 @@ public:
 
     private:
         duration _sleepDuration;
-        wrt::optional<time_point> wakeupTime;
+        std::optional<time_point> wakeupTime;
     };
     // [[nodiscard]] time_point outbound_connected_ended(const ReconnectContext&);
     // [[nodiscard]] time_point update_timer(const ReconnectContext&);
 
-    wrt::optional<time_point> make_expired_pending(time_point, std::vector<ConnectRequest>& outpending);
+    std::optional<time_point> make_expired_pending(time_point, std::vector<ConnectRequest>& outpending);
     void wakeup_after(duration);
     json to_json() const;
     api::TCPConnectionSchedule::Schedule api_schedule() const;
-    [[nodiscard]] wrt::optional<time_point> wakeup_time() const;
+    [[nodiscard]] std::optional<time_point> wakeup_time() const;
     [[nodiscard]] auto sleep_duration() const { return timer.sleep_duration(); }
     using VectorEntry::VectorEntry;
 
@@ -154,9 +154,9 @@ public:
 using ConnectedEntry = VerifiedEntry;
 
 struct TimeoutInfo {
-    void update_wakeup_time(const wrt::optional<time_point>&);
-    wrt::optional<time_point> timeout() const { return wakeup_tp; }
-    wrt::optional<time_point> wakeup_tp;
+    void update_wakeup_time(const std::optional<time_point>&);
+    std::optional<time_point> timeout() const { return wakeup_tp; }
+    std::optional<time_point> wakeup_tp;
 };
 struct Found {
     // void set_
@@ -232,7 +232,7 @@ public:
     void pin(const TCPPeeraddr&);
     void unpin(const TCPPeeraddr&);
     void initialize();
-    wrt::optional<ConnectRequest> add_feeler(TCPPeeraddr, Source);
+    std::optional<ConnectRequest> add_feeler(TCPPeeraddr, Source);
     void connect_expired();
 
     // connection callbacks
@@ -244,7 +244,7 @@ public:
     json to_json() const;
     api::TCPConnectionSchedule api_connection_schedule() const;
 
-    [[nodiscard]] wrt::optional<time_point> updated_wakeup_time();
+    [[nodiscard]] std::optional<time_point> updated_wakeup_time();
 
     std::vector<TCPPeeraddr> sample_verified(size_t N) const;
 
@@ -253,8 +253,8 @@ private:
     void prune_verified();
     [[nodiscard]] std::vector<TCPConnectRequest> pop_expired(time_point now = steady_clock::now());
     void refresh_wakeup_time();
-    [[nodiscard]] auto find(const TCPPeeraddr& a) -> wrt::optional<Found>;
-    [[nodiscard]] auto find_disconnected(const TCPPeeraddr& a) -> wrt::optional<FoundDisconnected>;
+    [[nodiscard]] auto find(const TCPPeeraddr& a) -> std::optional<Found>;
+    [[nodiscard]] auto find_disconnected(const TCPPeeraddr& a) -> std::optional<FoundDisconnected>;
 
     VerifiedVector connectedVerified;
     VerifiedVector disconnectedVerified;

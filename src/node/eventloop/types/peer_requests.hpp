@@ -51,7 +51,7 @@ struct BlockRequest : public BlockreqMsg, public IsRequest {
     {
     }
     std::shared_ptr<Descripted> descripted;
-    wrt::optional<Hash> upperHash; // nullopt for loadtest
+    std::optional<Hash> upperHash; // nullopt for loadtest
 };
 
 struct HeaderRequest : public BatchreqMsg, public IsRequest {

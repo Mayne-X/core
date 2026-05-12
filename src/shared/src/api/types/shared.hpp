@@ -71,7 +71,7 @@ struct WartBalance {
     Wart free() const { return diff_assert(diff_assert(total, locked), mempool); }
 };
 struct WartBalanceLookup {
-    wrt::optional<Account> account;
+    std::optional<Account> account;
     WartBalance balance;
 };
 
@@ -154,7 +154,7 @@ struct LimitSwapData {
     static constexpr const char* label = ::block::labels::limitSwap;
     AssetBasic assetInfo;
     Funds_uint64 amount;
-    wrt::optional<Funds_uint64> remaining;
+    std::optional<Funds_uint64> remaining;
     Price_uint64 limit;
     bool buy;
 
@@ -175,13 +175,13 @@ struct AssetCreationData {
     static constexpr const char* label = ::block::labels::assetCreation;
     AssetName name;
     FundsDecimal supply;
-    wrt::optional<AssetId> assetId;
+    std::optional<AssetId> assetId;
 };
 
 struct CancelationData {
     static constexpr const char* label = ::block::labels::cancelation;
     TransactionId cancelTxid;
-    wrt::optional<TxHash> canceledTxHash;
+    std::optional<TxHash> canceledTxHash;
 };
 
 struct LiquidityDepositData {
@@ -189,14 +189,14 @@ struct LiquidityDepositData {
     AssetBasic assetInfo;
     Funds_uint64 baseDeposited;
     Wart quoteDeposited;
-    wrt::optional<Funds_uint64> sharesReceived;
+    std::optional<Funds_uint64> sharesReceived;
 };
 
 struct LiquidityWithdrawalData {
     static constexpr const char* label = ::block::labels::liquidityWithdrawal;
     AssetBasic assetInfo;
     Funds_uint64 sharesRedeemed;
-    wrt::optional<defi::BaseQuote> received;
+    std::optional<defi::BaseQuote> received;
 };
 
 template <typename T>
@@ -206,7 +206,7 @@ struct WithHistoryId {
 };
 
 struct Actions {
-    wrt::optional<WithHistoryId<block::Reward>> reward;
+    std::optional<WithHistoryId<block::Reward>> reward;
     std::vector<WithHistoryId<block::WartTransfer>> wartTransfers;
     std::vector<WithHistoryId<block::TokenTransfer>> tokenTransfers;
     std::vector<WithHistoryId<block::AssetCreation>> assetCreations;
@@ -331,7 +331,7 @@ struct TransactionMinedData {
 
 template <typename Transaction>
 struct MaybeMined {
-    wrt::optional<TransactionMinedData> mined;
+    std::optional<TransactionMinedData> mined;
     uint32_t confirmations;
     Transaction transaction;
 };
@@ -395,8 +395,8 @@ struct FundsBalance {
 struct TokenBalanceLookup {
     api::Token token;
     FundsBalance balance;
-    wrt::optional<api::Account> account;
-    wrt::optional<AssetLookupTrace> lookupTrace;
+    std::optional<api::Account> account;
+    std::optional<AssetLookupTrace> lookupTrace;
 };
 
 struct Richlist {

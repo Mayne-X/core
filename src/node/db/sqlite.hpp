@@ -117,7 +117,7 @@ inline std::vector<uint8_t> Row::get_vector(int index) const
 }
 
 template <typename T>
-inline Row::operator wrt::optional<T>()
+inline Row::operator std::optional<T>()
 {
     if (!hasValue)
         return {};
@@ -127,7 +127,7 @@ inline Row::operator wrt::optional<T>()
 inline auto Row::process(auto lambda) const
 {
     using ret_t = std::remove_cvref_t<decltype(lambda(*this))>;
-    wrt::optional<ret_t> r;
+    std::optional<ret_t> r;
     if (has_value())
         r = lambda(*this);
     return r;
@@ -182,7 +182,7 @@ struct Binder {
     {
     }
     template <typename T>
-    auto bind(int i, const wrt::optional<T>& a)
+    auto bind(int i, const std::optional<T>& a)
     {
         if (a)
             bind(i, *a);

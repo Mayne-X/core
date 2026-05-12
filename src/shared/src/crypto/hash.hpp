@@ -1,7 +1,7 @@
 #pragma once
-#include "general/errors.hpp"
 #include "general/view.hpp"
-#include "wrt/optional.hpp"
+
+#include <optional>
 #include <array>
 #include <cstring>
 #include <string>
@@ -23,7 +23,7 @@ class Hash : public std::array<uint8_t, 32> {
 
 public:
     static constexpr size_t byte_size() { return 32; }
-    static wrt::optional<Hash> try_parse(std::string_view);
+    static std::optional<Hash> try_parse(std::string_view);
     static Hash parse_throw(std::string_view);
     static constexpr Hash zero()
     {
@@ -78,7 +78,7 @@ public:
         : Hash(std::move(other))
     {
     }
-    [[nodiscard]] static wrt::optional<T> try_parse(std::string_view s)
+    [[nodiscard]] static std::optional<T> try_parse(std::string_view s)
     {
         auto p { Hash::try_parse(s) };
         if (p)

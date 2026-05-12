@@ -34,11 +34,11 @@ protected:
     mutable std::map<Key, Value> map;
 };
 
-class AddressCache : public DBCacheBase<AccountId, wrt::optional<Address>> {
+class AddressCache : public DBCacheBase<AccountId, std::optional<Address>> {
 public:
     using DBCacheBase::DBCacheBase;
 
-    const wrt::optional<Address>& get(AccountId);
+    const std::optional<Address>& get(AccountId);
     const Address& fetch(AccountId);
 };
 

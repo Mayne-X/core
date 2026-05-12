@@ -120,7 +120,7 @@ auto from(const ReversibleVector<T> v)
 }
 
 template <typename T>
-auto from(const wrt::optional<T>& o)
+auto from(const std::optional<T>& o)
 {
     using target_type = std::remove_cvref_t<decltype(from(std::declval<const T&>()))>;
     std::optional<target_type> out;

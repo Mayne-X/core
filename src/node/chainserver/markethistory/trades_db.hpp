@@ -35,7 +35,7 @@ struct Asset {
 //     {
 //         return _quote / _base;
 //     }
-//     [[nodiscard]] static wrt::optional<TradeAmount> create(double base, double quote)
+//     [[nodiscard]] static std::optional<TradeAmount> create(double base, double quote)
 //     {
 //         if (base == 0 || quote == 0)
 //             return {};
@@ -117,8 +117,8 @@ using Statement = sqlite::Statement;
 class MarketReaderDB {
 public:
     [[nodiscard]] Height chain_length() const;
-    [[nodiscard]] wrt::optional<Asset> get_asset(AssetId) const;
-    [[nodiscard]] wrt::optional<Asset> get_asset(AssetHash) const;
+    [[nodiscard]] std::optional<Asset> get_asset(AssetId) const;
+    [[nodiscard]] std::optional<Asset> get_asset(AssetHash) const;
 
     TradesVector get_trades_range(AssetId, NonzeroHeight from, NonzeroHeight to) const;
     TradesVector get_trades_from(AssetId, NonzeroHeight from, size_t n) const;
@@ -130,7 +130,7 @@ public:
     CandlesVector get_candles_to(AssetId, Interval interval, Timestamp to, size_t n) const;
     CandlesVector get_candles_latest(AssetId, Interval interval, size_t n) const;
 
-    [[nodiscard]] wrt::optional<BlockHash> get_block_hash(NonzeroHeight height) const;
+    [[nodiscard]] std::optional<BlockHash> get_block_hash(NonzeroHeight height) const;
     MarketReaderDB clone_reader() const;
     [[nodiscard]] auto transaction() const { return SQLite::Transaction(db); }
 
@@ -184,7 +184,7 @@ private:
     void erase_interval_candles_from_height(AssetId, Interval interval, Timestamp from);
     void asset_drop_tables(AssetId assetId);
 
-    [[nodiscard]] wrt::optional<Candle> get_latest_candle(AssetId, Interval) const;
+    [[nodiscard]] std::optional<Candle> get_latest_candle(AssetId, Interval) const;
 
     void aggregate_into_candles(AssetId, Interval, const Trade t, Timestamp ts);
 
@@ -193,7 +193,7 @@ private:
 
     void insert_block(NonzeroHeight height, BlockHash hash, Timestamp);
     void delete_block_from(NonzeroHeight height);
-    wrt::optional<BlockHash> select_block(NonzeroHeight height);
+    std::optional<BlockHash> select_block(NonzeroHeight height);
 
 private:
     Statement stmtSetLatestHeight;

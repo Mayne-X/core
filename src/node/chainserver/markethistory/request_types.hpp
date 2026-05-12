@@ -22,7 +22,7 @@ public:
     {
         return _quote / _base;
     }
-    [[nodiscard]] static wrt::optional<TradeAmount> create(double base, double quote)
+    [[nodiscard]] static std::optional<TradeAmount> create(double base, double quote)
     {
         if (base == 0 || quote == 0)
             return {};

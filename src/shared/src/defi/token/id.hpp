@@ -2,7 +2,7 @@
 #include "general/errors.hpp"
 #include "general/with_uint64.hpp"
 #include <cassert>
-#include "wrt/optional.hpp"
+
 
 struct AssetId;
 class NonWartTokenId;
@@ -10,7 +10,7 @@ struct TokenId : public UInt64WithOperators<TokenId> {
     using UInt64WithOperators::UInt64WithOperators;
     static const TokenId WART;
     [[nodiscard]] bool is_wart() const { return value() == 0; }
-    [[nodiscard]] wrt::optional<NonWartTokenId> non_wart() const;
+    [[nodiscard]] std::optional<NonWartTokenId> non_wart() const;
 };
 
 class NonWartTokenId : public TokenId {
@@ -23,7 +23,7 @@ public:
     }
     [[nodiscard]] AssetId asset_id() const;
 
-    static wrt::optional<NonWartTokenId> non_wart(TokenId id)
+    static std::optional<NonWartTokenId> non_wart(TokenId id)
     {
         if (id.is_wart())
             return {};
@@ -45,7 +45,7 @@ public:
     }
 };
 
-inline wrt::optional<NonWartTokenId> TokenId::non_wart() const
+inline std::optional<NonWartTokenId> TokenId::non_wart() const
 {
     return NonWartTokenId::non_wart(*this);
 }

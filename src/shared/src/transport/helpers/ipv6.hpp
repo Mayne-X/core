@@ -2,10 +2,11 @@
 #include "general/hex_digit.hpp"
 #include "general/serializer_fwd.hxx"
 #include "ip_type.hpp"
-#include "wrt/optional.hpp"
+
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -83,7 +84,7 @@ public:
     }
 
     auto operator<=>(const IPv6& rhs) const = default;
-    static constexpr wrt::optional<IPv6> parse(const std::string_view&);
+    static constexpr std::optional<IPv6> parse(const std::string_view&);
     static constexpr size_t byte_size() { return 16; }
     bool is_loopback() const
     {
@@ -130,7 +131,7 @@ public:
     std::string to_string() const;
 };
 
-constexpr wrt::optional<IPv6> IPv6::parse(const std::string_view& s)
+constexpr std::optional<IPv6> IPv6::parse(const std::string_view& s)
 {
     auto write_part = [](uint8_t* dst, std::string_view part) -> bool {
         bool good = true;

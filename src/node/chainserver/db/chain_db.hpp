@@ -186,10 +186,10 @@ public:
     // Consensus Functions
     Worksum get_consensus_work() const;
     void set_consensus_work(const Worksum& ws);
-    wrt::optional<SignedSnapshot> get_signed_snapshot() const;
+    std::optional<SignedSnapshot> get_signed_snapshot() const;
     void set_signed_snapshot(const SignedSnapshot&);
     [[nodiscard]] std::vector<BlockId> consensus_block_ids(HeightRange) const;
-    [[nodiscard]] wrt::optional<BlockId> consensus_block_id(Height) const;
+    [[nodiscard]] std::optional<BlockId> consensus_block_id(Height) const;
 
     //////////////////
     // delete schedule functiosn
@@ -203,13 +203,13 @@ public:
     //////////////////
     // Block functions
     // get
-    [[nodiscard]] wrt::optional<BlockId> lookup_block_id(const HashView hash) const;
-    [[nodiscard]] wrt::optional<NonzeroHeight> lookup_block_height(const HashView hash) const;
-    [[nodiscard]] wrt::optional<BlockUndoData> get_block_undo(BlockId id) const;
-    [[nodiscard]] wrt::optional<Block> get_block(BlockId id) const;
-    [[nodiscard]] wrt::optional<std::pair<BlockId, Block>> get_block(HashView hash) const;
-    [[nodiscard]] wrt::optional<BlockData> get_block_data(BlockId id) const;
-    [[nodiscard]] wrt::optional<BodyData> get_block_body(HashView hash) const;
+    [[nodiscard]] std::optional<BlockId> lookup_block_id(const HashView hash) const;
+    [[nodiscard]] std::optional<NonzeroHeight> lookup_block_height(const HashView hash) const;
+    [[nodiscard]] std::optional<BlockUndoData> get_block_undo(BlockId id) const;
+    [[nodiscard]] std::optional<Block> get_block(BlockId id) const;
+    [[nodiscard]] std::optional<std::pair<BlockId, Block>> get_block(HashView hash) const;
+    [[nodiscard]] std::optional<BlockData> get_block_data(BlockId id) const;
+    [[nodiscard]] std::optional<BodyData> get_block_body(HashView hash) const;
     // set
     std::pair<BlockId, bool> insert_protect(const Block&);
     void set_block_undo(BlockId id, const std::vector<uint8_t>& undo);
@@ -218,10 +218,10 @@ public:
     // Order functions
     void prune_candles(Timestamp timestamp);
     void insert_candles_5m(TokenId, const Candle&);
-    wrt::optional<Candle> select_candle_5m(TokenId, Timestamp);
+    std::optional<Candle> select_candle_5m(TokenId, Timestamp);
     std::vector<Candle> select_candles_5m(TokenId, Timestamp from, Timestamp to);
     void insert_candles_1h(TokenId, const Candle&);
-    wrt::optional<Candle> select_candle_1h(TokenId, Timestamp);
+    std::optional<Candle> select_candle_1h(TokenId, Timestamp);
     std::vector<Candle> select_candles_1h(TokenId, Timestamp from, Timestamp to);
 
     /////////////////////
@@ -229,8 +229,8 @@ public:
     void insert(const chain_db::OrderData&);
     void update_order_fillstate(const chain_db::OrderFillstate&);
     void delete_order(const chain_db::OrderDelete&);
-    [[nodiscard]] wrt::optional<chain_db::OrderData> select_open_order(TransactionId) const;
-    [[nodiscard]] wrt::optional<chain_db::OrderData> select_open_order(HistoryId) const;
+    [[nodiscard]] std::optional<chain_db::OrderData> select_open_order(TransactionId) const;
+    [[nodiscard]] std::optional<chain_db::OrderData> select_open_order(HistoryId) const;
 
     [[nodiscard]] std::vector<std::pair<chain_db::OrderData,TxHash>> lookup_account_orders(AccountId) const;
     [[nodiscard]] std::vector<std::pair<chain_db::OrderData, TxHash>> lookup_account_orders_market(AccountId, AssetId) const;
@@ -250,7 +250,7 @@ public:
     /////////////////////
     // Account functions
     // get
-    [[nodiscard]] wrt::optional<Address> lookup_address(AccountId id) const;
+    [[nodiscard]] std::optional<Address> lookup_address(AccountId id) const;
 
     template <typename T>
     static std::string_view type_string()
@@ -304,7 +304,7 @@ public:
     // Pool functions
     void insert_pool(const PoolData& pool);
     void delete_pool(AssetId assetId);
-    [[nodiscard]] wrt::optional<PoolData> select_pool(AssetId assetId) const;
+    [[nodiscard]] std::optional<PoolData> select_pool(AssetId assetId) const;
     void update_pool(const PoolData&);
 
     /////////////////////
@@ -312,18 +312,18 @@ public:
 
 public:
     // bool fork_balance_exists(AccountToken, NonzeroHeight);
-    wrt::optional<std::pair<NonzeroHeight, Funds_uint64>> get_balance_snapshot_after(TokenId tokenId, NonzeroHeight minHeight) const;
+    std::optional<std::pair<NonzeroHeight, Funds_uint64>> get_balance_snapshot_after(TokenId tokenId, NonzeroHeight minHeight) const;
 
     /////////////////////
     // Token functions
 
 public:
-    [[nodiscard]] wrt::optional<NonzeroHeight> get_latest_fork_height(TokenId, Height);
+    [[nodiscard]] std::optional<NonzeroHeight> get_latest_fork_height(TokenId, Height);
 
-    [[nodiscard]] wrt::optional<BalanceData> get_token_balance(BalanceId id) const;
+    [[nodiscard]] std::optional<BalanceData> get_token_balance(BalanceId id) const;
 
 private:
-    [[nodiscard]] wrt::optional<std::pair<BalanceId, Balance_uint64>> get_balance(AccountId aid, TokenId tid) const;
+    [[nodiscard]] std::optional<std::pair<BalanceId, Balance_uint64>> get_balance(AccountId aid, TokenId tid) const;
 
 public:
     ////////////////////
@@ -361,11 +361,11 @@ public:
     HistoryId insertHistory(const HashView hash,
         const std::vector<uint8_t>& data);
     void delete_history_from(NonzeroHeight);
-    wrt::optional<std::pair<history::HistoryVariant, HistoryId>> lookup_history(const HashView hash) const;
+    std::optional<std::pair<history::HistoryVariant, HistoryId>> lookup_history(const HashView hash) const;
 
     [[nodiscard]] std::vector<std::pair<HistoryId, history::Entry>> lookup_history_range(HistoryId lower, HistoryId upper) const;
-    [[nodiscard]] wrt::optional<history::Entry> lookup_history(HistoryId id) const;
-    [[nodiscard]] wrt::optional<TxHash> lookup_history_hash(HistoryId id) const;
+    [[nodiscard]] std::optional<history::Entry> lookup_history(HistoryId id) const;
+    [[nodiscard]] std::optional<TxHash> lookup_history_hash(HistoryId id) const;
     void insertAccountHistory(AccountId accountId, HistoryId historyId);
     HistoryId next_history_id() const
     {
@@ -383,7 +383,7 @@ public:
         };
 
         Balance_uint64 balance;
-        tl::optional<Match> match;
+        std::optional<Match> match;
         RecursiveTokenLookup(Balance_uint64 balance)
             : balance(std::move(balance))
         {
@@ -399,7 +399,7 @@ public:
 
     //////////////////////////////
     // BELOW METHODS REQUIRED FOR INDEXING NODES
-    [[nodiscard]] wrt::optional<AccountId> lookup_account(const AddressView address) const; // for indexing nodes
+    [[nodiscard]] std::optional<AccountId> lookup_account(const AddressView address) const; // for indexing nodes
     std::vector<std::tuple<HistoryId, history::Entry>> lookup_history_100_desc(AccountId account_id, int64_t beforeId);
     size_t byte_size() const;
 

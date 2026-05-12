@@ -10,7 +10,7 @@ using namespace std::chrono_literals;
 namespace {
 
 template <std::same_as<HeaderRequest> T>
-wrt::optional<Request> gen_load(Conref cr)
+std::optional<Request> gen_load(Conref cr)
 {
     auto descripted { cr.chain().descripted() };
     return HeaderRequest(descripted, Batchslot(descripted->chain_length()),
@@ -18,12 +18,12 @@ wrt::optional<Request> gen_load(Conref cr)
 }
 
 template <std::same_as<BlockRequest> T>
-wrt::optional<Request> gen_load(Conref cr)
+std::optional<Request> gen_load(Conref cr)
 {
     auto& d { cr.chain().descripted() };
     Height h { d->chain_length() };
     if (h.is_zero())
-        return wrt::nullopt; // cannot send block request to this peer
+        return std::nullopt; // cannot send block request to this peer
 
     auto l { d->chain_length() };
     NonzeroHeight lower {
@@ -37,7 +37,7 @@ wrt::optional<Request> gen_load(Conref cr)
 }
 }
 
-wrt::optional<Request> Loadtest::generate_load(Conref cr)
+std::optional<Request> Loadtest::generate_load(Conref cr)
 {
     if (!job.has_value())
         return {};

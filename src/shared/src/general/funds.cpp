@@ -120,7 +120,7 @@ Funds_uint64::Funds_uint64(Reader& r)
 {
 }
 
-wrt::optional<Funds_uint64> Funds_uint64::parse(std::string_view s, TokenDecimals digits)
+std::optional<Funds_uint64> Funds_uint64::parse(std::string_view s, TokenDecimals digits)
 {
     auto fd { ParsedFunds::try_parse(s) };
     if (!fd)
@@ -128,7 +128,7 @@ wrt::optional<Funds_uint64> Funds_uint64::parse(std::string_view s, TokenDecimal
     return parse(*fd, digits);
 }
 
-wrt::optional<Funds_uint64> Funds_uint64::parse(ParsedFunds fd, TokenDecimals digits)
+std::optional<Funds_uint64> Funds_uint64::parse(ParsedFunds fd, TokenDecimals digits)
 {
     if (fd.decimalPlaces > digits())
         return {};

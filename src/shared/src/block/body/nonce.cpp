@@ -17,7 +17,7 @@ NonceId NonceId::random()
     return NonceId(val);
 };
 
-wrt::optional<NonceId> NonceId::try_parse(std::string_view s)
+std::optional<NonceId> NonceId::try_parse(std::string_view s)
 {
     return ::try_parse<uint32_t>(s)
         .transform([](uint32_t i) { return NonceId { i }; });
@@ -46,7 +46,7 @@ PinHeight PinNonce::pin_height_from_floored(PinFloor pf) const
     return PinHeight(h);
 }
 
-wrt::optional<PinNonce> PinNonce::make_pin_nonce(NonceId nid, NonzeroHeight height, PinHeight pinHeight)
+std::optional<PinNonce> PinNonce::make_pin_nonce(NonceId nid, NonzeroHeight height, PinHeight pinHeight)
 {
     auto ph { height.pin_floor() };
     if (ph < pinHeight)

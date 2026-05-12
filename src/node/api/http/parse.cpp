@@ -7,7 +7,7 @@
 namespace {
 using nlohmann::json;
 template <typename T>
-wrt::optional<T> get_optional(const json& j, std::string_view key)
+std::optional<T> get_optional(const json& j, std::string_view key)
 {
     auto it { j.find(key) };
     if (it == j.end())

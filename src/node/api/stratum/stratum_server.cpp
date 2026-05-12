@@ -5,7 +5,7 @@
 #include "api/interface.hpp"
 #include "block/header/header_impl.hpp"
 #include "nlohmann/json.hpp"
-#include "wrt/optional.hpp"
+
 #include <cassert>
 #include <iostream>
 #include <list>
@@ -173,7 +173,7 @@ OK SubscribeResponse(const std::array<uint8_t, 4>& extra2prefix, int64_t id)
 
 using message = std::variant<MiningSubscribe, MiningAuthorize, MiningSubmit>;
 
-wrt::optional<msg::message> parse(std::string_view v)
+std::optional<msg::message> parse(std::string_view v)
 {
     using namespace nlohmann;
     using array_t = json::array_t;
@@ -253,7 +253,7 @@ void Connection::handle_message(msg::MiningSubmit&& m)
     }
     m.apply_to(extra2prefix, *b);
     put_chain_append(BlockWorker { std::move(*b), authorized->worker },
-        // [&, p = shared_from_this(), id = m.id](const wrt::optional<Error>& res) {
+        // [&, p = shared_from_this(), id = m.id](const std::optional<Error>& res) {
         [&, p = shared_from_this(), id = m.id](Result<void> res) {
             server.on_append_result({ .p = p, .stratumId = id, .result { res.has_value() ? Error::none : res.error() } });
         });
@@ -463,7 +463,7 @@ Block* StratumServer::AddressData::add_block(const std::string& jobId, Block&& b
     return &b_iter->second;
 }
 
-wrt::optional<Block> StratumServer::get_block(Address a, std::string jobId)
+std::optional<Block> StratumServer::get_block(Address a, std::string jobId)
 {
     auto iter = addressData.find(a);
     assert(iter != addressData.end());

@@ -112,9 +112,9 @@ public:
         , nextOrder(newOrders.begin())
     {
     }
-    wrt::optional<OrderData> operator()()
+    std::optional<OrderData> operator()()
     {
-        wrt::optional<OrderData> res;
+        std::optional<OrderData> res;
         prefetch_new();
         prefetch_old();
         if (o_old && (!o_new || sorted_t::in_order(*o_old, *o_new))) {
@@ -129,8 +129,8 @@ public:
 
 private:
     loader_t loader; // order loader that loads from database
-    wrt::optional<OrderData> o_old;
-    wrt::optional<OrderData> o_new;
+    std::optional<OrderData> o_old;
+    std::optional<OrderData> o_new;
     bool loaderDrained { false };
     sorted_t newOrders; // orders not yet in block
     sorted_t::const_iterator nextOrder;
@@ -161,7 +161,7 @@ struct OrderAggregator {
         }
         return o;
     }
-    wrt::optional<Price_uint64> next_price() const
+    std::optional<Price_uint64> next_price() const
     {
         if (drained)
             return {};
@@ -179,7 +179,7 @@ private:
         if (drained == true)
             return;
 
-        wrt::optional<OrderData> o;
+        std::optional<OrderData> o;
         do {
             o = l();
             if (!o) {
@@ -782,7 +782,7 @@ struct InsertHistoryEntry {
     }
     history::Entry he;
     HistoryId historyId;
-    wrt::optional<HistoryId> parent;
+    std::optional<HistoryId> parent;
 };
 
 class HistoryIdGenerator {
@@ -974,7 +974,7 @@ private:
             balanceChecker.register_asset_creation(ac, height);
     }
 
-    auto process_new_balance(const AccountToken& at, const BalanceFlow& tokenFlow, wrt::optional<BalanceId> id = {})
+    auto process_new_balance(const AccountToken& at, const BalanceFlow& tokenFlow, std::optional<BalanceId> id = {})
     {
         if (tokenFlow.total.positive().is_zero())
             throw Error(EIDNOTREFERENCED); // id was not referred
@@ -1139,7 +1139,7 @@ private:
 
     private:
         AssetBasic _info;
-        mutable wrt::optional<LoadedPool> o;
+        mutable std::optional<LoadedPool> o;
     };
     void process_token_sections()
     {
@@ -1222,7 +1222,7 @@ private:
                 throw Error(ECANCELSELF);
             auto o { db.select_open_order(cancelTxid) };
             HistoryId canceledOrderId { 0 }; // no history entry has this id in the database
-            wrt::optional<TxHash> canceledOrderHash;
+            std::optional<TxHash> canceledOrderHash;
             if (o) { // transaction is removed from the database
                 canceledOrderId = o->id;
                 canceledOrderHash = db.lookup_history_hash(o->id);

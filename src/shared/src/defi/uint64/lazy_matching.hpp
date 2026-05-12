@@ -9,7 +9,7 @@ namespace defi {
 
 [[nodiscard]] inline MatchResult_uint64 match_lazy(auto& loaderSellAsc, auto& loaderBuyDesc, const PoolLiquidity_uint64& poolBeforeMatch)
 {
-    wrt::optional<Price_uint64> pr { loaderBuyDesc.next_price() };
+    std::optional<Price_uint64> pr { loaderBuyDesc.next_price() };
     if (!pr)
         pr = loaderSellAsc.next_price();
     if (!pr)
@@ -17,11 +17,11 @@ namespace defi {
     auto price { *pr };
 
     Orderbook_uint64 ob;
-    wrt::optional<Price_uint64> lower, upper;
+    std::optional<Price_uint64> lower, upper;
     BaseQuote_uint64 filled { 0, 0 };
 
     // load sell orders with price <= `price`
-    wrt::optional<Price_uint64> p;
+    std::optional<Price_uint64> p;
     while (auto np { loaderSellAsc.next_price() }) {
         assert(p < *np); // prices must be strictly increasing
         p = np;
@@ -65,7 +65,7 @@ namespace defi {
     };
 
     if (upper && !more_quote_less_base(*upper)) {
-        while (wrt::optional<Price_uint64> np { loaderSellAsc.next_price() }) {
+        while (std::optional<Price_uint64> np { loaderSellAsc.next_price() }) {
             while (J != 0) {
                 auto& b { ob.quote_desc_buy()[J - 1] };
                 if (b.limit > *np)
@@ -81,7 +81,7 @@ namespace defi {
             filled.base.add_assert(o.amount.value());
         }
     } else if (lower && more_quote_less_base(*lower)) {
-        while (wrt::optional<Price_uint64> np { loaderBuyDesc.next_price() }) {
+        while (std::optional<Price_uint64> np { loaderBuyDesc.next_price() }) {
             while (I != 0) {
                 auto& b { ob.base_asc_sell()[I - 1] };
                 if (b.limit <= *np)

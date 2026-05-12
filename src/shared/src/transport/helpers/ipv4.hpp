@@ -1,10 +1,9 @@
 #pragma once
 
-#include "general/byte_order.hpp"
 #include "ip_type.hpp"
 #include <compare>
 #include <cstdint>
-#include "wrt/optional.hpp"
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -36,7 +35,7 @@ struct IPv4 {
     bool is_routable() const;
     static constexpr size_t bytes_size() { return 4; }
     auto operator<=>(const IPv4& rhs) const = default;
-    static constexpr wrt::optional<IPv4> parse(const std::string_view&);
+    static constexpr std::optional<IPv4> parse(const std::string_view&);
     uint8_t at0() const { return data >> 24; }
     uint8_t at1() const { return 0xFF & (data >> 16); }
     uint8_t at2() const { return 0xFF & (data >> 8); }
@@ -53,7 +52,7 @@ struct IPv4 {
     std::string to_string() const;
 };
 
-constexpr wrt::optional<IPv4> IPv4::parse(const std::string_view& s)
+constexpr std::optional<IPv4> IPv4::parse(const std::string_view& s)
 {
     uint32_t tmp { 0 };
     int saw_digit = 0;
