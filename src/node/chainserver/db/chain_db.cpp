@@ -1153,7 +1153,7 @@ std::vector<AssetDetail> ChainDB::search_assets(const api::AssetSearchArgs& args
 
 Result<AssetDetail> ChainDB::lookup_asset(AssetId id) const
 {
-    // , stmtAssetLookup(db, "SELECT (id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id) FROM Assets WHERE `id`=?")
+    // SELECT id, hash, name, decimals, height, owner_account_id, total_supply, group_id, parent_id FROM `
     auto r { stmtAssetLookup.one(id).process([](auto& o) -> AssetDetail {
         return {
             AssetBasic {

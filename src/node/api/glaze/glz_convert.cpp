@@ -567,7 +567,6 @@ BlockActions from(const api::block::Actions& actions)
     for (auto& e : actions.cancelations) {
         auto& t = e.transaction;
         auto& d { t.data };
-        assert(d.canceledTxHash);
         a.cancelation.push_back(
             { .transaction = {
                   .data { .cancelTxid = from(t.data.cancelTxid) },

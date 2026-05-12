@@ -1,25 +1,33 @@
 #pragma once
 #include "SQLiteCpp/Column.h"
+#include "wrt/optional.hpp"
 #include <cassert>
 #include <cstdint>
-#include "wrt/optional.hpp"
 #include <vector>
 
 namespace sqlite {
+
+struct Column;
+template <typename T>
+struct Nullable : public wrt::optional<T> {
+    using wrt::optional<T>::optional;
+    Nullable(Column c);
+};
+
 struct Column : public SQLite::Column {
     template <typename T>
-    operator T() const;
+    operator Nullable<T>() const;
     template <typename T>
-    operator wrt::optional<T>() const
-    {
-        if (isNull())
-            return {};
-        return static_cast<T>(*this);
-    }
+    operator T() const;
+
+private:
+    template <typename T>
+    T convert() const;
 };
 
 class Statement;
 class RunningStatement;
+
 class Row {
 
 private: // data

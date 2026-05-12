@@ -230,7 +230,11 @@ api::HashrateTimeChart Headerchain::hashrate_time_chart(uint32_t min, uint32_t m
     auto h1 { bisect_height_before(t1, height1, l) + 1 };
     assert(h1 <= length());
     while (true) {
-        res.chartReversed.push_back({ t1, h1, hashrate_at(h1, windowBlocks).value().estimate });
+        uint64_t hr{0};
+        if (auto hrAt{hashrate_at(h1, windowBlocks)}) {
+            hr = hrAt.value().estimate;
+        }
+        res.chartReversed.push_back({ t1, h1, hr});
         auto t0 { t1 >= interval ? t1 - interval : 0 };
         if (t0 == 0 || t0 < min)
             return res;

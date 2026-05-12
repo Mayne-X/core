@@ -50,16 +50,33 @@ namespace sqlite {
 //     Statement& stmt;
 // };
 
+// inline
+
 template <typename T>
-Column::operator T() const
+T Column::convert() const
 {
     try {
         return static_cast<T>(ColumnConverter(*this));
     } catch (const std::exception& e) {
-        spdlog::error(e.what());
         spdlog::error("Database error, cannot convert value");
-        std::terminate();
+        throw;
     }
+}
+
+template <typename T>
+inline Column::operator Nullable<T>() const
+{
+    if (isNull())
+        return {};
+    return convert<T>();
+}
+
+template <typename T>
+inline Column::operator T() const
+{
+    if (isNull())
+        throw std::runtime_error("Database value is NULL");
+    return convert<T>();
 }
 
 inline Statement& Row::statement() const

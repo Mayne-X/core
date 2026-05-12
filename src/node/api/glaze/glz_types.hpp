@@ -338,7 +338,7 @@ struct Data {
     };
 };
 struct Processed {
-    std::string canceledTxHash;
+    std::optional<std::string> canceledTxHash;
     struct glaze {
         static constexpr const char* name = "CancelationProcessed";
     };
