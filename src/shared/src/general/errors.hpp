@@ -134,7 +134,7 @@
     XX(134, EIDPOLICY, "Block transaction id policy violated")                     \
     XX(179, EINV_WART, "Invalid WART amount")                                      \
     XX(180, EINV_SUPPLY, "Invalid asset supply")                                   \
-    XX(181, ETXTYPESTATE, "Transaction type invalud at current chain state")       \
+    XX(181, ETXTYPESTATE, "Transaction type invalid at current chain state")       \
     XX(182, EASSETNAME, "Invalid asset name")                                      \
     XX(183, EZEROBASEQUOTE, "Base and quote can't be both zero")                   \
     XX(184, ETOKBALANCE, "Insufficient token balance")                             \
