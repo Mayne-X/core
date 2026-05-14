@@ -319,15 +319,10 @@ TransactionDetails from(const api::TransactionDetails& d)
                     .amount { from(d.amount_decimal()) },
                     .limit { make_price(d.limit, d.assetInfo.decimals) },
                     .buy = d.buy },
-                .processed {},
+                .processed { from(::FundsDecimal(d.remaining.value_or(Funds_uint64(0)), d.assetInfo.decimals)) },
                 .hash { from(t.hash) },
                 .signedCommon { from(t.signedData) }
             };
-            if (d.remaining) {
-                out.processed = limit_swap::Processed {
-                    .remaining = from(::FundsDecimal(*d.remaining, d.assetInfo.decimals))
-                };
-            }
             return out;
         },
         [&](const block::Match& t) -> match::Transaction {
@@ -484,7 +479,6 @@ match::Transaction from(const block::Match& t)
             { .swapped = make_base_quote(bq, d.assetInfo.decimals),
                 .historyId = from(s.referred_history_id()) });
     }
-    // std::vector<SwapEntry> sellSwaps;
     return {
         .data {
             .baseAsset { from(d.assetInfo) },
@@ -520,6 +514,10 @@ BlockActions from(const api::block::Actions& actions)
     for (auto& e : actions.limitSwaps) {
         auto& t = e.transaction;
         auto& d { t.data };
+        limit_swap::Processed processed;
+        if (d.remaining) {
+            processed.remaining = from(::FundsDecimal(*d.remaining, d.assetInfo.decimals));
+        }
         a.limitSwap.push_back(
             { .transaction = limit_swap::TransactionProcessed {
                   .data {
@@ -527,8 +525,7 @@ BlockActions from(const api::block::Actions& actions)
                       .amount { from(d.amount_decimal()) },
                       .limit { make_price(d.limit, d.assetInfo.decimals) },
                       .buy = d.buy },
-                  .processed {
-                      .remaining = from(::FundsDecimal(*d.remaining, d.assetInfo.decimals)) },
+                  .processed = processed,
                   .hash { from(t.hash) },
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
@@ -567,10 +564,14 @@ BlockActions from(const api::block::Actions& actions)
     for (auto& e : actions.cancelations) {
         auto& t = e.transaction;
         auto& d { t.data };
+        cancelation::Processed processed;
+        if (d.canceledTxHash) {
+            processed.canceledTxHash = from(*d.canceledTxHash);
+        }
         a.cancelation.push_back(
             { .transaction = {
                   .data { .cancelTxid = from(t.data.cancelTxid) },
-                  .processed { .canceledTxHash = from(*d.canceledTxHash) },
+                  .processed { std::move(processed) },
                   .hash { from(t.hash) },
                   .signedCommon { from(t.signedData) } },
                 .historyId = e.historyId.value() });
