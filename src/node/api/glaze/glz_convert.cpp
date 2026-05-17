@@ -483,7 +483,7 @@ match::Transaction from(const block::Match& t)
         .data {
             .baseAsset { from(d.assetInfo) },
             .poolBefore { make_base_quote(d.poolBefore, d.assetInfo.decimals) },
-            .poolAfter { make_base_quote(d.poolBefore, d.assetInfo.decimals) },
+            .poolAfter { make_base_quote(d.poolAfter, d.assetInfo.decimals) },
             .buySwaps { std::move(buySwaps) },
             .sellSwaps { std::move(sellSwaps) } },
 
