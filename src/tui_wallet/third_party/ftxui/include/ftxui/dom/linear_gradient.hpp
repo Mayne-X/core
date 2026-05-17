@@ -6,7 +6,7 @@
 
 
 #include <vector>
-
+#include <optional>
 #include "../screen/color.hpp"  // for Colors
 
 namespace ftxui {
