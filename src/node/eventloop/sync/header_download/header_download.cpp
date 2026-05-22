@@ -135,9 +135,9 @@ bool Downloader::can_insert_leader(Conref cr)
 {
     auto& id { data(cr).ignoreDescriptor };
     auto& d { cr.chain().descripted() };
-    auto version_ok =[](Conref cr){
-        auto v{cr->c->peer_version()};
-            return (v.minor() >= 8 || (v.minor() == 6 && v.patch() >= 21));
+    auto version_ok = [](Conref cr) {
+        auto v { cr->c->peer_version() };
+        return (v.minor() >= 8 || (v.minor() == 6 && v.patch() >= 21));
     };
 
     bool res = !is_leader(cr)
@@ -318,9 +318,14 @@ bool Downloader::try_final_request(Lead_iter li, RequestSender& sender)
         }
 
         // same condition as in can_download
-        // a leader by definition must have more total work and 
+        // a leader by definition must have more total work and
         // more total length than the chains we know
-        assert(s.length + 1 > pd.fork_range().lower()); 
+        //
+        auto forkRangeLower { pd.fork_range().lower() };
+        if (forkRangeLower < s.length + 1) {
+            spdlog::error("forkRangeLowe = {} < {} = s.length + 1", forkRangeLower.value(), s.length.value() + 1);
+            assert(false);
+        }
 
         auto br { ProbeBalanced::final_partial_batch_request(pd, desc, s.length, ln.snapshot.worksum) };
         if (br) {
