@@ -14,8 +14,8 @@ void PeerChain::initialize(const InitMsg& msg, const StageAndConsensus& sac)
         msg.worksum,
         msg.grid);
     auto& d = *desc.get();
-    consensusForkRange = ForkRange { sac.consensus_state().headers(), d.grid() };
-    stageForkRange = ForkRange { sac.stage_headers(), desc->grid() };
+    consensusForkRange = { sac.consensus_state().headers().grid_view(), d.grid() };
+    stageForkRange = { sac.stage_headers().grid_view(), d.grid() };
     priority = msg.sp;
 }
 
@@ -111,7 +111,7 @@ PeerchainMatch PeerChain::on_proberep(const ProbereqMsg& req, const ProberepMsg&
     PeerchainMatch res { NOMATCH };
     const auto& fh = sac.fork_height();
     if (msg.currentDescriptor != desc->descriptor)
-        throw ChainError { EPROBEDESCRIPTOR, Height(msg.currentDescriptor.value()+1).nonzero_assert() };
+        throw ChainError { EPROBEDESCRIPTOR, Height(msg.currentDescriptor.value() + 1).nonzero_assert() };
     if (desc->chain_length() < req.height) {
         // should not have msg.current
         if (msg.current.has_value())

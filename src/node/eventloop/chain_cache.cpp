@@ -76,6 +76,7 @@ auto StageAndConsensus::update_consensus(const RollbackData& rd) -> std::optiona
 std::optional<ChaincacheMatch> StageAndConsensus::lookup(std::optional<ChainPin> p) const
 {
     using T = enum ChaincacheMatch::Type;
+    assert(stageHeaders); // is set in constructor.
     if (!p.has_value()) {
         if (stageHeaders->length() != 0) {
             return ChaincacheMatch { T::STAGE, stage_pin() };
@@ -85,7 +86,6 @@ std::optional<ChaincacheMatch> StageAndConsensus::lookup(std::optional<ChainPin>
         }
         return {};
     }
-    assert(stageHeaders);
     if (stageHeaders->length() > p->height) {
         auto bh = stageHeaders->get_header(p->height);
         if (bh && *bh == p->header)

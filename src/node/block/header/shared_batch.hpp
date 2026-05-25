@@ -15,7 +15,7 @@ class SharedBatchView {
 
 public:
     SharedBatchView()
-        : data { .raw = 0 } {};
+        : data { .raw = 0 } { };
     bool valid() const { return data.raw != 0; }
     size_t size() const;
     Height upper_height() const;
@@ -28,18 +28,26 @@ public:
 
 private:
     SharedBatchView(iter_type iter)
-        : data { .iter = iter } {};
+        : data { .iter = iter } { };
     union {
         iter_type iter;
         uint64_t raw;
     } data;
+};
+struct GridView {
+    const std::vector<SharedBatchView>& vec;
+    HeaderView operator[](Batchslot s) const { return vec[s.index()].getBatch().last(); }
+    HeaderView operator[](size_t i) const { return vec[i].getBatch().last(); }
+    size_t size() const { return vec.size(); }
+    Batchslot slot_end() const { return Batchslot(size()); }
+    GridView(const std::vector<SharedBatchView>& vec)
+        : vec(vec) { };
 };
 
 class SharedBatch {
     using Maptype = std::map<std::array<uint8_t, 80>, Nodedata, HeaderView::HeaderComparator>;
     using iter_type = Maptype::iterator;
     friend struct Nodedata;
-
 
 public:
     ~SharedBatch();
@@ -58,7 +66,7 @@ public:
     size_t size() const { return view().size(); }
     Height upper_height() const { return view().upper_height(); }
     std::optional<Batchslot> slot() const { return view().slot(); }
-    Batchslot next_slot() const { return slot().value_or(Batchslot(0))+1; }
+    Batchslot next_slot() const { return slot().value_or(Batchslot(0)) + 1; }
     Height lower_height() const { return view().lower_height(); }
     std::optional<HeaderView> getHeader(size_t id) const { return view().getHeader(id); }
     [[nodiscard]] HeaderView operator[](Height h) const { return getHeader(h - lower_height()).value(); }

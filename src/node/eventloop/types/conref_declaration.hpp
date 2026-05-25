@@ -26,6 +26,7 @@ public:
     inline bool closed();
     inline auto& job();
     inline auto& job() const;
+    inline bool busy() const; // has running request
     inline auto& ping();
     inline auto operator->();
     void clear() { data.val = 0; }

@@ -67,15 +67,6 @@ public:
         std::shared_ptr<std::shared_ptr<Headerchain>> data;
     };
 
-    struct GridView {
-        const std::vector<SharedBatchView>& vec;
-        HeaderView operator[](Batchslot s) const { return vec[s.index()].getBatch().last(); }
-        HeaderView operator[](size_t i) const { return vec[i].getBatch().last(); }
-        size_t size() const { return vec.size(); }
-        Batchslot slot_end() const { return Batchslot(size()); }
-        GridView(const std::vector<SharedBatchView>& vec)
-            : vec(vec) {};
-    };
     // chain updates
     [[nodiscard]] HeaderchainAppend get_append(Height prevLength) const;
     [[nodiscard]] std::pair<Height, AppendMsg> apply_append(HeaderchainAppend&& append);

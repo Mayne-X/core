@@ -103,6 +103,11 @@ public:
     {
     }
     const Conref cr;
+
+    // Nodes will follow downloading past descripted headers from leaders to prevent header/work spoofing attacks 
+    // where attacking nodes change their advertised longest chain quickly. Nodes will still download the advertised
+    // chain they were interested in first. To this end they save the chain descriptor, length and 
+    // total work in the `snapshot` variable.
     const NonzeroSnapshot snapshot;
 
     struct {
@@ -262,7 +267,7 @@ private:
     void process_final(Lead_iter, std::vector<Offender>& out);
 
     Conref try_send(ConnectionFinder& cf, std::vector<ChainOffender> close, const ReqData&);
-    bool try_final_request(Lead_iter, RequestSender& s);
+    bool try_final_request(LeaderNode&, RequestSender& s);
 
     std::vector<ChainOffender> filter_leadermismatch_offenders(std::vector<Offender>);
 
