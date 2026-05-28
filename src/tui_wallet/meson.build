@@ -77,7 +77,7 @@
 include_ftxui = include_directories(['./third_party/ftxui/include','./third_party/ftxui/src'])
 
 
-deps = [json_dep]
+deps = [json_dep, spdlog_dep]
 
 exe = executable('wart-tui', [vcs_dep ,
 './src/api/endpoint.cpp',
