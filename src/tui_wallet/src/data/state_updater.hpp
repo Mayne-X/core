@@ -5,28 +5,6 @@
 #include <iostream>
 #include <memory>
 #include <thread>
-// struct ThreadsContext {
-// private:
-//     std::vector<std::unique_ptr<std::jthread>> threads;
-//
-// public:
-//     ThreadsContext() { };
-//     ThreadsContext(const ThreadsContext&) = delete;
-//     ThreadsContext(ThreadsContext&&) = default;
-//     void prune()
-//     {
-//         std::erase_if(threads, [](const std::unique_ptr<std::jthread>& t) {
-//             return t->joinable();
-//         });
-//     }
-//     void push_back(std::jthread t)
-//     {
-//         threads.push_back(std::make_unique<std::jthread>(std::move(t)));
-//     }
-//     ~ThreadsContext()
-//     {
-//     }
-// };
 class TaskThread {
 private:
     std::jthread t;
