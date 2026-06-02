@@ -1,6 +1,6 @@
 #include "recvbuffer.hpp"
-#include "crypto/hasher_sha256.hpp"
 #include "communication/messages_impl.hpp"
+#include "crypto/hasher_sha256.hpp"
 #include <utility>
 
 bool Rcvbuffer::verify()
@@ -24,7 +24,7 @@ V check(uint8_t type, Reader& r)
     // variant types must be in order and message codes must be all different
     static_assert(prevcode < T::msgcode);
     if (T::msgcode == type)
-        return V{std::in_place_type<T>,r};
+        return V { std::in_place_type<T>, r };
     return check<V, T::msgcode, S...>(type, r);
 }
 
@@ -32,35 +32,35 @@ template <typename V, typename T, typename... S>
 V check_first(uint8_t type, Reader& r)
 {
     if (T::msgcode == type)
-        return V{std::in_place_type<T>,r};
-    return check<V,T::msgcode, S...>(type, r);
+        return V { std::in_place_type<T>, r };
+    return check<V, T::msgcode, S...>(type, r);
 }
-
 
 // do metaprogramming dance
 template <typename T>
-class VariantParser{
+class VariantParser {
 };
 
 template <typename... Types>
-class VariantParser<std::variant<Types...>>{
-    public:
-        static auto parse(uint8_t type, Reader& r)-> std::variant<Types...>{
-            using ret_t = std::variant<Types...>;
-            auto res{ check_first<ret_t, Types...>(type,r)};
-            if (r.remaining() != 0)
-                throw Error(EMSGINTEGRITY1);
-            return res;
-        }
+class VariantParser<std::variant<Types...>> {
+public:
+    static auto parse(uint8_t type, Reader& r) -> std::variant<Types...>
+    {
+        using ret_t = std::variant<Types...>;
+        auto res { check_first<ret_t, Types...>(type, r) };
+        if (r.remaining() != 0)
+            throw Error(EMSGINTEGRITY1);
+        return res;
+    }
 };
 
 }
 
 msg::Msg Rcvbuffer::parse()
 {
-    if (!verify()) 
+    if (!verify())
         throw Error(ECHECKSUM);
     using namespace msg;
     Reader r(*this);
-    return VariantParser<msg::Msg>::parse(type(),r);
+    return VariantParser<msg::Msg>::parse(type(), r);
 }
