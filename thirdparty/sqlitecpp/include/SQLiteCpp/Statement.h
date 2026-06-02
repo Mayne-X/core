@@ -16,6 +16,7 @@
 #include <string>
 #include <map>
 #include <climits> // For INT_MAX
+#include <cstdint>
 
 // Forward declarations to avoid inclusion of <sqlite3.h> in a header
 struct sqlite3;
