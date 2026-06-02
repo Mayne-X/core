@@ -48,8 +48,8 @@ class VariantParser<std::variant<Types...>>{
         static auto parse(uint8_t type, Reader& r)-> std::variant<Types...>{
             using ret_t = std::variant<Types...>;
             auto res{ check_first<ret_t, Types...>(type,r)};
-            if (r.remaining()!=0)
-                throw Error(EMSGINTEGRITY);
+            if (r.remaining() != 0)
+                throw Error(EMSGINTEGRITY1);
             return res;
         }
 };

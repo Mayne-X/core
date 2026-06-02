@@ -4,8 +4,8 @@
 #include "eventloop/types/chainstate.hpp"
 #include "message_elements/packer_impl.hpp"
 #include "messages_impl.hpp"
-#include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h"
+#include "spdlog/spdlog.h"
 
 using namespace std::string_literals;
 namespace fmt = spdlog::fmt_lib;
@@ -39,7 +39,7 @@ InitMsgGeneratorV1::operator Sndbuffer() const
     const size_t N = cs.headers().complete_batches().size();
     size_t len = 4 + 2 + 4 + 4 + 32 + 4 + N * 80;
     auto& sp { cs.get_signed_snapshot_priority() };
-    auto mw { MsgCode<0>::gen_msg(len) };
+    auto mw { MsgCode<InitMsgV1::msgcode>::gen_msg(len) };
     mw << cs.descriptor()
        << sp.importance
        << sp.height
@@ -263,7 +263,7 @@ InitMsgGeneratorV3::operator Sndbuffer() const
     const size_t N = cs.headers().complete_batches().size();
     size_t len = 4 + 2 + 4 + 4 + 32 + 4 + N * 80 + 1;
     auto& sp { cs.get_signed_snapshot_priority() };
-    auto mw { MsgCode<0>::gen_msg(len) };
+    auto mw { MsgCode<InitMsgV3::msgcode>::gen_msg(len) };
     mw << cs.descriptor()
        << sp.importance
        << sp.height

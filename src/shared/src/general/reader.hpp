@@ -5,7 +5,7 @@
 #include "general/errors.hpp"
 #include "view.hpp"
 #include <vector>
-// 
+//
 #include <cstring>
 #include <ranges>
 #include <span>
@@ -43,7 +43,7 @@ class Reader {
     {
         auto newpos { pos + bytes };
         if (newpos > end)
-            throw Error(EMSGINTEGRITY);
+            throw Error(EMSGINTEGRITY2);
         memcpy(out, pos, bytes);
         pos = newpos;
     }
@@ -56,6 +56,10 @@ class Reader {
     }
 
 public:
+    std::span<const uint8_t> remaining_span() const
+    {
+        return { pos, end };
+    }
     using is_reader = std::true_type;
     Reader(std::span<const uint8_t> s)
         : begin(s.data())
@@ -187,7 +191,7 @@ public:
     {
         pos += nbytes;
         if (pos > end) {
-            throw Error(EMSGINTEGRITY);
+            throw Error(EMSGINTEGRITY0);
         }
     };
     bool eof() const { return pos == end; }

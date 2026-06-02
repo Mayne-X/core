@@ -156,18 +156,20 @@
     /*200 - 299: Errors not leading to ban*/                                       \
     XX(200, ERTCNOSIGNAL, "WebRTC signaling server was closed (offer)")            \
     XX(201, ERTCNOSIGNAL2, "WebRTC signaling server was closed (answer)")          \
-    XX(202, EMSGINTEGRITY, "Message integrity check failed")                       \
-    XX(203, ESTARTWEBSOCK, "Error while starting websocket connection")            \
-    XX(204, EWEBSOCK, "Error while in websocket connection")                       \
-    XX(205, ERTCOWNIP, "Own announced IP not present in ")                         \
-    XX(206, ERTCFWDREJECT, "WebRTC forward rejected")                              \
-    XX(207, ERTCCHANNEL_CLOSED, "WebRTC datachannel closed")                       \
-    XX(208, ERTCNOPEER, "WebRTC verification peer already closed")                 \
-    XX(209, ERTCNOIP, "Cannot select own WebRTC ip")                               \
-    XX(210, ERTCIDIP, "IP in verification offer is not announced as identity")     \
-    XX(211, ERTCFEELER, "Normal feeler connection shutdown")                       \
-    XX(213, EAPICMD, "Triggered by API command")                                   \
-    XX(214, EMINFEE, "Transaction fee below threshold")                            \
+    XX(202, EMSGINTEGRITY0, "Message integrity check 0 failed")                       \
+    XX(203, EMSGINTEGRITY1, "Message integrity check 1 failed")                       \
+    XX(204, EMSGINTEGRITY2, "Message integrity check 2 failed")                       \
+    XX(206, ESTARTWEBSOCK, "Error while starting websocket connection")            \
+    XX(207, EWEBSOCK, "Error while in websocket connection")                       \
+    XX(208, ERTCOWNIP, "Own announced IP not present in ")                         \
+    XX(209, ERTCFWDREJECT, "WebRTC forward rejected")                              \
+    XX(210, ERTCCHANNEL_CLOSED, "WebRTC datachannel closed")                       \
+    XX(211, ERTCNOPEER, "WebRTC verification peer already closed")                 \
+    XX(212, ERTCNOIP, "Cannot select own WebRTC ip")                               \
+    XX(213, ERTCIDIP, "IP in verification offer is not announced as identity")     \
+    XX(214, ERTCFEELER, "Normal feeler connection shutdown")                       \
+    XX(216, EAPICMD, "Triggered by API command")                                   \
+    XX(217, EMINFEE, "Transaction fee below threshold")                            \
     /*300 - 399: API triggered errors*/                                            \
     XX(300, EINV_HEX, "Cannot parse hexadecimal input")                            \
     XX(301, EBADNONCE, "Cannot parse nonce")                                       \

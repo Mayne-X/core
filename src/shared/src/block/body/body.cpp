@@ -75,7 +75,7 @@ std::pair<ParsedBody, MerkleLeaves> ParsedBody::parse_throw(std::span<const uint
         body::Entries entries(r, version);
         return { ParsedBody { std::move(addresses), std::move(reward), std::move(entries) }, std::move(r).move_leaves() };
     } catch (const Error& e) {
-        if (e.code == EMSGINTEGRITY)
+        if (e.code >= EMSGINTEGRITY0 && e.code <= EMSGINTEGRITY2)
             throw Error(EINV_BODY); // more meaningful error
         throw e;
     }

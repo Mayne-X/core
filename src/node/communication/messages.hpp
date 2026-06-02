@@ -50,10 +50,10 @@ struct InitMsgV1 : public MsgCode<0> {
     static constexpr size_t maxSize = 100000;
     std::string log_str() const;
 
-    Descriptor descriptor;
-    SignedSnapshot::Priority sp;
-    Height chainLength;
-    Worksum worksum;
+    Descriptor descriptor;         // 4 bytes
+    SignedSnapshot::Priority sp; // 6 bytes
+    Height chainLength; // 4 bytes
+    Worksum worksum; // 32 bytes
     Grid grid;
 };
 
