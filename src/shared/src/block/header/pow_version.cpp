@@ -10,11 +10,7 @@ std::optional<POWVersion> POWVersion::from_params(NonzeroHeight height, BlockVer
             if (version != 4)
                 return {};
         }
-        if (height.value() <= 2) {
-            return POWVersion { Janus7 {} };
-        } else {
-            return POWVersion { Janus8 {} };
-        }
+        return POWVersion { Janus8 {} };
     } else { // main net
         if (height.value() <= JANUSV1RETARGETSTART) {
             return POWVersion { Original {} };
