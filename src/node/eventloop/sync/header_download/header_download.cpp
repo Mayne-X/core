@@ -754,7 +754,7 @@ void Downloader::select_leaders(BanList& banList)
         return;
     for (auto cr : connections) {
         if (auto o { consider_insert_leader(cr) })
-            banList.push_back(std::move(*o));
+            banList.insert_unique(std::move(*o));
         if (leaderList.size() >= maxLeaders)
             break;
     }
