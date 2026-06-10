@@ -5,18 +5,12 @@ struct ProbeBalanced {
 
     [[nodiscard]] static std::optional<HeaderRequest> slot_batch_request(const ProbeData&, const std::shared_ptr<Descripted>&, Batchslot s, Header h);
     [[nodiscard]] static std::optional<HeaderRequest> final_partial_batch_request(const ProbeData&, const std::shared_ptr<Descripted>&, NonzeroHeight maxLength, Worksum minWork);
-    [[nodiscard]] static std::optional<Proberequest> probe_request(const ProbeData&, const std::shared_ptr<Descripted>&, Height maxLength);
+    [[nodiscard]] static std::optional<Proberequest> probe_request(const ProbeData&, const std::shared_ptr<Descripted>&, NonzeroHeight maxLength);
 
-    [[nodiscard]] static NonzeroHeight lower(const ProbeData&);
-    [[nodiscard]] static NonzeroHeight upper(const ProbeData&, Height maxLength);
-
+    // This variable contains a pinned chain we know and the fork range
+    // where the peer's advertised chain forks from our known chain
     const ProbeData& probeData;
-    Height maxLength;
 
-private:
-    [[nodiscard]] std::optional<HeaderRequest> batch_request(const std::shared_ptr<Descripted>& desc, std::optional<Header>, Batchslot);
-    [[nodiscard]] std::optional<Proberequest> probe_request(const std::shared_ptr<Descripted>& desc);
-
-    [[nodiscard]] NonzeroHeight lower();
-    [[nodiscard]] NonzeroHeight upper();
+    // This is the maximal chain length of headers we want to sync from the peer.
+    NonzeroHeight maxLength;
 };

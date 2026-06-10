@@ -94,6 +94,11 @@ public:
     {
     }
     const Conref cr;
+
+    // Nodes will follow downloading past descripted headers from leaders to prevent header/work spoofing attacks
+    // where attacking nodes change their advertised longest chain quickly. Nodes will still download the advertised
+    // chain they were interested in first. To this end they save the chain descriptor, length and
+    // total work in the `snapshot` variable.
     const NonzeroSnapshot snapshot;
 
     struct {
@@ -210,7 +215,7 @@ private:
     std::pair<Lead_set, Lead_set> split_leaders(const Lead_set& leaders, HeaderView h, size_t batchIndex);
 
 public:
-    std::vector<ChainOffender> on_rogue_header(const RogueHeaderData& rogueHeaderData);
+    BanList on_rogue_header(const RogueHeaderData& rogueHeaderData);
     size_t size() const { return connections.size(); }
     [[nodiscard]] bool is_active() const { return !leaderList.empty(); }
     Downloader(const StageAndConsensus& cache, Worksum minWork)
@@ -218,41 +223,41 @@ public:
         , minWork(minWork)
     {
     }
-    void set_min_worksum(const Worksum& ws);
+    [[nodiscard]] BanList set_min_worksum(const Worksum& ws);
 
     // peer message callbacks
-    void on_append(Conref cr);
-    void on_fork(Conref cr);
-    void on_rollback(Conref cr);
+    [[nodiscard]] std::optional<ChainOffender> on_append(Conref cr);
+    [[nodiscard]] std::optional<ChainOffender> on_fork(Conref cr);
+    [[nodiscard]] std::optional<ChainOffender> on_rollback(Conref cr);
 
-    void on_signed_snapshot_update();
-    void insert(Conref cr);
-    bool erase(Conref cr);
+    BanList on_signed_snapshot_update();
+    [[nodiscard]] std::optional<ChainOffender> insert(Conref cr);
+    [[nodiscard]] std::optional<BanList> erase(Conref cr);
 
     auto leaders_end() { return leaderList.end(); }
 
-    [[nodiscard]] std::vector<ChainOffender> do_header_requests(RequestSender);
+    [[nodiscard]] BanList do_header_requests(RequestSender);
     void do_probe_requests(RequestSender);
 
     void on_request_expire(Conref cr, const HeaderRequest& msg);
     void on_proberep(Conref c, const Proberequest& req, const ProberepMsg&);
     void on_probe_request_expire(Conref cr);
-    [[nodiscard]] std::vector<ChainOffender> on_response(Conref cr, HeaderRequest&&, HeaderBatch&&);
-    [[nodiscard]] std::optional<std::tuple<LeaderInfo, Headerchain>> pop_data();
+    [[nodiscard]] BanList on_response(Conref cr, HeaderRequest&&, HeaderBatch&&);
+    [[nodiscard]] std::optional<std::tuple<LeaderInfo, Headerchain, BanList>> pop_data();
 
 private:
     bool do_exclusive_final_requests(RequestSender&);
-    std::vector<ChainOffender> do_shared_grid_requests(RequestSender&);
+    [[nodiscard]] BanList do_shared_grid_requests(RequestSender&);
 
     bool has_data() const;
-    void select_leaders();
+    void select_leaders(BanList& banList);
 
     void process_final(Lead_iter, std::vector<Offender>& out);
 
-    std::optional<Conref> try_send(ConnectionFinder& cf, std::vector<ChainOffender> close, const ReqData&);
-    bool try_final_request(Lead_iter, RequestSender& s);
+    std::optional<Conref> try_send(ConnectionFinder& cf, BanList& banList, const ReqData&);
+    bool try_final_request(LeaderNode&, RequestSender& s);
 
-    std::vector<ChainOffender> filter_leadermismatch_offenders(std::vector<Offender>);
+    [[nodiscard]] BanList filter_leadermismatch_offenders(std::vector<Offender>);
 
     // verifier related
     bool advance_verifier(const Ver_iter* vi, const Lead_set&, const HeaderBatch& b,
@@ -270,7 +275,7 @@ private:
     // leader related functions
     void erase_leader(Lead_iter);
     void queue_requests(Lead_iter);
-    bool consider_insert_leader(Conref cr); // returns true if has effect
+    std::optional<ChainOffender> consider_insert_leader(Conref cr); // if returns value we must close this connection.
     bool can_insert_leader(Conref cr);
 
     bool valid_shared_batch(const SharedBatch&);

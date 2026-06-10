@@ -14,8 +14,8 @@ void PeerChain::initialize(const InitMsgV1& msg, const StageAndConsensus& sac)
         msg.worksum,
         msg.grid);
     auto& d = *desc.get();
-    consensusForkRange = ForkRange { sac.consensus_state().headers(), d.grid() };
-    stageForkRange = ForkRange { sac.stage_headers(), desc->grid() };
+    consensusForkRange = ForkRange { sac.consensus_state().headers().grid_view(), d.grid() };
+    stageForkRange = ForkRange { sac.stage_headers().grid_view(), d.grid() };
     priority = msg.sp;
 }
 void PeerChain::initialize(const InitMsgV3& msg, const StageAndConsensus& sac)
@@ -29,8 +29,8 @@ void PeerChain::initialize(const InitMsgV3& msg, const StageAndConsensus& sac)
         msg.worksum(),
         msg.grid());
     auto& d = *desc.get();
-    consensusForkRange = ForkRange { sac.consensus_state().headers(), d.grid() };
-    stageForkRange = ForkRange { sac.stage_headers(), desc->grid() };
+    consensusForkRange = ForkRange { sac.consensus_state().headers().grid_view(), d.grid() };
+    stageForkRange = ForkRange { sac.stage_headers().grid_view(), desc->grid() };
     priority = msg.sp();
 }
 

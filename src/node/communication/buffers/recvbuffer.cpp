@@ -33,6 +33,7 @@ V check_first(uint8_t type, Reader& r)
 {
     if (T::msgcode == type)
         return V { std::in_place_type<T>, r };
+        // return T(r);
     return check<V, T::msgcode, S...>(type, r);
 }
 
@@ -44,13 +45,19 @@ class VariantParser {
 template <typename... Types>
 class VariantParser<std::variant<Types...>> {
 public:
-    static auto parse(uint8_t type, Reader& r) -> std::variant<Types...>
+    static auto parse(uint8_t type, Reader& r)
     {
         using ret_t = std::variant<Types...>;
-        auto res { check_first<ret_t, Types...>(type, r) };
-        if (r.remaining() != 0)
-            throw Error(EMSGINTEGRITY1);
-        return res;
+        auto n { r.remaining() };
+        try {
+            auto res { check_first<ret_t, Types...>(type, r) };
+            if (r.remaining() != 0)
+                throw Error(EMSGINTEGRITY1);
+            return res;
+        } catch (...) {
+            spdlog::error("Cannot parse message of type {} with {} bytes", type, n);
+            throw;
+        }
     }
 };
 

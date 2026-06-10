@@ -441,7 +441,9 @@ void Eventloop::coordinate_sync()
     auto cons { chains.consensus_state().headers().total_work() };
     auto blk { blockDownload.get_reachable_totalwork() };
     auto max { std::max(cons, blk) };
-    headerDownload.set_min_worksum(max);
+    for (auto& co : headerDownload.set_min_worksum(max)) {
+        close(co);
+    };
     blockDownload.set_min_worksum(cons);
 }
 
@@ -1204,7 +1206,10 @@ void Eventloop::handle_msg(Conref c, InitMsgV1&& m)
     if (!c.protocol().v1() && !c.protocol().v2()) // must have at least version 3 for this message type
         throw Error(EINITV1);
     c->chain.initialize(m, chains);
-    headerDownload.insert(c);
+    if (auto co { headerDownload.insert(c)}) {
+        close(*co);
+        return;
+    };
     blockDownload.insert(c);
     emit_connect(headerDownload.size(), c);
     spdlog::info("Connected to {} peers (new peer {}, {})", headerDownload.size(), c.peer().to_string(), c.version().to_string());
@@ -1229,7 +1234,10 @@ void Eventloop::handle_msg(Conref c, InitMsgV3&& m)
     c.job().reset_notexpired<AwaitInit>(timerSystem);
     c->rtcState.enanabled = m.rtc_enabled();
     c->chain.initialize(m, chains);
-    headerDownload.insert(c);
+    if (auto o { headerDownload.insert(c) }) {
+        close(*o);
+        return;
+    }
     blockDownload.insert(c);
     emit_connect(headerDownload.size(), c);
     spdlog::info("Connected to {} peers (new peer {}, {})", headerDownload.size(), c.peer().to_string(), c.version().to_string());
@@ -1249,8 +1257,10 @@ void Eventloop::handle_msg(Conref cr, AppendMsg&& m)
 {
     log_communication("{} handle append", cr.str());
     cr->chain.on_peer_append(m, chains);
-    headerDownload.on_append(cr);
-    blockDownload.on_append(cr);
+    if (auto co { headerDownload.on_append(cr) })
+        close(*co);
+    else
+        blockDownload.on_append(cr);
     do_requests();
 }
 
@@ -1259,8 +1269,10 @@ void Eventloop::handle_msg(Conref c, SignedPinRollbackMsg&& m)
     log_communication("{} handle rollback ", c.str());
     verify_rollback(c, m);
     c->chain.on_peer_shrink(m, chains);
-    headerDownload.on_rollback(c);
-    blockDownload.on_rollback(c);
+    if (auto co { headerDownload.on_rollback(c) })
+        close(*co);
+    else
+        blockDownload.on_rollback(c);
     do_requests();
 }
 
@@ -1268,8 +1280,10 @@ void Eventloop::handle_msg(Conref c, ForkMsg&& m)
 {
     log_communication("{} handle fork", c.str());
     c->chain.on_peer_fork(m, chains);
-    headerDownload.on_fork(c);
-    blockDownload.on_fork(c);
+    if (auto co { headerDownload.on_fork(c) })
+        close(*co);
+    else
+        blockDownload.on_fork(c);
     do_requests();
 }
 

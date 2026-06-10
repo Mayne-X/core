@@ -22,6 +22,7 @@ public:
     [[nodiscard]] auto& loadtest();
     [[nodiscard]] auto& job();
     [[nodiscard]] auto& job() const;
+    [[nodiscard]] bool busy() const; // has running request
     [[nodiscard]] auto peer() const;
     [[nodiscard]] auto& rtc();
     [[nodiscard]] auto& ping();

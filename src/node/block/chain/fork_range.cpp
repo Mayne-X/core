@@ -3,10 +3,10 @@
 #include "block/chain/header_chain.hpp"
 #include "block/chain/state.hpp"
 
-ForkRange::ForkRange(const Headerchain& hc, const Grid& g, Batchslot begin)
+ForkRange::ForkRange(const GridView& g1, const Grid& g2, Batchslot begin)
 {
     // OK
-    auto [i, forked] = binary_forksearch(hc.grid_view(), g, begin.index());
+    auto [i, forked] = binary_forksearch(g1, g2, begin.index());
     Batchslot s(i);
     if (forked) {
         *this = { s.lower(), s.upper() };
@@ -31,7 +31,7 @@ void ForkRange::on_fork(NonzeroHeight forkHeight, const Descripted& theirs, cons
     if (forked())
         return;
     assert(lower() <= forkHeight);
-    grid_match(Batchslot(forkHeight), theirs.grid(), ours);
+    grid_match(ours.grid_view(), theirs.grid(), Batchslot(forkHeight));
 }
 
 bool ForkRange::detect_shrink(const Descripted& theirs, const Headerchain& ours)
@@ -65,20 +65,12 @@ void ForkRange::on_append(const Descripted& theirs, const Headerchain& ours)
 { // OK
     if (forked())
         return;
-    grid_match(Batchslot(l), theirs.grid(), ours);
+    grid_match(ours.grid_view(), theirs.grid(), Batchslot(l));
 }
 
-void ForkRange::grid_match(Batchslot begin, const Grid& theirGrid, const Headerchain& ours)
+void ForkRange::grid_match(const GridView& g1, const Grid& g2, Batchslot begin)
 { // OK
-    auto gv = ours.grid_view();
-    Batchslot end1 = gv.slot_end();
-    Batchslot end2 = theirGrid.slot_end();
-    if (begin >= end1)
-        return;
-    if (begin >= end2)
-        return;
-
-    ForkRange r(ours, theirGrid, begin);
+    ForkRange r(g1, g2, begin);
     on_match(r.lower() - 1);
     if (r.forked()) {
         on_mismatch(r.upper());

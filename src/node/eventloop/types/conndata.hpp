@@ -386,6 +386,7 @@ inline PeerChain& Conref::chain() { return iter->second.chain; }
 inline auto& Conref::loadtest() { return iter->second.loadtest; }
 inline auto& Conref::job() { return iter->second.job; }
 inline auto& Conref::job() const { return iter->second.job; }
+inline bool Conref::busy() const { return job(); }
 inline auto& Conref::rtc() { return iter->second.rtcState; }
 inline auto Conref::peer() const { return iter->second.c->peer_addr(); }
 inline auto& Conref::ping() { return iter->second.ping; }

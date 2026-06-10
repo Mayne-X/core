@@ -39,6 +39,15 @@ private:
         static_assert(sizeof(iter) == sizeof(raw));
     } data;
 };
+struct GridView {
+    const std::vector<SharedBatchView>& vec;
+    HeaderView operator[](Batchslot s) const { return vec[s.index()].getBatch().last(); }
+    HeaderView operator[](size_t i) const { return vec[i].getBatch().last(); }
+    size_t size() const { return vec.size(); }
+    Batchslot slot_end() const { return Batchslot(size()); }
+    GridView(const std::vector<SharedBatchView>& vec)
+        : vec(vec) { };
+};
 
 class SharedBatch {
     using Maptype = std::map<std::array<uint8_t, 80>, Nodedata, HeaderView::HeaderComparator>;
