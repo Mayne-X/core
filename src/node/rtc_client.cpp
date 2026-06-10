@@ -11,6 +11,7 @@
 #include <memory>
 #include <strstream>
 #include <utility>
+#include <print>
 
 #include <nlohmann/json.hpp>
 
@@ -23,7 +24,6 @@ using nlohmann::json;
 using std::this_thread::sleep_for;
 using namespace std::chrono_literals;
 
-using namespace std;
 
 
 int main()
@@ -71,17 +71,17 @@ int main()
 
         f.get();
         std::string reply;
-        cout << "Paste other peer's respoinse here:" << endl;
-        std::getline(cin, reply);
+        std::cout << "Paste other peer's respoinse here:" << std::endl;
+        std::getline(std::cin, reply);
         auto parsed = json::parse(reply);
-        auto sdp { parsed["sdp"].get<string>() };
+        auto sdp { parsed["sdp"].get<std::string>() };
         pc->setRemoteDescription({ sdp, parsed["type"].get<std::string>() });
-        dc->onOpen([]() { cout << "OPEN" << endl; });
+        dc->onOpen([]() { std::cout << "OPEN" << std::endl; });
         dc->onMessage([](rtc::message_variant msg) {
-            cout << "received a message: " << std::get<string>(msg) << endl;
+            std::println("Received a message: {}",std::get<std::string>(msg));
         });
-        dc->onClosed([]() { cout << "CLOSED" << endl; });
-        dc->onError([](std::string error) { cout << "ERROR: " << error << endl; });
+        dc->onClosed([]() { std::println("CLOSED"); });
+        dc->onError([](std::string error) { std::cout << "ERROR: " << error << std::endl; });
 
         sleep_for(1000s);
     } catch (const std::exception& e) {

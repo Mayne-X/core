@@ -20,8 +20,6 @@
 #include <pwd.h>
 #endif
 
-using namespace std;
-
 #ifndef DISABLE_LIBUV
 std::string ConfigParams::get_default_datadir()
 {
@@ -145,7 +143,7 @@ Endpoints parse_endpoints(std::string csv)
         auto param = csv.substr(pos, end - pos);
         auto parsed = TCPPeeraddr::parse(param);
         if (!parsed) {
-            throw std::runtime_error("Invalid parameter '"s + param + "'."s);
+            throw std::runtime_error(std::format("Invalid parameter '{}'", param));
         }
         out.push_back(parsed.value());
         if (end == std::string::npos) {
@@ -160,7 +158,7 @@ template <typename T, typename flag_t>
 struct ConfigFiller;
 std::runtime_error failed_convert(const toml::node& n)
 {
-    return std::runtime_error("Cannot parse configuration value starting at line "s + std::to_string(n.source().begin.line) + ", column "s + std::to_string(n.source().begin.column) + ".");
+    return std::runtime_error(std::format("Cannot parse configuration value starting at line {}, column {}.", n.source().begin.line, n.source().begin.column));
 }
 
 template <typename T>
@@ -241,7 +239,7 @@ struct TableReader : public TableReaderData {
         if (report) {
             for (auto& [k, used] : keyUsed) {
                 if (!used) {
-                    spdlog::warn("Ignoring configuration setting \""s + std::string(k.str()) + "\" at line "s + std::to_string(k.source().begin.line) + " in file "s + string(filepath));
+                    spdlog::warn("Ignoring configuration setting '{}' at line {} in file {}", k.str(), k.source().begin.line, filepath);
                 }
             }
         }
@@ -253,7 +251,7 @@ struct TableReader : public TableReaderData {
         if (auto it { tbl.find(s) }; it != tbl.end()) {
             keyUsed[it->first] = true;
             if (it->second.is_table() == false)
-                throw std::runtime_error("Configuration file's "s + std::string(s) + " must be a table."s);
+                throw std::runtime_error(std::format("Configuration file's '{}' must be a table ", std::string(s)));
             auto p { it->second.as_table() };
             assert(p != nullptr);
             return TableReader { *p, filepath };
@@ -377,11 +375,11 @@ void fill(
 
 void ConfigParams::process_args(const gengetopt_args_info& ai)
 {
-    auto arg_to_peer_lambda = [](string_view argname) {
+    auto arg_to_peer_lambda = [](std::string_view argname) {
         return [argname](std::string_view argval) {
             auto p = TCPPeeraddr::parse(argval);
             if (!p)
-                throw std::runtime_error("Bad "s + string(argname) + " option specified.");
+                throw std::runtime_error(std::format("Bad {} option specified.",argname));
             return *p;
         };
     };
@@ -389,7 +387,7 @@ void ConfigParams::process_args(const gengetopt_args_info& ai)
         try {
             return CompactUInt::compact(Wart::parse_throw(argval), true);
         } catch (...) {
-            throw std::runtime_error("Bad --minfee option '"s + std::string(argval) + "' specified");
+            throw std::runtime_error(std::format("Bad --minfee option '{}' specified." ,argval));
         }
     } };
     fill_arg(peers.connect, ai.connect_given, ai.connect_arg, parse_endpoints);
@@ -644,7 +642,7 @@ std::string ConfigParams::dump()
 #endif
     tbl.insert_or_assign("stratum",
         toml::table {
-            { "bind", stratumPool ? stratumPool->to_string() : ""s },
+            { "bind", stratumPool ? stratumPool->to_string() : std::string("") },
         });
     tbl.insert_or_assign("node",
         toml::table {
@@ -661,8 +659,8 @@ std::string ConfigParams::dump()
                                    { "peers-db", data.peersdb },
                                    { "rxtx-db", data.peersdb },
                                });
-    stringstream ss;
-    ss << tbl << endl;
+    std::stringstream ss;
+    ss << tbl << std::endl;
     return ss.str();
 }
 

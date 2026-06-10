@@ -42,7 +42,6 @@ std::optional<Sockaddr> peer_ip_port(lws* wsi)
     return Sockaddr::from_sockaddr_storage(sa);
 }
 }
-using namespace std;
 WSConnectionManager::WSConnectionManager(PeerServer& peerServer, WebsocketServerConfig cfg)
     : peerServer(peerServer)
     , config { std::move(cfg) }

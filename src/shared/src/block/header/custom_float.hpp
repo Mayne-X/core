@@ -297,7 +297,6 @@ public:
         assert(!x.is_zero());
         assert(x.positive());
         auto e { x.exponent() };
-        using namespace std;
         x.internal.set_exponent(0);
         // These constants are from here: https://github.com/nadavrot/fast_log/blob/83bd112c330976c291300eaa214e668f809367ab/src/log_approx.cc#L56
         // The constants are given as constexpr in terms of exponent and mantissa explicitly because I am not sure

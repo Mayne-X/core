@@ -125,7 +125,6 @@ void AssetSelectWindow::on_select(const api_types::TokenListEntry& e)
 
 void AssetSelectWindow::process_completions()
 {
-    using namespace std;
     remove_buttons();
     auto& data { get_data() };
     std::string upperPrefix;

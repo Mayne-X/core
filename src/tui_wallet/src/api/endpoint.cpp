@@ -6,8 +6,6 @@
 #include "nlohmann/json.hpp"
 #include "parse.hpp"
 #include <algorithm>
-#include <iostream>
-using namespace std;
 using namespace nlohmann;
 
 template <typename T>
@@ -47,7 +45,7 @@ nlohmann::json Endpoint::extract_data(const std::string& json) const
     std::string error;
     auto iter = parsed.find("error");
     if (iter != parsed.end() && !iter->is_null()) {
-        error = iter->get<string>();
+        error = iter->get<std::string>();
     }
     auto code { parsed["code"].get<int32_t>() };
     if (code != 0 || !error.empty()) {
@@ -81,7 +79,7 @@ std::string Endpoint::http_post(const std::string& path, std::span<const uint8_t
     auto ref { log_request("POST " + path) };
     httplib::Client cli(host, port);
     cli.set_read_timeout(10);
-    auto res = cli.Post(path, (const char*)postdata.data(), postdata.size(), ""s);
+    auto res = cli.Post(path, (const char*)postdata.data(), postdata.size(), std::string(""));
     { // set success
         auto p { ref.lock() };
         if (p) {

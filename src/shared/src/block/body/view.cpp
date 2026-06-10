@@ -4,7 +4,6 @@
 // #include "general/is_testnet.hpp"
 // #include "general/reader.hpp"
 // #include <vector>
-// using namespace std;
 //
 // namespace block {
 // namespace body {

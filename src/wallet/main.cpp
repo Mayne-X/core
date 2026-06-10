@@ -10,8 +10,8 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <print>
 
-using namespace std;
 using namespace nlohmann;
 
 struct Wallet {
@@ -26,16 +26,16 @@ struct Wallet {
         j["address"] = address.to_string();
         return j.dump(1);
     }
-    void save(const filesystem::path& path) const
+    void save(const std::filesystem::path& path) const
     {
         if (std::filesystem::exists(path)) {
             throw std::runtime_error("Cannot create wallet, file '" + path.string() + "' already exists. You can specify a filename using the '-f' option.");
         }
-        ofstream os(path);
+        std::ofstream os(path);
         if (os.good()) {
             os << to_string();
             if (os.good())
-                cout << "Wallet file created." << endl;
+                std::println("Wallet file created.");
             else
                 throw std::runtime_error("Could not write wallet file, file is now corrupted :)");
         } else {
@@ -67,10 +67,10 @@ public:
     }
 };
 
-Wallet open_wallet(const filesystem::path& path)
+Wallet open_wallet(const std::filesystem::path& path)
 {
-    ifstream file(path);
-    ostringstream ss;
+    std::ifstream file(path);
+    std::ostringstream ss;
     if (file.is_open()) {
         ss << file.rdbuf();
         try {
@@ -78,7 +78,7 @@ Wallet open_wallet(const filesystem::path& path)
             return w;
         } catch (std::runtime_error& e) {
             throw std::runtime_error(
-                "Wallet file corrupted: "s + e.what() + ". You might want to restore using a private key."s);
+                std::format("Wallet file corrupted: {}. You might want to restore using a private key.",  e.what()));
         } catch (nlohmann::detail::parse_error& e) {
             throw std::runtime_error(
                 "Wallet file corrupted: File has incorrect JSON structure. You might "

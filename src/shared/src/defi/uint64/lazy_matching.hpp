@@ -3,7 +3,6 @@
 #include "matcher.hpp"
 #include "orderbook.hpp"
 #include "pool.hpp"
-using namespace std;
 
 namespace defi {
 
@@ -98,7 +97,6 @@ namespace defi {
         }
     }
 
-    using namespace std;
     return ob.match(poolBeforeMatch);
 }
 }

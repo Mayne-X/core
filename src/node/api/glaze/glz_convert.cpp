@@ -655,7 +655,6 @@ std::vector<std::pair<std::string, size_t>> from(const api::IPCounter& c)
 }
 NodeInfoResult from(const api::NodeInfo& info)
 {
-    using namespace std;
     using namespace std::chrono;
     using namespace std::string_literals;
     using sc = std::chrono::steady_clock;
@@ -664,7 +663,7 @@ NodeInfoResult from(const api::NodeInfo& info)
         size_t hours = (s % (24 * 60 * 60)) / (60 * 60);
         size_t minutes = (s % (60 * 60)) / 60;
         size_t seconds = (s % 60);
-        return to_string(days) + "d "s + to_string(hours) + "h "s + to_string(minutes) + "m "s + to_string(seconds) + "s"s;
+        return std::format("{}d {}h {}m {}s", days, hours, minutes, seconds);
     };
 
     auto startedAt { config().started_at() };

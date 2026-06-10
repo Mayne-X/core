@@ -78,6 +78,9 @@ include_ftxui = include_directories(['./third_party/ftxui/include','./third_part
 
 
 deps = [json_dep, spdlog_dep]
+if host_machine.system() == 'windows'
+  deps += [meson.get_compiler('cpp').find_library('ws2_32')]
+endif
 
 exe = executable('wart-tui', [vcs_dep ,
 './src/api/endpoint.cpp',

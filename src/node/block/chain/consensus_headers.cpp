@@ -3,7 +3,6 @@
 #include "general/is_testnet.hpp"
 #include "general/now.hpp"
 #include "general/result.hpp"
-#include "spdlog/spdlog.h"
 
 HeaderVerifier::HeaderVerifier(const SharedBatch& b)
     : nextTarget(TargetV1())
@@ -102,7 +101,6 @@ void HeaderVerifier::append(NonzeroHeight newlength, const PreparedAppend& p)
     // adjust next Target
     const Height upperHeight = newlength.retarget_floor();
     static_assert(::retarget_floor(JANUSV1RETARGETSTART) == JANUSV1RETARGETSTART);
-    using namespace std;
     if (upperHeight == newlength) { // need retarget
         bool override = false;
         if (!is_testnet()) {

@@ -1,6 +1,5 @@
 #include "block/header/custom_float.hpp"
 #include <iostream>
-using namespace std;
 
 void assert_exactly_equal(double d1, double d2)
 {
@@ -39,9 +38,9 @@ void assert_relative_somewhat_equal(double d1, double d2)
         auto fraction = d2 / d1;
         // check relative error:
         if (fraction < 0.995)
-            cout << fraction << endl;
+            std::cout << fraction << std::endl;
         if (fraction > 1.005)
-            cout << fraction << " for d1=" << d1 << " and d2 = " << d2 << endl;
+            std::cout << fraction << " for d1=" << d1 << " and d2 = " << d2 << std::endl;
         assert(fraction > 0.995);
         assert(fraction < 1.005);
     }
@@ -207,9 +206,9 @@ void test_custom_float()
 int main()
 {
     auto f = CustomFloat::from_double(0.005);
-    cout<<"exponent:  "<<f.exponent()<<endl;
-    cout<<"mantissa:  "<<f.mantissa()<<endl;
-    cout<<"to_double: "<<f.to_double()<<endl;
+    std::cout<<"exponent:  "<<f.exponent()<<std::endl;
+    std::cout<<"mantissa:  "<<f.mantissa()<<std::endl;
+    std::cout<<"to_double: "<<f.to_double()<<std::endl;
     test_custom_float();
     return 0;
 }

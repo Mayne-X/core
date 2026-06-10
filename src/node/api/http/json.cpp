@@ -327,7 +327,6 @@ json to_json(const api::block::CancelationData& tx)
     return { { "cancelTxid", to_json(tx.cancelTxid) } };
 }
 
-
 json to_json(const PeerDB::BanEntry& item)
 {
     return {
@@ -799,17 +798,7 @@ json to_json(const api::MarketDetail& mdet)
                             { "quoteWart", quote },
                             { "baseAsset", base },
                         } },
-        { "match", 
-            { 
-                { "filled", 
-                    { 
-                        { "baseAsset", to_json(match.filled.base.to_decimal(basePrec), false) }, 
-                        { "quoteWart", to_json(match.filled.quote.as_wart()) } 
-                    } 
-                }, 
-                { "toPool", toPool } 
-            } 
-        }
+        { "match", { { "filled", { { "baseAsset", to_json(match.filled.base.to_decimal(basePrec), false) }, { "quoteWart", to_json(match.filled.quote.as_wart()) } } }, { "toPool", toPool } } }
     };
 }
 
@@ -943,7 +932,6 @@ nlohmann::json to_json(const api::IPCounter& ipc)
 
 nlohmann::json to_json(const api::NodeInfo& info)
 {
-    using namespace std;
     using namespace std::chrono;
     using namespace std::string_literals;
     using sc = std::chrono::steady_clock;
@@ -952,7 +940,7 @@ nlohmann::json to_json(const api::NodeInfo& info)
         size_t hours = (s % (24 * 60 * 60)) / (60 * 60);
         size_t minutes = (s % (60 * 60)) / 60;
         size_t seconds = (s % 60);
-        return to_string(days) + "d "s + to_string(hours) + "h "s + to_string(minutes) + "m "s + to_string(seconds) + "s"s;
+        return std::format("{}d {}m {}h {}s", days, hours, minutes, seconds);
     };
 
     auto startedAt { config().started_at() };

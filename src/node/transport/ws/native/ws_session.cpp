@@ -1,11 +1,9 @@
 #include "ws_session.hpp"
-#include "spdlog/spdlog.h"
 #include "transport/ws/native/connection.hpp"
 #include <cstring>
 extern "C" {
 #include "libwebsockets.h"
 }
-using namespace std;
 
 std::shared_ptr<WSSession> WSSession::make_new(bool inbound, lws* wsi)
 {

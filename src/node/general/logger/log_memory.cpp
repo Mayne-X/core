@@ -1,7 +1,5 @@
 #include "log_memory.hpp"
 #include "api/events/subscription_fwd.hpp"
-#include <iostream>
-
 namespace logging {
 
 // global variable
@@ -37,7 +35,6 @@ void LogMemory::add_entry(const spdlog::details::log_msg& e)
     datetimeFormatter->format(e, formatted);
     std::string_view s(formatted.data(), formatted.size() - 1); //-1 to omit newline character
 
-    using namespace std;
     LogEntry entry {
         .level = e.level,
         .tp { e.time },

@@ -7,13 +7,10 @@
 #include "nlohmann/json.hpp"
 
 #include <cassert>
-#include <iostream>
-#include <list>
+#include <print>
 #include <memory>
 #include <uvw.hpp>
 #include <variant>
-
-using namespace std;
 
 namespace stratum {
 namespace msg {
@@ -160,9 +157,9 @@ struct StratumError {
             { "error", nlohmann::json::array({ code, message, nullptr }) }
         }.dump();
     }
-    static StratumError BadAddress(int64_t id) { return { id, 30, "User format must be <Address>[.<Workername>]"s }; }
-    static StratumError Unauthorized(int64_t id) { return { id, 24, "Unauthorized worker."s }; }
-    static StratumError JobNotFound(int64_t id) { return { id, 21, "Job not found"s }; }
+    static StratumError BadAddress(int64_t id) { return { id, 30, "User format must be <Address>[.<Workername>]" }; }
+    static StratumError Unauthorized(int64_t id) { return { id, 24, "Unauthorized worker." }; }
+    static StratumError JobNotFound(int64_t id) { return { id, 21, "Job not found" }; }
 };
 
 OK SubscribeResponse(const std::array<uint8_t, 4>& extra2prefix, int64_t id)
@@ -189,7 +186,7 @@ std::optional<msg::message> parse(std::string_view v)
     } else if (method == "mining.authorize") {
         return MiningAuthorize(id, params);
     }
-    cout << "Cannot parse \"" << v << "\"" << endl;
+    std::println("Cannot parse '{}'.", v);
     return {};
 }
 }

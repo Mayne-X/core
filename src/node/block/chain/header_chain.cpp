@@ -7,7 +7,6 @@
 #include "general/is_testnet.hpp"
 #include <algorithm>
 #include <stdexcept>
-using namespace std;
 
 std::optional<HeaderView> HeaderchainSkeleton::inefficient_search_header(NonzeroHeight h) const
 {
@@ -325,7 +324,7 @@ Headerchain::Headerchain(HeaderchainSkeleton skeleton)
 Headerchain::Headerchain(const Headerchain& from, Height subheight)
 {
     if (subheight > from.length())
-        throw std::out_of_range("Cannot extract subchain of length " + to_string(subheight) + " from chain of length " + to_string(from.length()));
+        throw std::out_of_range(std::format("Cannot extract subchain of length {} from chain of length {}", subheight.value(), from.length().value()));
     Batchslot bs(subheight);
     const size_t I = bs.index() + 1;
     for (size_t i = 0; i < I; ++i) {
@@ -339,7 +338,7 @@ Headerchain::Headerchain(const Headerchain& from, Height subheight)
 
 void Headerchain::throw_out_of_bounds(Height h) const
 {
-    throw std::out_of_range("Headerchain has length " + to_string(length()) + ". Cannot access index " + to_string(h));
+    throw std::out_of_range(std::format("Headerchain has length {}. Cannot access index {}", length().value(), h.value()));
 }
 
 const Headerchain::HeaderViewNoHash Headerchain::operator[](NonzeroHeight h) const

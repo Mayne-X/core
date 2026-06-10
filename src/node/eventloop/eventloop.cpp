@@ -1175,7 +1175,6 @@ void Eventloop::process_message(Conref cr, Rcvbuffer& msg)
     using namespace msg;
 
     auto m { msg.parse() };
-    using namespace std;
     bool isInit = holds_alternative<InitMsgV1>(m) || holds_alternative<InitMsgV3>(m);
     // first message must be of type INIT (is_init() is only initially true)
     if (cr.job().awaiting_init()) {

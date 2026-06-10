@@ -6,7 +6,6 @@
 #include <iostream>
 #include <span>
 #include <thread>
-using namespace std;
 
 class EmscriptenWSConnection {
   static void assert_success(EMSCRIPTEN_RESULT r) {
@@ -199,7 +198,6 @@ private:
 
 #include <emscripten.h>
 //
-using namespace std;
 int main() {
   cout << "S" << endl;
   EmscriptenWSConnection::Callbacks callbacks{

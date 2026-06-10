@@ -4,7 +4,6 @@
 #include "httplib.hpp"
 #include "nlohmann/json.hpp"
 #include <iostream>
-using namespace std;
 using namespace nlohmann;
 
 size_t writeFunction(void* ptr, size_t size, size_t nmemb, std::string* data)
