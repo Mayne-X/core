@@ -169,22 +169,22 @@ bool Downloader::valid_shared_batch(const SharedBatch& sb)
     return true;
 }
 
-bool Downloader::consider_insert_leader(Conref cr, BanList& offenders)
+std::optional<ChainOffender> Downloader::consider_insert_leader(Conref cr)
 {
     auto pos { leaderList.end() };
     if (!can_insert_leader(cr))
-        return false;
+        return {};
 
     NonzeroSnapshot sn { cr.chain().descripted() };
     auto o = global().pbr->find_last(sn.descripted->grid(), chains.signed_snapshot());
     if (!o)
-        return false;
+        return {};
     auto& pin { *o };
 
     syncdebug_log().info("acquire findLast: [{},{}]", pin.lower_height().value(), pin.upper_height().value());
 
     if (!valid_shared_batch(pin))
-        return false;
+        return {};
 
     Height bl = cr.chain().stage_fork_range().lower();
     Height cl = cr.chain().consensus_fork_range().lower();
@@ -195,10 +195,8 @@ bool Downloader::consider_insert_leader(Conref cr, BanList& offenders)
     // This node has announced a chain with more total work than have. So it must have headers that we don't know yet,
     // which means that the peer's descripted chain length must be greater than the equal length,
     // i.e. sn.length >= lower(). Otherwise, the node has faked the total work.
-    if (sn.length < pd.fork_range().lower()) {
-        offenders.insert_unique({ { EFAKEWORK, sn.length }, cr });
-        return false;
-    }
+    if (sn.length < pd.fork_range().lower())
+        return ChainOffender { { EFAKEWORK, sn.length }, cr };
 
     Lead_iter li;
     if (pin.valid()) {
@@ -210,7 +208,7 @@ bool Downloader::consider_insert_leader(Conref cr, BanList& offenders)
 
     data(cr).leaderIter = li;
     queue_requests(li);
-    return true;
+    return {};
 }
 
 void Downloader::erase_leader(const Lead_iter li)
@@ -755,18 +753,17 @@ void Downloader::select_leaders(BanList& banList)
     if (leaderList.size() >= maxLeaders)
         return;
     for (auto cr : connections) {
-        if (consider_insert_leader(cr, banList)
-            && leaderList.size() >= maxLeaders)
-            return;
+        if (auto o { consider_insert_leader(cr) })
+            banList.push_back(std::move(*o));
+        if (leaderList.size() >= maxLeaders)
+            break;
     }
 }
 
-BanList Downloader::insert(Conref cr)
+std::optional<ChainOffender> Downloader::insert(Conref cr)
 {
     connections.push_back(cr);
-    BanList bl;
-    consider_insert_leader(cr, bl);
-    return bl;
+    return consider_insert_leader(cr);
 }
 
 BanList Downloader::set_min_worksum(const Worksum& ws)
@@ -800,28 +797,21 @@ void Downloader::prune_leaders()
     }
 }
 
-BanList Downloader::on_append(Conref cr)
+std::optional<ChainOffender> Downloader::on_append(Conref cr)
 {
-    BanList out;
-    consider_insert_leader(cr, out);
-    return out;
+    return consider_insert_leader(cr);
 }
 
-BanList Downloader::on_fork(Conref cr)
+std::optional<ChainOffender> Downloader::on_fork(Conref cr)
 {
-    BanList out;
-    consider_insert_leader(cr, out);
-    return out;
+    return consider_insert_leader(cr);
 }
 
-BanList Downloader::on_rollback(Conref c)
+std::optional<ChainOffender> Downloader::on_rollback(Conref c)
 {
     if (is_leader(c))
         erase_leader(data(c).leaderIter);
-
-    BanList out;
-    consider_insert_leader(c, out);
-    return out;
+    return consider_insert_leader(c);
 }
 
 BanList Downloader::on_signed_snapshot_update()

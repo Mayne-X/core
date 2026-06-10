@@ -238,12 +238,12 @@ public:
     [[nodiscard]] BanList set_min_worksum(const Worksum& ws);
 
     // peer message callbacks
-    [[nodiscard]] BanList on_append(Conref cr);
-    [[nodiscard]] BanList on_fork(Conref cr);
-    [[nodiscard]] BanList on_rollback(Conref cr);
+    [[nodiscard]] std::optional<ChainOffender> on_append(Conref cr);
+    [[nodiscard]] std::optional<ChainOffender> on_fork(Conref cr);
+    [[nodiscard]] std::optional<ChainOffender> on_rollback(Conref cr);
 
     BanList on_signed_snapshot_update();
-    [[nodiscard]] BanList insert(Conref cr);
+    [[nodiscard]] std::optional<ChainOffender> insert(Conref cr);
     [[nodiscard]] std::optional<BanList> erase(Conref cr);
 
     auto leaders_end() { return leaderList.end(); }
@@ -290,7 +290,7 @@ private:
     // leader related functions
     void erase_leader(Lead_iter);
     void queue_requests(Lead_iter);
-    bool consider_insert_leader(Conref cr, BanList&); // returns true if has effect
+    std::optional<ChainOffender> consider_insert_leader(Conref cr); // if returns value we must close this connection.
     bool can_insert_leader(Conref cr);
 
     bool valid_shared_batch(const SharedBatch&);
