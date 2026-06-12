@@ -138,8 +138,19 @@ For development tasks, this project uses a [just](https://github.com/casey/just)
 * [just](https://github.com/casey/just#installation)
 
 #### Available recipes
-* `just build_debug` - Build debug Docker image
+* `just build-linux` - Build Linux executables via Docker, outputs to build/ directory
+* `just build-windows` - Build Windows executables via Docker cross-compilation, outputs to build/ directory
+* `just run_debug` - Run debug Docker image
 * `just bump` - Bump patch version in meson.build (e.g., 0.10.4 → 0.10.5)
+* `just valgrind -- [args]` - Run valgrind within the debug Docker container; args after `--` are passed to warthog inside the container
+
+  **Examples:**
+  ```bash
+  just valgrind                              # vanilla valgrind run
+  just valgrind -- --help                    # pass --help to warthog (-- separates Docker args from program args)
+  just valgrind -- --chain-db=/tmp/test      # auto-mount /tmp to container's /warthog/.warthog, pass --chain-db to warthog
+  VALGRIND_OPTS="--vgdb=full" just valgrind  # pass valgrind options via env
+  ```
 
 ## ▶️ USAGE
 * Run the node (use some restarter in case it crashes) <br />

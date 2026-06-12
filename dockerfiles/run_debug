@@ -1,0 +1,38 @@
+FROM alpine:3.23.4 AS build
+
+RUN echo "=== Installing build dependencies ===" && \
+    apk add meson libgcc musl-dev gcc g++ upx linux-headers valgrind pkgconf fmt && \
+    echo "=== Dependencies installed ==="
+
+COPY . /code
+
+RUN echo "=== Creating build directory ===" && \
+    mkdir /build && \
+    echo "=== Build directory created ==="
+
+WORKDIR /code
+
+RUN echo "=== Configuring project with meson ===" && \
+    LDFLAGS='-static' meson /build/code --default-library static && \
+    echo "=== Meson configuration complete ==="
+
+WORKDIR /build/code
+
+RUN echo "=== Building project with ninja (this may take a while...) ===" && \
+    ninja && \
+    echo "=== Build complete ==="
+
+RUN echo "=== Setting up install directory ===" && \
+    mkdir /install && \
+    echo "=== Install directory ready ==="
+
+RUN echo "=== Preparing debug build ===" && \
+    cp -r /build /build_tmp && \
+    rm -rf /build && mv /build_tmp /build && \
+    apk add valgrind && \
+    echo "=== Debug build ready ==="
+
+VOLUME ["/warthog/.warthog"]
+ENV VALGRIND_OPTS="--log-file=valgrind.log"
+ENTRYPOINT ["sh", "-c", "valgrind $VALGRIND_OPTS /build/code/src/node/wart-node --chain-db=/warthog/.warthog/chain.db --peers-db=/warthog/.warthog/peers.db $@", "--"]
+EXPOSE 9186 3000

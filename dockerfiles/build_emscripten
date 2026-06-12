@@ -1,5 +1,5 @@
-FROM emscripten/emsdk:3.1.60 AS build
-RUN pip install meson ninja
+FROM emscripten/emsdk:5.0.7 AS build
+RUN pip install --break-system-packages meson ninja && apt-get update && apt-get install -y pkg-config
 COPY . /code
 WORKDIR /code
 RUN --mount=type=cache,target=/build_emscripten2 meson setup /build_emscripten2 --cross-file=crosscompile/emscripten.txt --default-library static --buildtype=release
