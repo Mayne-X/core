@@ -38,8 +38,8 @@ jobs:
 
         - name: Rename artifacts for defi
           run: |
-            mv ./build/wart-node-windows.exe ./build/wart-node-defi-beta-windows.exe
-            mv ./build/wart-tui-windows.exe ./build/wart-tui-defi-beta-windows.exe
+            mv ./build/windows/wart-node-windows.exe ./build/wart-node-defi-beta-windows.exe
+            mv ./build/windows/wart-tui-windows.exe ./build/wart-tui-defi-beta-windows.exe
             mv ./build/wart-node-linux ./build/wart-node-defi-beta-linux
             mv ./build/wart-tui-linux ./build/wart-tui-defi-beta-linux
 
