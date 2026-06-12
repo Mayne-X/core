@@ -3,10 +3,9 @@ executable('wart-wallet', vcs_dep,
     './api_call.cpp', 
     './cmdline/cmdline.cpp', 
     './main.cpp', 
-    src_wh, 
-    src_spdlog
-],
-  include_directories : [include_secp256k1,include_wh,include_json, include_httplib, include_spdlog],
+    src_wh
+  ],
+  include_directories : [include_secp256k1,include_wh,include_json, include_httplib],
   link_with: libsecp256k1, 
-  dependencies: [libuv_dep,],
+  dependencies: [libuv_dep,spdlog_dep],
   install : true)

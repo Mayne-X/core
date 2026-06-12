@@ -162,7 +162,7 @@ std::optional<SignedSnapshot> ChainDB::get_signed_snapshot() const
     try {
         return SignedSnapshot(r);
     } catch (Error e) {
-        throw std::runtime_error(fmt::format("Database corrupted. Signed snapshot invalid: {}", e.strerror()));
+        throw std::runtime_error(spdlog::fmt_lib::format("Database corrupted. Signed snapshot invalid: {}", e.strerror()));
     }
 }
 
