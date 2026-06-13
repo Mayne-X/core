@@ -559,7 +559,7 @@ int ConfigParams::init(const gengetopt_args_info& ai)
         };
         Endpoints testnetEndpoints {
             "209.127.34.202:9286", // monsternonce
-            "208.124.86.3:9286", // kernelpanic
+            "104.251.219.14:9286", // kernelpanic
             "65.87.7.86:9286",
         };
 
