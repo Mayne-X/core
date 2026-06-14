@@ -1,6 +1,7 @@
 #include "recvbuffer.hpp"
 #include "communication/messages_impl.hpp"
 #include "crypto/hasher_sha256.hpp"
+#include "general/hex.hpp"
 #include <utility>
 
 bool Rcvbuffer::verify()
@@ -48,6 +49,7 @@ public:
     static auto parse(uint8_t type, Reader& r)
     {
         using ret_t = std::variant<Types...>;
+        auto c{r.cursor()};
         auto n { r.remaining() };
         try {
             auto res { check_first<ret_t, Types...>(type, r) };
@@ -55,7 +57,8 @@ public:
                 throw Error(EMSGINTEGRITY1);
             return res;
         } catch (...) {
-            spdlog::error("Cannot parse message of type {} with {} bytes", type, n);
+            auto hex {serialize_hex(std::span{c,n})};
+            spdlog::error("Cannot parse message of type {} with {} bytes: {}", type, n, hex);
             throw;
         }
     }

@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstring>
 #include <span>
+#include <vector>
 
 class Writer {
     template <size_t... Is, typename... Ts>
